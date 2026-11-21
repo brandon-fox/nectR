@@ -58,6 +58,21 @@ decisions:
     owner_agent: meta-orchestrator
     related_adr: docs/adr/0000-use-markdown-architectural-decision-records.md
 
+  - id: DEC-008
+    category: workflow-policy
+    status: locked
+    title: IDE-Agnostic Docs, Defined Terms & Living Trees
+    decision: Never assume IDE/skill access in public docs; define all acronyms (MV=PQ, PoUW-PoW) in glossary, and auto-generate or CI-check directory trees and nav.
+    owner_agent: meta-orchestrator
+
+  - id: DEC-009
+    category: parameter-default
+    status: locked
+    title: Mesa ABM + ML/RL Over LLM Frameworks (CrewAI/k8n)
+    decision: Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations rather than LLM orchestration frameworks (CrewAI/k8n).
+    owner_agent: ux-behavior-agent
+    related_adr: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
+
 experiments:
   - id: EXP-001
     status: open-simulation
