@@ -169,7 +169,7 @@ where $s_{\text{att}} = \text{learner\_attestation\_score} \in [0.0, 1.0]$. `pai
 
 Prevents cross-Hive capital flight and inflation contagion by gating Comb-to-Comb transfers on host-Hive contribution and clamped health exchange rates ([ADR-0005](../adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md), `DEC-003`, `DEC-004`).
 
-#### GuardBeeCrossHiveBridgeContract Method and FX Formulas
+#### GuardBeeCrossHiveBridgeContract Method and Foreign Exchange (FX) Formulas
 
 Method: `bridge_nectr_to_target_hive(bee_id: str, target_hive: HiveContractEngine, amount: float, bridge_toll_rate: float = 0.05) -> dict[str, Any]`
 
@@ -211,13 +211,13 @@ sequenceDiagram
 
 ## Reconciliation of the Five Logical Service Interfaces
 
-The architecture skill specification (`.agents/skills/blockchain-architect/references/contracts_and_services_spec.md`) defines five logical service boundaries. In `src/nectr/services/hive_service.py`, orchestration is consolidated in `HiveServiceLayer`, while Wave 1 ([ADR-0009](../adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md)) introduces hexagonal ports and adapters.
+The architecture skill specification (`.agents/skills/blockchain-architect/references/contracts_and_services_spec.md`) defines five logical service boundaries. In `src/nectr/services/hive_service.py`, orchestration is consolidated in `HiveServiceLayer`, while Wave 1 ([ADR-0009](../adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md)) introduces hexagonal ports and adapters (exact adapter module filenames and optional constructor parameters are owned by the Wave 1 `add-sqlmodel-persistence-and-api` implementation).
 
 | Logical Service Interface | Implemented Mapping (`src/nectr/`) | Wave 1 Target Adapter / Exposure (`ADR-0009`) |
 |---|---|---|
-| `HiveNodeService` | `HiveServiceLayer.__init__()`, `bootstrap_sponsored_hive()`, `mine_epoch_block()` + `HiveBlockchain` | `HiveRepositoryPort` (`ports.py`), `SQLModelHiveRepository` (`persistence.py`), `src/nectr/services/migrations/`, `FastAPIHiveRouter` (`api.py`) |
+| `HiveNodeService` | `HiveServiceLayer.__init__()`, `bootstrap_sponsored_hive()`, `mine_epoch_block()` + `HiveBlockchain` | `HiveRepositoryPort` (`src/nectr/services/ports.py`), `SQLModelHiveRepository` (`src/nectr/services/`), `src/nectr/services/migrations/`, `FastAPIHiveRouter` (`src/nectr/services/`) |
 | `BarterEscrowService` | `HiveServiceLayer.execute_tutoring_handshake()` -> `create_service_barter_escrow()` + `settle_co_signed_session()` + `blockchain.submit_transaction()` | `FastAPIHiveRouter` command route + atomic SQLModel commit / rollback on `ContractViolationError` |
-| `GraphTelemetryService` | `HiveServiceLayer.compute_useful_work_proof()`, `compute_gini_coefficient()` | `TelemetryPort` (`ports.py`) -> `TelemetryAdapter` (`telemetry.py` using `structlog` + `opentelemetry-sdk`) + read-only UI feed (`ADR-0011`) |
+| `GraphTelemetryService` | `HiveServiceLayer.compute_useful_work_proof()`, `compute_gini_coefficient()` | `TelemetryAdapter` (`src/nectr/services/` using `structlog` + `opentelemetry-sdk`) + read-only UI feed (`ADR-0011`; plus `ADR-0014` off-chain `CQRSGraphProjector` behind `GraphTelemetryPort` as a planned extension) |
 | `QueenArbitrationService` | `HiveContractEngine.allocate_raw_pollen_to_learner()`, `certify_worker_bee()`, `resolve_disputed_session()` | Expose Queen allocation/arbitration commands via `HiveServiceLayer` and `FastAPIHiveRouter` (currently invoked directly on `contracts` in `personas/simulator.py`) |
 | `CrossHiveBridgeService` | `HiveContractEngine.bridge_nectr_to_target_hive()` + `blockchain.submit_transaction()` | Expose bridge execution via `HiveServiceLayer` and `FastAPIHiveRouter` (currently invoked directly on `hive_a.contracts` in `personas/simulator.py`) |
 
@@ -225,7 +225,7 @@ The architecture skill specification (`.agents/skills/blockchain-architect/refer
 
 ## Long-Term Biomimetic Contract Roadmap (Planned Extensions)
 
-All 5 smart contracts reside in `src/nectr/contracts/` and execute as pure, deterministic finite-state machines on every block without external oracle calls or non-deterministic wall-clock reads. Every transition is guarded by `icontract` Design-by-Contract decorators, `Hypothesis` stateful property fuzzing, and **Quint / TLA+** formal specifications (`specs/quint/`).
+All 5 smart contracts reside in `src/nectr/contracts/` as pure, deterministic finite-state machines without external oracle calls or non-deterministic wall-clock reads; under this planned extension roadmap, every transition will be guarded by `icontract` Design-by-Contract decorators, `Hypothesis` stateful property fuzzing, and **Quint / TLA+** formal specifications (`specs/quint/`).
 
 ---
 
@@ -249,7 +249,7 @@ All 5 smart contracts reside in `src/nectr/contracts/` and execute as pure, dete
 
 - **Three-Tier Separation of Powers (`ADR-0003`, `D-02`):** Enforces the `BEEKEEPER` (logged institutional emergency override and $p = 0.15$ random meta-auditor), non-tutoring `QUEEN` (cryptographically barred from acting as `Tutor` or receiving `CERTIFIED_WORKER_BEE` accreditation), and `WORKER` / `LEARNER` hierarchy.
 - **Fee-to-Comb & Phase-Split Royal Jelly (`ADR-0004`, `D-03`):** Routes 100% of certification, arbitration, and bridge fees to `comb_reserve`. Computes epoch Royal Jelly $R_Q(e) = \beta \Delta S_{\text{comb}}^+(e)\mathcal{V}_{\text{graph}}(e)(1 - \text{Gini}(e))$ (non-coin impact credits for Phase 1 Faculty-Queens; bond-backed `LIQUID_NECTR` dividends for Phase 2 Student-Queens).
-- **Network-Decayed QMP & Epigenetic Supersedure / Emergency Election:** Tracks graph-hop decayed QMP gated by Brood Synergy ($\Phi_{\text{brood}}$) and manages the `RoyalJellyBitmask` (`DNMT3`/`HDAC3`/`UHRF1`) across Graceful Supersedure (`1–3` slots, 1-epoch dual coexistence) and 24-hour Emergency Succession (up to `27` candidate slots weighted toward recent `<24h larval window` high-velocity contributors).
+- **Network-Decayed Queen Mandibular Pheromone (QMP) & Epigenetic Supersedure / Emergency Election:** Tracks graph-hop decayed QMP gated by Brood Synergy ($\Phi_{\text{brood}}$) and manages the `RoyalJellyBitmask` (`DNMT3`/`HDAC3`/`UHRF1`) across Graceful Supersedure (`1–3` slots, 1-epoch dual coexistence) and 24-hour Emergency Succession (up to `27` candidate slots weighted toward recent `<24h larval window` high-velocity contributors).
 
 ### 1.4 `KnowledgeGraphAndPolicingContract`
 
@@ -269,7 +269,7 @@ All 5 smart contracts reside in `src/nectr/contracts/` and execute as pure, dete
 
 | Invariant ID | Name | Formal Contract Predicate | Verified By |
 | :--- | :--- | :--- | :--- |
-| **`D-01`** | **No Blind Token Transfers** | Every balance delta requires a co-signed `DirectionalServiceBarterSession` (`tutor != learner`, `amount > 0` or `reciprocal_subject_id != None`) or explicit `Comb`/bridge call. | `protocol_invariants.feature`, `test_invariants.py` |
+| **`D-01`** | **No Blind Token Transfers** | Every balance delta requires a co-signed `ServiceBarterSession` (`tutor != learner`, `amount > 0` or non-empty `reciprocal_subject_id`) or explicit `Comb`/bridge call. | `protocol_invariants.feature`, `test_invariants.py` |
 | **`D-02`** | **Queen Separation of Powers** | `account.role == BeeRole.QUEEN` $\implies$ prohibited from `tutor_id` in escrow, `CERTIFIED_WORKER_BEE` accreditation, or `RAW_POLLEN` draw. | `protocol_invariants.feature`, `test_invariants.py` |
 | **`D-03`** | **Fee-to-Comb & Supply Conservation** | P2P settlement fee $= 0\%$; governance fees flow $100\%$ to `comb_reserve`; $M_{\text{total}} = S_{\text{comb}} + \sum B_{\text{pollen}} + \sum B_{\text{nectR}} + E_{\text{locked}}$. | `protocol_invariants.feature`, `test_invariants.py` |
 | **`D-04`** | **Guard Bee Accepted Status & Clamped FX** | Cross-Hive bridge requires `target_hive_id in account.accepted_in_hives` ($\ge K$ distinct local peers tutored) and $\text{FX} \in [0.5, 2.0]$. | `protocol_invariants.feature`, `test_invariants.py` |
