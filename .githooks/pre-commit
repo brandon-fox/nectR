@@ -10,5 +10,6 @@ if [ -n "$STAGED_FILES" ]; then
     fi
 fi
 
+python -m nectr.devtools.decisions check
 python -m pytest
 python -m behave --tags=-red

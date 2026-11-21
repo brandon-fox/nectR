@@ -1,0 +1,70 @@
+schema_version: 1
+decisions:
+  - id: DEC-001
+    category: parameter-default
+    status: locked
+    title: Default Idle-Balance Melt & Safety Cushion
+    decision: Apply ~2%/month lazy demurrage only above a protected student safety buffer during Weeks 1-13, pausing in Finals (Weeks 14-15); tunable per Hive by Queens/Beekeepers.
+    owner_agent: product-lifecycle-agent
+    related_adr: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
+    openspec_ref: openspec/specs/protocol-invariants/spec.md
+
+  - id: DEC-002
+    category: parameter-default
+    status: locked
+    title: Default Midterm & Finals Comb Top-Up Multiplier
+    decision: Default Comb Waggle surge co-pays ~60% of ~2.2x peak tutor payouts during Midterms and Finals so learners pay ~1.0x-1.3x; tunable per Hive by Queens/Beekeepers.
+    owner_agent: product-lifecycle-agent
+    related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+
+  - id: DEC-003
+    category: parameter-default
+    status: locked
+    title: Baseline Pairwise Decay & Guard Acceptance Threshold
+    decision: Initialize HiveContractEngine defaults at collusion_alpha=1.5, lineage_gamma=0.5, and accepted_status_peer_threshold=3 distinct host-Hive peers tutored.
+    owner_agent: contracts-service-agent
+    related_adr: docs/adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md
+    openspec_ref: openspec/specs/protocol-invariants/spec.md
+
+  - id: DEC-004
+    category: parameter-default
+    status: locked
+    title: Default Senior Sink Split & Cross-Hive FX Corridor
+    decision: Target 40% Credentials/Swarming, 35% Campus Perks, 25% Freshman Bounties (+ dormant alumni sweep); clamp epoch cross-Hive FX to [0.5x, 2.0x] with 5% Comb toll.
+    owner_agent: business-proposal-agent
+    related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+
+  - id: DEC-005
+    category: research-hygiene
+    status: locked
+    title: Primary-Source Citation & Empirical Self-Citation Rule
+    decision: Exclude placeholder URLs, plagiarism notices, AI-wikis, Reddit, and SEO blogs from paper/; cite primary peer-reviewed works and reproducible experiments/ runs.
+    owner_agent: sci-research-agent
+
+  - id: DEC-006
+    category: workflow-policy
+    status: locked
+    title: Outside-In OpenSpec -> Behave BDD -> Strict TDD Pipeline
+    decision: Require an openspec/changes/<id>/ spec, Gherkin feature, and xfail_strict Red-Green-Refactor atomic SSH-signed commits for every behavioral or tooling change.
+    owner_agent: meta-orchestrator
+    related_adr: docs/adr/0000-use-markdown-architectural-decision-records.md
+    openspec_ref: openspec/project.md
+
+  - id: DEC-007
+    category: security-oss
+    status: locked
+    title: Permissive OSS Runtime & Approved pyadr Dev Waiver
+    decision: Enforce MIT-compatible runtime deps and detect-secrets hooks; waive local dev-only pyadr cleo PYSEC-2022-43178 and elect Artistic-1.0 on text-unidecode.
+    owner_agent: meta-orchestrator
+    related_adr: docs/adr/0000-use-markdown-architectural-decision-records.md
+
+experiments:
+  - id: EXP-001
+    status: open-simulation
+    title: Queen Receiver-Only Praise vs. Nepotism Stress-Test
+    hypothesis: Keep ratings private, cap roommate loops, and let Queens praise only learner success (tracing backward to tutors) across Honest vs. Biased simulation arms.
+    risk_note: Nepotism (Queens disproportionately praising favored students) and gamification side-effects are untested empirically; weights stay unlocked until simulated.
+    owner_agents:
+      - ux-behavior-agent
+      - sci-research-agent
+    related_adr: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md

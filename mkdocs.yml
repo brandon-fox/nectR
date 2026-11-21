@@ -2,6 +2,8 @@ site_name: "nectR: Biomimetic Campus Blockchain & Closed Economy"
 site_description: "Published Theory, Agentic Behavioral Simulation, Business Proposals & Flagship Blockchain System Design"
 repo_name: "nectR"
 strict: true
+exclude_docs: |
+  adr/template.md
 
 theme:
   name: material
@@ -31,9 +33,18 @@ nav:
   - Planning & Autonomous Ops:
       - Roadmap & Milestones: planning/roadmap.md
       - Agent Orchestration Guide: planning/agent_orchestration.md
-      - Design Decision Log (/grill-me): planning/decision_log.md
+      - Fast Decision Log (DEC / EXP): planning/decision_log.md
       - Deep Research Prompts: planning/deep_research_prompts.md
-      - "ADR-001: Changelog Tooling": adr/ADR-001-changelog-tooling.md
+      - Architecture Decision Records (MADR):
+          - ADR Index: adr/index.md
+          - "0000: MADR & Verbosity Controls": adr/0000-use-markdown-architectural-decision-records.md
+          - "0001: Commitizen Changelogs": adr/0001-use-commitizen-for-automated-changelogs-and-releases.md
+          - "0002: Directional Service Barter": adr/0002-enforce-directional-service-barter-state-transitions.md
+          - "0003: Beekeeper & Queen Governance": adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
+          - "0004: Fee-to-Comb & Royal Jelly": adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+          - "0005: Guard Bee & Epoch FX Bridge": adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md
+          - "0006: Two-Phase Genesis & Swarming": adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+          - "0007: Campus PoUW-PoW & Compute Jar": adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md
   - 1. Theory & Academic Paper:
       - Whitepaper Draft: theory/whitepaper_outline.md
       - Biomimetic Hive Mechanics: theory/biomimicry_model.md
