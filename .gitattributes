@@ -1,0 +1,13 @@
+# Enforce consistent LF line endings across platforms to prevent CRLF/LF PR noise
+* text=auto eol=lf
+
+*.py text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.feature text eol=lf
+*.sh text eol=lf
+.adr text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf

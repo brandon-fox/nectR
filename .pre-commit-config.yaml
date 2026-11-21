@@ -19,16 +19,23 @@ repos:
         language: system
         stages: [commit-msg]
 
-      - id: nectr-decision-governance
-        name: nectR pyadr MADR & Fast Decision Registry Check (pre-commit)
+      - id: nectr-decisions-check
+        name: nectR MADR ADR & Fast Decision Registry Check (pre-commit)
         entry: python -m nectr.devtools.decisions check
         language: system
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: nectr-decisions-check
-        name: nectR Decision & MADR ADR Governance Check (pre-commit)
-        entry: python -m nectr.devtools.decisions check
+      - id: nectr-citations-check
+        name: nectR Citation Quality & Provenance Lineage Check (pre-commit)
+        entry: python -m nectr.devtools.citations check
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: nectr-docs-check
+        name: nectR Living Docs, Glossary & MkDocs Nav Sync Check (pre-commit)
+        entry: python -m nectr.devtools.docs_sync check
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -40,9 +47,16 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: nectr-tdd-unit-tests
-        name: nectR Strict TDD Unit Test Suite (pre-commit)
-        entry: python -m pytest
+      - id: ruff-check-and-format
+        name: ruff lint & format check (src, tests, features)
+        entry: ruff check src tests features
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: pymarkdown-lint
+        name: pymarkdown lint (core docs, README, AGENTS)
+        entry: pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -50,6 +64,13 @@ repos:
       - id: mypy-strict-typecheck
         name: mypy (Strict Static Type Check on src, .agents, and skill tests)
         entry: python -m mypy src .agents/lib .agents/skills tests/test_skills_spec.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: nectr-tdd-unit-tests
+        name: nectR Strict TDD Unit Test Suite (pre-commit)
+        entry: python -m pytest
         language: system
         pass_filenames: false
         stages: [pre-commit]

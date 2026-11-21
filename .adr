@@ -1,2 +1,3 @@
+# pyadr configuration — supported keys in [adr]: records-dir
 [adr]
 records-dir = docs/adr

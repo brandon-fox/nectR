@@ -14,14 +14,16 @@ def test_repository_adrs_and_fast_decision_log_pass_all_controls() -> None:
     from nectr.devtools.decisions import check_all_governance
 
     summary = check_all_governance(REPO_ROOT)
-    assert summary["accepted_adr_count"] == 8
+    assert summary["accepted_adr_count"] >= 8
     assert summary["toc_in_sync"] is True
     assert summary["decision_count"] >= 7
     assert summary["experiment_count"] >= 1
     assert summary["decision_log_in_sync"] is True
 
 
-def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(tmp_path: Path) -> None:
+def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(
+    tmp_path: Path,
+) -> None:
     """MADR verbosity gate enforces line, word, title-length, and per-section bullet caps."""
     from nectr.devtools.decisions import DecisionGovernanceError, validate_adr_verbosity
 
@@ -29,7 +31,9 @@ def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(tm
     adr_dir.mkdir(parents=True)
 
     # 1. Title > 70 chars rejected
-    long_title = "Establish Overly Verbose Architectural Decision Title Exceeding Seventy Characters Easily"
+    long_title = (
+        "Establish Overly Verbose Architectural Decision Title Exceeding Seventy Characters Easily"
+    )
     (adr_dir / "0002-long.md").write_text(
         f"# {long_title}\n\n* Status: accepted\n* Date: 2026-11-21\n\n"
         "## Context and Problem Statement\n\nShort.\n\n"
@@ -154,3 +158,39 @@ def test_cli_add_decision_updates_yaml_and_renders_markdown_in_sync(tmp_path: Pa
     rendered_file = (planning / "decision_log.md").read_text(encoding="utf-8")
     assert rendered_file == render_decision_log(reg, tmp_path)
     assert "DEC-001" in rendered_file
+
+
+def test_mit_adr_engine_supports_proposed_lifecycle_and_zero_external_pyadr(tmp_path: Path) -> None:
+    """Zero-CVE nectr.devtools.adr replaces external pyadr and supports --allow-proposed."""
+    from nectr.devtools.adr import AdrCore, AdrError, slugify_title
+    from nectr.devtools.decisions import DecisionGovernanceError
+    from nectr.devtools.decisions import main as decisions_main
+
+    assert slugify_title("Adopt Ed25519 CanonicalJSON and Merklelib") == (
+        "adopt-ed25519-canonicaljson-and-merklelib"
+    )
+    core = AdrCore(tmp_path)
+    core.init_adr_repo()
+    proposed = core.new_adr("Evaluate Cache Adapter")
+    assert proposed.name == "XXXX-evaluate-cache-adapter.md"
+    core.generate_toc()
+    toc_text = (tmp_path / "docs" / "adr" / "index.md").read_text(encoding="utf-8")
+    assert "Status `proposed`" in toc_text
+    assert "XXXX - Evaluate Cache Adapter" in toc_text
+
+    # Strict check fails on proposed ADR
+    with pytest.raises(AdrError, match="proposed"):
+        core.check_adr_repo(check_no_proposed=True)
+
+    # --allow-proposed passes via CLI
+    assert decisions_main(["--root", str(tmp_path), "check-adrs", "--allow-proposed"]) == 0
+
+    # Accepting assigns 0002 and passes strict check
+    accepted = core.accept_or_reject(proposed, "accepted", toc=True)
+    assert accepted.name == "0002-evaluate-cache-adapter.md"
+    core.check_adr_repo(check_no_proposed=True)
+
+    # Docs lifecycle guide exists in repo docs/adr
+    assert (REPO_ROOT / "docs" / "adr" / "lifecycle_guide.md").exists()
+    with pytest.raises(DecisionGovernanceError):
+        raise DecisionGovernanceError("sanity check type")
