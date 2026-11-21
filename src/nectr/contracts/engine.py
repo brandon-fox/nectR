@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -37,6 +38,20 @@ class SessionStatus(StrEnum):
 
 class ContractViolationError(ValueError):
     """Raised when a transaction violates a nectR smart contract or game-theory invariant."""
+
+
+def _require_finite_non_negative(value: float, label: str) -> float:
+    if not math.isfinite(value) or value < 0:
+        raise ContractViolationError(f"{label} must be a finite non-negative number.")
+    return value
+
+
+def _require_str_collection(value: Any, label: str) -> set[str]:
+    if not isinstance(value, (list, tuple, set, frozenset)):
+        raise ContractViolationError(
+            f"Invalid BeeAccount snapshot: '{label}' must be a collection."
+        )
+    return {str(item) for item in value}
 
 
 @dataclass
@@ -75,16 +90,29 @@ class BeeAccount:
                 bee_id=str(data["bee_id"]),
                 home_hive_id=str(data["home_hive_id"]),
                 role=BeeRole(str(data["role"])),
-                raw_pollen_balance=float(data["raw_pollen_balance"]),
-                liquid_nectr_balance=float(data["liquid_nectr_balance"]),
-                certified_subjects={str(s) for s in data["certified_subjects"]},
-                accepted_in_hives={str(h) for h in data["accepted_in_hives"]},
-                distinct_peers_tutored_in_hive={
-                    str(p) for p in data["distinct_peers_tutored_in_hive"]
-                },
-                royal_jelly_earned=float(data["royal_jelly_earned"]),
+                raw_pollen_balance=_require_finite_non_negative(
+                    float(data["raw_pollen_balance"]), "raw_pollen_balance"
+                ),
+                liquid_nectr_balance=_require_finite_non_negative(
+                    float(data["liquid_nectr_balance"]), "liquid_nectr_balance"
+                ),
+                certified_subjects=_require_str_collection(
+                    data["certified_subjects"], "certified_subjects"
+                ),
+                accepted_in_hives=_require_str_collection(
+                    data["accepted_in_hives"], "accepted_in_hives"
+                ),
+                distinct_peers_tutored_in_hive=_require_str_collection(
+                    data["distinct_peers_tutored_in_hive"],
+                    "distinct_peers_tutored_in_hive",
+                ),
+                royal_jelly_earned=_require_finite_non_negative(
+                    float(data["royal_jelly_earned"]), "royal_jelly_earned"
+                ),
             )
-        except (KeyError, ValueError, TypeError) as exc:
+        except ContractViolationError:
+            raise
+        except (KeyError, ValueError, TypeError, AttributeError) as exc:
             raise ContractViolationError(f"Invalid BeeAccount snapshot: {exc}") from exc
 
 
@@ -129,22 +157,34 @@ class ServiceBarterSession:
         """Hydrate a ServiceBarterSession from serialized primitives."""
         try:
             rec = data.get("reciprocal_subject_id")
+            duration_hours = float(data["duration_hours"])
+            if not math.isfinite(duration_hours) or duration_hours <= 0:
+                raise ContractViolationError("Session duration_hours must be finite and positive.")
+            attestation_score = float(data["learner_attestation_score"])
+            if not math.isfinite(attestation_score) or not (0.0 <= attestation_score <= 1.0):
+                raise ContractViolationError("Attestation score must be in [0.0, 1.0].")
             return cls(
                 session_id=str(data["session_id"]),
                 hive_id=str(data["hive_id"]),
                 tutor_id=str(data["tutor_id"]),
                 learner_id=str(data["learner_id"]),
                 subject_id=str(data["subject_id"]),
-                duration_hours=float(data["duration_hours"]),
-                escrowed_amount=float(data["escrowed_amount"]),
+                duration_hours=duration_hours,
+                escrowed_amount=_require_finite_non_negative(
+                    float(data["escrowed_amount"]), "escrowed_amount"
+                ),
                 token_state=TokenState(str(data["token_state"])),
                 reciprocal_subject_id=None if rec is None else str(rec),
                 status=SessionStatus(str(data["status"])),
-                learner_attestation_score=float(data["learner_attestation_score"]),
+                learner_attestation_score=attestation_score,
                 tutor_comprehension_hash=str(data["tutor_comprehension_hash"]),
-                effective_weight=float(data["effective_weight"]),
+                effective_weight=_require_finite_non_negative(
+                    float(data["effective_weight"]), "effective_weight"
+                ),
             )
-        except (KeyError, ValueError, TypeError) as exc:
+        except ContractViolationError:
+            raise
+        except (KeyError, ValueError, TypeError, AttributeError) as exc:
             raise ContractViolationError(f"Invalid ServiceBarterSession snapshot: {exc}") from exc
 
 
@@ -200,7 +240,7 @@ class HiveContractEngine:
 
     def inject_sponsored_seed_comb(self, amount: float) -> dict[str, Any]:
         """School sponsor injects initial fixed Seed Comb into the Hive."""
-        if amount <= 0:
+        if not math.isfinite(amount) or amount <= 0:
             raise ContractViolationError("Seed Comb injection must be positive.")
         self.comb_reserve += amount
         self.total_minted_supply += amount
@@ -223,7 +263,7 @@ class HiveContractEngine:
         learner = self._get_account(learner_id)
         if learner.role == BeeRole.QUEEN:
             raise ContractViolationError("Queens cannot receive RAW_POLLEN learner vouchers.")
-        if amount <= 0 or amount > self.comb_reserve:
+        if not math.isfinite(amount) or amount <= 0 or amount > self.comb_reserve:
             raise ContractViolationError("Insufficient Comb reserve for RAW_POLLEN draw.")
         self.comb_reserve -= amount
         learner.raw_pollen_balance += amount
@@ -251,6 +291,7 @@ class HiveContractEngine:
         worker = self._get_account(worker_id)
         if worker.role == BeeRole.QUEEN:
             raise ContractViolationError("Queens cannot be certified as Worker Tutors.")
+        _require_finite_non_negative(certification_fee, "certification_fee")
         if certification_fee > 0:
             if worker.liquid_nectr_balance < certification_fee:
                 raise ContractViolationError("Insufficient LIQUID_NECTR for certification fee.")
@@ -283,6 +324,10 @@ class HiveContractEngine:
         reciprocal_subject_id: str | None = None,
     ) -> ServiceBarterSession:
         """Step 1: Lock funds (or 0-nectR mutual skill obligation) into directional service escrow."""
+        if session_id in self.sessions:
+            raise ContractViolationError(f"Session '{session_id}' already exists.")
+        if not math.isfinite(duration_hours) or duration_hours <= 0:
+            raise ContractViolationError("Session duration_hours must be positive and finite.")
         if tutor_id == learner_id:
             raise ContractViolationError("Self-tutoring is prohibited.")
         tutor = self._get_account(tutor_id)
@@ -294,7 +339,7 @@ class HiveContractEngine:
                 "Queen Separation of Powers Violation: Queens cannot tutor or earn nectR from tutoring."
             )
 
-        if amount < 0:
+        if not math.isfinite(amount) or amount < 0:
             raise ContractViolationError("Escrow amount cannot be negative.")
 
         if amount == 0 and not reciprocal_subject_id:
@@ -346,7 +391,9 @@ class HiveContractEngine:
         session = self._get_session(session_id)
         if session.status != SessionStatus.INTENT_ESCROWED:
             raise ContractViolationError(f"Session {session_id} is not in INTENT_ESCROWED state.")
-        if not (0.0 <= learner_attestation_score <= 1.0):
+        if not math.isfinite(learner_attestation_score) or not (
+            0.0 <= learner_attestation_score <= 1.0
+        ):
             raise ContractViolationError("Attestation score must be in [0.0, 1.0].")
 
         tutor = self._get_account(session.tutor_id)
@@ -421,8 +468,10 @@ class HiveContractEngine:
         session = self._get_session(session_id)
         if session.status != SessionStatus.INTENT_ESCROWED:
             raise ContractViolationError("Only escrowed sessions can be arbitrated.")
-        if not (0.0 <= tutor_share_ratio <= 1.0):
+        if not math.isfinite(tutor_share_ratio) or not (0.0 <= tutor_share_ratio <= 1.0):
             raise ContractViolationError("tutor_share_ratio must be between 0 and 1.")
+        if not math.isfinite(service_fee_rate) or not (0.0 <= service_fee_rate <= 1.0):
+            raise ContractViolationError("service_fee_rate must be between 0 and 1.")
 
         tutor = self._get_account(session.tutor_id)
         learner = self._get_account(session.learner_id)
@@ -467,8 +516,10 @@ class HiveContractEngine:
             raise ContractViolationError(
                 "Queens are bound to their Hive and cannot bridge tutoring currency."
             )
-        if amount <= 0 or source_acct.liquid_nectr_balance < amount:
+        if not math.isfinite(amount) or amount <= 0 or source_acct.liquid_nectr_balance < amount:
             raise ContractViolationError("Insufficient LIQUID_NECTR in origin Hive to bridge.")
+        if not math.isfinite(bridge_toll_rate) or not (0.0 <= bridge_toll_rate <= 1.0):
+            raise ContractViolationError("bridge_toll_rate must be between 0 and 1.")
 
         target_acct = target_hive.register_bee(bee_id, home_hive_id=source_acct.home_hive_id)
         if target_hive.hive_id not in target_acct.accepted_in_hives:
@@ -513,6 +564,15 @@ class HiveContractEngine:
     # -------------------------------------------------------------------------
     def assert_supply_conservation(self) -> None:
         """Assert that TotalSupply == CombReserve + Sum(RawPollen) + Sum(LiquidNectR) + Sum(Escrow)."""
+        _require_finite_non_negative(self.comb_reserve, "comb_reserve")
+        _require_finite_non_negative(self.total_minted_supply, "total_minted_supply")
+        for acct in self.accounts.values():
+            _require_finite_non_negative(acct.raw_pollen_balance, "raw_pollen_balance")
+            _require_finite_non_negative(acct.liquid_nectr_balance, "liquid_nectr_balance")
+            _require_finite_non_negative(acct.royal_jelly_earned, "royal_jelly_earned")
+        for sess in self.sessions.values():
+            _require_finite_non_negative(sess.escrowed_amount, "escrowed_amount")
+
         total_pollen = sum(a.raw_pollen_balance for a in self.accounts.values())
         total_liquid = sum(a.liquid_nectr_balance for a in self.accounts.values())
         total_escrow = sum(
@@ -522,7 +582,11 @@ class HiveContractEngine:
         )
         accounted = round(self.comb_reserve + total_pollen + total_liquid + total_escrow, 5)
         expected = round(self.total_minted_supply, 5)
-        if abs(accounted - expected) > 1e-4:
+        if (
+            not math.isfinite(accounted)
+            or not math.isfinite(expected)
+            or abs(accounted - expected) > 1e-4
+        ):
             raise ContractViolationError(
                 f"Supply conservation invariant violated: accounted={accounted} != expected={expected}"
             )
@@ -596,14 +660,27 @@ class HiveContractEngine:
                 raise ContractViolationError(
                     f"Unsupported snapshot schema version: {schema_version}"
                 )
+            collusion_alpha = _require_finite_non_negative(
+                float(snapshot["collusion_alpha"]), "collusion_alpha"
+            )
+            lineage_gamma = _require_finite_non_negative(
+                float(snapshot["lineage_gamma"]), "lineage_gamma"
+            )
+            accepted_threshold = int(snapshot["accepted_status_peer_threshold"])
+            if accepted_threshold < 1:
+                raise ContractViolationError("accepted_status_peer_threshold must be >= 1.")
             engine = cls(
                 hive_id=str(snapshot["hive_id"]),
-                collusion_alpha=float(snapshot["collusion_alpha"]),
-                lineage_gamma=float(snapshot["lineage_gamma"]),
-                accepted_status_peer_threshold=int(snapshot["accepted_status_peer_threshold"]),
+                collusion_alpha=collusion_alpha,
+                lineage_gamma=lineage_gamma,
+                accepted_status_peer_threshold=accepted_threshold,
             )
-            engine.comb_reserve = float(snapshot["comb_reserve"])
-            engine.total_minted_supply = float(snapshot["total_minted_supply"])
+            engine.comb_reserve = _require_finite_non_negative(
+                float(snapshot["comb_reserve"]), "comb_reserve"
+            )
+            engine.total_minted_supply = _require_finite_non_negative(
+                float(snapshot["total_minted_supply"]), "total_minted_supply"
+            )
 
             raw_accounts = snapshot["accounts"]
             for key, raw_acct in raw_accounts.items():
@@ -629,21 +706,28 @@ class HiveContractEngine:
 
             for entry in snapshot["pairwise_counts"]:
                 pair = [str(x) for x in entry["pair"]]
-                if len(pair) != 2 or pair[0] == pair[1]:
+                count = int(entry["count"])
+                if len(pair) != 2 or pair[0] == pair[1] or count < 0:
                     raise ContractViolationError(f"Invalid pairwise_counts entry: {entry!r}")
-                engine.pairwise_counts[frozenset(pair)] = int(entry["count"])
+                pair_key = frozenset(pair)
+                if pair_key in engine.pairwise_counts:
+                    raise ContractViolationError(
+                        f"Duplicate pairwise_counts entry for pair {sorted(pair_key)!r}."
+                    )
+                engine.pairwise_counts[pair_key] = count
 
             for lineage_entry in snapshot["subject_lineage"]:
                 lineage_key = (str(lineage_entry["learner_id"]), str(lineage_entry["subject_id"]))
                 engine.subject_lineage[lineage_key] = [str(t) for t in lineage_entry["tutors"]]
 
             engine.tutor_effectiveness = {
-                str(k): float(v) for k, v in snapshot["tutor_effectiveness"].items()
+                str(k): _require_finite_non_negative(float(v), f"tutor_effectiveness[{k}]")
+                for k, v in snapshot["tutor_effectiveness"].items()
             }
             engine.settled_tx_log = copy.deepcopy(list(snapshot["settled_tx_log"]))
         except ContractViolationError:
             raise
-        except (KeyError, ValueError, TypeError) as exc:
+        except (KeyError, ValueError, TypeError, AttributeError) as exc:
             raise ContractViolationError(f"Invalid HiveContractEngine snapshot: {exc}") from exc
 
         if verify_invariants:

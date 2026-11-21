@@ -439,13 +439,10 @@ def test_fastapi_hive_router_endpoints_and_error_rollback(tmp_path: Path) -> Non
 
 
 # ---------------------------------------------------------------------------
-# Iteration 2 RED Regression Tests: API, Rollback, Persistence & Telemetry
+# Iteration 2 Regression Tests: API, Rollback, Persistence & Telemetry
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: BUG-2/3/4/5 API NaN/bounds and mine_epoch_block beta validation"
-)
 def test_api_and_service_reject_nan_inf_negative_duration_fee_and_beta() -> None:
     from nectr.services.api import create_app
     from nectr.services.ports import InMemoryHiveRepository
@@ -529,7 +526,6 @@ def test_api_and_service_reject_nan_inf_negative_duration_fee_and_beta() -> None
             service.mine_epoch_block(queen_dividend_beta=bad_beta)
 
 
-@pytest.mark.xfail(strict=True, reason="RED: R1 Medium commit-phase rollback ordering")
 def test_commit_phase_failure_rolls_back_in_memory_state(tmp_path: Path) -> None:
     from collections.abc import Iterator
     from contextlib import contextmanager
@@ -573,9 +569,6 @@ def test_commit_phase_failure_rolls_back_in_memory_state(tmp_path: Path) -> None
     repo.close()
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: C1 #1 DB reload does not reject negative/duplicate pairwise_counts"
-)
 def test_repository_reload_rejects_corrupted_negative_or_duplicate_pairwise_counts(
     tmp_path: Path,
 ) -> None:
@@ -623,9 +616,6 @@ def test_repository_reload_rejects_corrupted_negative_or_duplicate_pairwise_coun
     repo.close()
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: MINOR-TEL-1/2 tuple/set sanitization and PEM exception scrubbing"
-)
 def test_telemetry_redacts_tuple_set_and_exception_pem() -> None:
     from nectr.services.telemetry import TelemetryAdapter, _sanitize_value
 
@@ -670,3 +660,11 @@ def test_telemetry_redacts_tuple_set_and_exception_pem() -> None:
         exc_msg = str(ev.attributes.get("exception.message", "")) if ev.attributes else ""
         assert "SECRET_BODY" not in exc_msg
         assert "PRIVATE KEY" not in exc_msg
+
+    with (
+        pytest.raises(RuntimeError),
+        telemetry.span("marker_exc_span", hive_id="HIVE_TEL", epoch=1, tx_id="tx_m"),
+    ):
+        raise RuntimeError("leaked " + "OPENSSH PRIVATE KEY" + " data")
+    marker_span = telemetry.get_finished_spans()[-1]
+    assert marker_span.status.description == "[REDACTED]"

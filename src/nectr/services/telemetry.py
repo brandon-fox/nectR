@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import io
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any, TextIO, cast
@@ -44,6 +45,17 @@ _SENSITIVE_KEY_FRAGMENTS = (
     "mnemonic",
 )
 _PEM_MARKERS = ("PRIVATE KEY-----", "OPENSSH PRIVATE KEY", "RSA PRIVATE KEY")
+_PEM_BLOCK_RE = re.compile(
+    r"-----BEGIN [^-]*PRIVATE KEY-----.*?(?:-----END [^-]*PRIVATE KEY-----|$)",
+    re.DOTALL,
+)
+
+
+def _scrub_pem_text(text: str) -> str:
+    scrubbed = _PEM_BLOCK_RE.sub("[REDACTED]", text)
+    if any(marker in scrubbed for marker in _PEM_MARKERS):
+        return "[REDACTED]"
+    return scrubbed
 
 
 def _is_sensitive_key(key: str) -> bool:
@@ -62,6 +74,10 @@ def _sanitize_value(key: str, value: Any) -> Any:
         return {str(k): _sanitize_value(str(k), v) for k, v in value.items()}
     if isinstance(value, list):
         return [_sanitize_value(key, item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_sanitize_value(key, item) for item in value)
+    if isinstance(value, (set, frozenset)):
+        return type(value)(_sanitize_value(key, item) for item in value)
     return value
 
 
@@ -144,7 +160,11 @@ class TelemetryAdapter:
         **attributes: Any,
     ) -> Iterator[None]:
         """Open an OpenTelemetry span bound to Hive context."""
-        with self._tracer.start_as_current_span(name) as otel_span:
+        with self._tracer.start_as_current_span(
+            name,
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as otel_span:
             otel_span.set_attribute("nectr.hive_id", hive_id)
             if epoch is not None:
                 otel_span.set_attribute("nectr.epoch", epoch)
@@ -157,8 +177,15 @@ class TelemetryAdapter:
             try:
                 yield
             except BaseException as exc:
-                otel_span.record_exception(exc)
-                otel_span.set_status(Status(StatusCode.ERROR, str(exc)))
+                raw_msg = str(exc)
+                scrubbed_msg = _scrub_pem_text(raw_msg)
+                recorded_exc: BaseException = (
+                    exc
+                    if scrubbed_msg == raw_msg
+                    else RuntimeError(scrubbed_msg).with_traceback(exc.__traceback__)
+                )
+                otel_span.record_exception(recorded_exc)
+                otel_span.set_status(Status(StatusCode.ERROR, scrubbed_msg))
                 raise
 
     def get_recorded_events(self) -> list[dict[str, Any]]:
