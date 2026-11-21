@@ -1,21 +1,28 @@
 ---
 name: security-privacy-guard
-description: Enforces zero-leak open-source hygiene before agent reads, edits, commits, and pushes using detect-secrets, pygrep, pip-licenses, and .githooks.
+description: >-
+  Enforces zero-leak open-source hygiene using detect-secrets, pygrep,
+  pip-licenses, pip-audit, and .githooks. Use before reading unfamiliar files,
+  before committing, before pushing, or when auditing dependencies.
 ---
 
-# Security & Privacy Guard Skill
+# Security & Privacy Guard
 
-Use established open-source tools before reading untrusted/new files, before committing, and before pushing to ensure no secrets, private references, or personal local build paths exist in `nectR`.
+Keep `nectR` free of leaked secrets, hardcoded local paths, prohibited dependency licenses, and CVEs.
 
-## Commands
-- **Pre-Read / Single-File Secret Check:** `detect-secrets-hook --baseline .secrets.baseline <file>`
-- **Full Workspace Secret Scan:** `detect-secrets scan --exclude-files '(\.git|\.venv|\.pytest_cache|__pycache__)'`
-- **Pre-Commit All-Hooks Check:** `pre-commit run --all-files`
-- **Transitive License & CVE Audit:** `pip-licenses` and `pip-audit`
+## Steps
 
-## Hook Setup Verification
-Ensure git is configured to use the versioned hooks directory:
-```powershell
-git config --local core.hooksPath .githooks
-```
-Verify `.githooks/pre-commit`, `.githooks/commit-msg`, and `.githooks/pre-push` are active and never bypassed (`--no-verify` is strictly forbidden).
+1. **Review Policy:** Consult [license_and_secret_policy.md](./references/license_and_secret_policy.md) for allowed/prohibited licenses and local-path rules.
+2. **Run Security Audit:** Execute [run_security_audit.py](./scripts/run_security_audit.py) in the appropriate mode:
+   - Pre-read single file:
+     ```bash
+     uv run python .agents/skills/security-privacy-guard/scripts/run_security_audit.py --mode pre-read --files <relative-path>
+     ```
+   - Pre-commit / full audit:
+     ```bash
+     uv run python .agents/skills/security-privacy-guard/scripts/run_security_audit.py --mode full
+     ```
+
+## Validation
+
+- Confirm `run_security_audit.py` exits `0` (`core.hooksPath == .githooks`, `detect-secrets`, `pre-commit`, and dependency checks pass).
