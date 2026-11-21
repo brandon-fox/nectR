@@ -132,6 +132,22 @@ def test_pragma_scanner_token_error_fallback_and_relative_paths(tmp_path: Path) 
     assert len(abs_hits) == 1 and abs_hits[0].endswith("mod.py:1")
 
 
+def test_pragma_scanner_recurses_directories_and_deduplicates(tmp_path: Path) -> None:
+    nested = tmp_path / "pkg" / "deep"
+    nested.mkdir(parents=True)
+    hit_file = nested / "module.py"
+    hit_file.write_text(f"a = 1\nb = 2  {PRAGMA_ONE}\n", encoding="utf-8")
+    (nested / "clean.py").write_text("ok = True\n", encoding="utf-8")
+    (nested / "notes.txt").write_text(f"{PRAGMA_TWO}\n", encoding="utf-8")
+    pycache = nested / "__pycache__"
+    pycache.mkdir()
+    (pycache / "cached.py").write_text(f"c = 3  {PRAGMA_TWO}\n", encoding="utf-8")
+
+    hits = mutation_gate.find_suppression_pragmas([tmp_path, hit_file], repo_root=tmp_path)
+    assert hits == ["pkg/deep/module.py:2"]
+    assert mutation_gate.main(["--root", str(tmp_path), "check-pragmas", "pkg"]) == 1
+
+
 def test_poodle_engine_run_tier_cli_override_exit5_and_error(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -321,8 +337,19 @@ def test_main_cli_subcommands_pass_and_fail(
     )
 
     monkeypatch.setattr(mutation_gate, "changed_files", lambda base, root: ("HEAD", []))
-    assert mutation_gate.main(["--root", str(tmp_path), "diff", "--report", "out.json"]) == 0
-    assert (tmp_path / "out.json").is_file()
+    report_out = tmp_path / "out.json"
+    assert mutation_gate.main(["--root", str(tmp_path), "diff", "--report", str(report_out)]) == 0
+    assert report_out.is_file()
+
+    sub_root = tmp_path / "sub_repo"
+    sub_root.mkdir()
+    (sub_root / "pyproject.toml").write_text(
+        (tmp_path / "pyproject.toml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    assert mutation_gate.main(["--root", str(sub_root), "diff", "--report", "rel.json"]) == 0
+    assert (sub_root / "rel.json").is_file()
 
     fail_outcome = mutation_gate.GateOutcome(
         passed=False,

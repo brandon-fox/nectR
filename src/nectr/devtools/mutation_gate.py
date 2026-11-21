@@ -262,15 +262,33 @@ def evaluate_floors(
     )
 
 
+def _expand_pragma_paths(paths: Sequence[Path]) -> list[Path]:
+    expanded: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        if path.is_dir():
+            candidates = (
+                sub for sub in sorted(path.rglob("*.py")) if "__pycache__" not in sub.parts
+            )
+        elif path.is_file():
+            candidates = (sub for sub in (path,))
+        else:
+            continue
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if resolved not in seen:
+                seen.add(resolved)
+                expanded.append(candidate)
+    return expanded
+
+
 def find_suppression_pragmas(
     paths: Sequence[Path],
     repo_root: Path | None = None,
 ) -> list[str]:
     """Return `path:line` entries for any inline mutation-suppression pragmas."""
     hits: list[str] = []
-    for file_path in paths:
-        if not file_path.is_file():
-            continue
+    for file_path in _expand_pragma_paths(paths):
         text = file_path.read_text(encoding="utf-8")
         display = _format_display_path(file_path, repo_root)
         hit_lines = _scan_comment_pragmas(text)
@@ -590,11 +608,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     repo_root = Path(args.root).resolve()
 
     if args.command == "check-pragmas":
-        targets = (
+        raw_targets = (
             [Path(p) if Path(p).is_absolute() else repo_root / p for p in args.files]
             if args.files
             else _default_pragma_targets(repo_root)
         )
+        targets = _expand_pragma_paths(raw_targets)
         hits = find_suppression_pragmas(targets, repo_root=repo_root)
         if hits:
             for hit in hits:
