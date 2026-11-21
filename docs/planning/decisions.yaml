@@ -73,6 +73,14 @@ decisions:
     owner_agent: ux-behavior-agent
     related_adr: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
 
+  - id: DEC-010
+    category: workflow-policy
+    status: locked
+    title: Isolate Future CrewAI Use to Off-Chain Peripherals
+    decision: Exclude CrewAI from core, ACE, and dev extras; permit only in isolated off-chain UX, CI remediation, or offline red-team scripts outside core runtime.
+    owner_agent: meta-orchestrator
+    related_adr: docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md
+
 experiments:
   - id: EXP-001
     status: open-simulation

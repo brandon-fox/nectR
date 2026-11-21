@@ -18,6 +18,7 @@ Structural **Architecture Decision Records (MADR 4.0)** are managed separately v
 | **DEC-007** | `security-oss` | **Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy** | Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; delegate MADR linting and locking to MIT OSS adrlint with zero waivers. | `meta-orchestrator` | [ADR-0012](../adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md) | `locked` |
 | **DEC-008** | `workflow-policy` | **IDE-Agnostic Docs, Defined Terms & Living Trees** | Never assume IDE/skill access in public docs; define all acronyms (MV=PQ, PoUW-PoW) in glossary, and auto-generate or CI-check directory trees and nav. | `meta-orchestrator` | — | `locked` |
 | **DEC-009** | `parameter-default` | **Mesa ABM + ML/RL Over LLM Frameworks (CrewAI/k8n)** | Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations rather than LLM orchestration frameworks (CrewAI/k8n). | `ux-behavior-agent` | [ADR-0010](../adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md) | `locked` |
+| **DEC-010** | `workflow-policy` | **Isolate Future CrewAI Use to Off-Chain Peripherals** | Exclude CrewAI from core, ACE, and dev extras; permit only in isolated off-chain UX, CI remediation, or offline red-team scripts outside core runtime. | `meta-orchestrator` | [ADR-0013](../adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md) | `locked` |
 
 ---
 
