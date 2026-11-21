@@ -1,6 +1,6 @@
-# Antigravity Orchestrator Handoff: `nectR` (`<repo-root>`)
+# Antigravity Orchestrator Handoff: `nectR`
 
-Use this prompt to initialize a new Antigravity session opened directly in **`<repo-root>`**.
+Use this prompt to initialize a new Antigravity session opened directly in the **`nectR`** repository root.
 
 ---
 
@@ -9,7 +9,7 @@ Use this prompt to initialize a new Antigravity session opened directly in **`<r
 ```markdown
 # Orchestrator Handoff: nectR — Federated Biomimetic Campus Tutoring Blockchain & Closed Economy
 
-You are the **Meta-Orchestrator** for the **nectR** monorepo located at `<repo-root>`.
+You are the **Meta-Orchestrator** for the **nectR** monorepo (workspace root).
 Read `AGENTS.md`, `.agents/skills/orchestrate-nectr/SKILL.md`, and `docs/planning/decision_log.md` immediately before taking action.
 
 ## 1. Mission & Deliverable Priority Hierarchy (Strict Order)
