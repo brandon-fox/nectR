@@ -23,13 +23,14 @@ fi
 adrlint --no-color lint
 adrlint --no-color format --check
 adrlint --no-color lock --check
+check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
 PYTHONPATH=src python -m nectr.devtools.decisions check
 PYTHONPATH=src python -m nectr.devtools.citations check
 PYTHONPATH=src python -m nectr.devtools.docs_sync check
 PYTHONPATH=src python -m nectr.devtools.spec_links
 ruff check src tests features
 ruff format --check src tests features
-pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business
+pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business docs/theory/biomimicry_model.md docs/theory/provenance_lineage.md
 if git diff --cached --name-only --diff-filter=ACMR | grep -qE '^(docs/|mkdocs\.yml$)'; then
     mkdocs build --strict
 fi

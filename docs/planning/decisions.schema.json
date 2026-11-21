@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nectr.dev/schemas/decisions.schema.json",
+  "title": "nectR Fast Operational & Parameter Decision Registry",
+  "description": "JSON Schema matching src/nectr/devtools/decisions.py DecisionRegistry for docs/planning/decisions.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1,
+      "default": 1
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DecisionEntry"
+      },
+      "default": []
+    },
+    "experiments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ExperimentEntry"
+      },
+      "default": []
+    }
+  },
+  "$defs": {
+    "DecisionCategory": {
+      "type": "string",
+      "enum": [
+        "parameter-default",
+        "research-hygiene",
+        "workflow-policy",
+        "security-oss"
+      ]
+    },
+    "DecisionStatus": {
+      "type": "string",
+      "enum": [
+        "locked",
+        "superseded",
+        "deprecated"
+      ]
+    },
+    "ExperimentStatus": {
+      "type": "string",
+      "enum": [
+        "open-simulation",
+        "validated",
+        "rejected"
+      ]
+    },
+    "AgentName": {
+      "type": "string",
+      "enum": [
+        "meta-orchestrator",
+        "sci-research-agent",
+        "business-proposal-agent",
+        "product-lifecycle-agent",
+        "system-arch-agent",
+        "contracts-service-agent",
+        "pow-compute-agent",
+        "design-ui-agent",
+        "ux-behavior-agent"
+      ]
+    },
+    "DecisionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "title",
+        "decision",
+        "owner_agent"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^DEC-[0-9]{3}$"
+        },
+        "category": {
+          "$ref": "#/$defs/DecisionCategory"
+        },
+        "status": {
+          "$ref": "#/$defs/DecisionStatus",
+          "default": "locked"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 60
+        },
+        "decision": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 180
+        },
+        "owner_agent": {
+          "$ref": "#/$defs/AgentName"
+        },
+        "related_adr": {
+          "type": ["string", "null"],
+          "default": null
+        },
+        "openspec_ref": {
+          "type": ["string", "null"],
+          "default": null
+        }
+      }
+    },
+    "ExperimentEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "hypothesis",
+        "risk_note",
+        "owner_agents"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^EXP-[0-9]{3}$"
+        },
+        "status": {
+          "$ref": "#/$defs/ExperimentStatus",
+          "default": "open-simulation"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 60
+        },
+        "hypothesis": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 180
+        },
+        "risk_note": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 160
+        },
+        "owner_agents": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/AgentName"
+          }
+        },
+        "related_adr": {
+          "type": ["string", "null"],
+          "default": null
+        }
+      }
+    }
+  }
+}
