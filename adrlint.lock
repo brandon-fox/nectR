@@ -65,3 +65,8 @@ blake3 = "c415ae439cead010ef2560819e08c5468276b65f92a6e8804b97e0dfe03e5dbc"
 number = 12
 status = "accepted"
 blake3 = "56f3c50dc3d0cab1e34478cf771c3dee4dfc26a8bd20830b6517deaf2df54df9"
+
+[adrs."docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md"]
+number = 13
+status = "accepted"
+blake3 = "d8cae7ad8517949e78cddfbaaac91df7b3858d2147d1161c84b7ff7e8171272a"

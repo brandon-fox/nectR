@@ -1,4 +1,15 @@
 #!/usr/bin/env sh
 set -eu
 
+REPO_ROOT=$(git rev-parse --show-toplevel)
+if command -v cygpath >/dev/null 2>&1; then
+    REPO_ROOT=$(cygpath -u "$REPO_ROOT")
+fi
+if [ -d "$REPO_ROOT/.venv/Scripts" ]; then
+    PATH="$REPO_ROOT/.venv/Scripts:$PATH"
+elif [ -d "$REPO_ROOT/.venv/bin" ]; then
+    PATH="$REPO_ROOT/.venv/bin:$PATH"
+fi
+export PATH
+
 cz check --commit-msg-file "$1"

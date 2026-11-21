@@ -1,11 +1,23 @@
 #!/usr/bin/env sh
 set -eu
 
-git ls-files | xargs detect-secrets-hook --baseline .secrets.baseline
+REPO_ROOT=$(git rev-parse --show-toplevel)
+if command -v cygpath >/dev/null 2>&1; then
+    REPO_ROOT=$(cygpath -u "$REPO_ROOT")
+fi
+if [ -d "$REPO_ROOT/.venv/Scripts" ]; then
+    PATH="$REPO_ROOT/.venv/Scripts:$PATH"
+elif [ -d "$REPO_ROOT/.venv/bin" ]; then
+    PATH="$REPO_ROOT/.venv/bin:$PATH"
+fi
+export PATH
+
+git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
 if git grep -nE '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/[:space:]]+|\.gemini[/\\]|\.ollama[/\\])' -- 2>/dev/null; then
     echo "PUSH REJECTED: Hardcoded local/private path detected in tracked files." >&2
     exit 1
 fi
 
+mkdocs build --strict
 python -m pytest
 python -m behave

@@ -1,10 +1,20 @@
 #!/usr/bin/env sh
 set -eu
 
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
-if [ -n "$STAGED_FILES" ]; then
-    echo "$STAGED_FILES" | xargs detect-secrets-hook --baseline .secrets.baseline
-    if echo "$STAGED_FILES" | xargs git grep -nE '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/[:space:]]+|\.gemini[/\\]|\.ollama[/\\])' -- 2>/dev/null; then
+REPO_ROOT=$(git rev-parse --show-toplevel)
+if command -v cygpath >/dev/null 2>&1; then
+    REPO_ROOT=$(cygpath -u "$REPO_ROOT")
+fi
+if [ -d "$REPO_ROOT/.venv/Scripts" ]; then
+    PATH="$REPO_ROOT/.venv/Scripts:$PATH"
+elif [ -d "$REPO_ROOT/.venv/bin" ]; then
+    PATH="$REPO_ROOT/.venv/bin:$PATH"
+fi
+export PATH
+
+if [ -n "$(git diff --cached --name-only --diff-filter=ACMR)" ]; then
+    git diff --cached --name-only -z --diff-filter=ACMR | xargs -0 detect-secrets-hook --baseline .secrets.baseline
+    if git diff --cached --name-only -z --diff-filter=ACMR | xargs -0 git grep --cached -nE '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/[:space:]]+|\.gemini[/\\]|\.ollama[/\\])' -- 2>/dev/null; then
         echo "COMMIT REJECTED: Hardcoded local/private path detected in staged files." >&2
         exit 1
     fi
@@ -20,6 +30,9 @@ PYTHONPATH=src python -m nectr.devtools.spec_links
 ruff check src tests features
 ruff format --check src tests features
 pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business
+if git diff --cached --name-only --diff-filter=ACMR | grep -qE '^(docs/|mkdocs\.yml$)'; then
+    mkdocs build --strict
+fi
 python -m mypy src .agents/lib .agents/skills tests/test_skills_spec.py
 python -m pytest
 python -m behave --tags=-red
