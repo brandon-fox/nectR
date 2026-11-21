@@ -1,8 +1,11 @@
-# Use Markdown Architectural Decision Records
+---
+status: superseded by ADR-0012
+date: 2026-11-21
+decision-makers:
+  - nectR Architecture & Meta-Orchestrator
+---
 
-* Status: accepted
-* Deciders: nectR Architecture & Meta-Orchestrator
-* Date: 2026-11-21
+# Use Markdown Architectural Decision Records
 
 ## Context and Problem Statement
 

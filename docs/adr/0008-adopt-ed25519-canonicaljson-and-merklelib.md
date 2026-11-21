@@ -1,8 +1,11 @@
-# Adopt Ed25519 CanonicalJSON and Merklelib
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Consensus & Security Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Consensus & Security Architecture
-* Date: 2026-11-21
+# Adopt Ed25519 CanonicalJSON and Merklelib
 
 ## Context and Problem Statement
 

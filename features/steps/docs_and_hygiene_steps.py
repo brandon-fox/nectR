@@ -84,4 +84,5 @@ def step_then_hygiene_ok(context) -> None:
     assert "eol=lf" in context.gitattributes_text
     for persona in ("test", "lint", "security", "docs", "research", "dev"):
         assert persona in context.optional_deps, f"Missing persona extra '{persona}'"
+    assert any("adrlint" in item for item in context.optional_deps.get("lint", []))
     assert "pyadr" not in str(context.optional_deps.get("dev", []))

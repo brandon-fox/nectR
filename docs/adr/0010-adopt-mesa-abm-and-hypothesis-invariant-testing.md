@@ -1,8 +1,11 @@
-# Adopt Mesa ABM and Hypothesis Invariant Testing
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Behavioral Economy & Verification Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Behavioral Economy & Verification Architecture
-* Date: 2026-11-21
+# Adopt Mesa ABM and Hypothesis Invariant Testing
 
 ## Context and Problem Statement
 

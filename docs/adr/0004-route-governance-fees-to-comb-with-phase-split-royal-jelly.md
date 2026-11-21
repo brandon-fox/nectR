@@ -1,8 +1,11 @@
-# Route Governance Fees to Comb with Phase-Split Royal Jelly
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Tokenomics & Mechanism Design
+---
 
-* Status: accepted
-* Deciders: nectR Tokenomics & Mechanism Design
-* Date: 2026-11-21
+# Route Governance Fees to Comb with Phase-Split Royal Jelly
 
 ## Context and Problem Statement
 

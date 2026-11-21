@@ -1,8 +1,11 @@
-# Enforce Directional Service Barter State Transitions
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Protocol & Contracts Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Protocol & Contracts Architecture
-* Date: 2026-11-21
+# Enforce Directional Service Barter State Transitions
 
 ## Context and Problem Statement
 

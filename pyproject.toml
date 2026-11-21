@@ -32,6 +32,7 @@ lint = [
     "types-PyYAML>=6.0.12",
     "types-networkx>=3.6.1",
     "pymarkdownlnt>=0.9.42",
+    "adrlint>=0.5.2",
     "pre-commit>=3.7.0",
     "commitizen>=4.0.0",
 ]
@@ -54,7 +55,6 @@ dev = [
 ]
 
 [project.scripts]
-pyadr = "nectr.devtools.adr:main"
 nectr-decisions = "nectr.devtools.decisions:main"
 nectr-citations = "nectr.devtools.citations:main"
 nectr-docs = "nectr.devtools.docs_sync:main"

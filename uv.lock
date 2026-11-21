@@ -20,6 +20,25 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "adrlint"
+version = "0.5.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/86/43/8806b3454a0a62cfebb407f21c4009fe598d3b2fe225af88e789d9df143e/adrlint-0.5.2-py3-none-any.whl", hash = "sha256:e7e0cd255f92a561c86b883959626af488f490d3da3df427fc4fbad183cb2a21", size = 7858, upload-time = "2026-11-16T14:36:40.898Z" },
+    { url = "https://files.pythonhosted.org/packages/98/65/42f7edda45b545c6214343fc3afacac80c3beadc0b0cc9cd7ebf34e00485/adrlint-0.5.2-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:c426eb6d10e3f5d96ef1ff6f1c13237386eb3b71e894dcee524243c83a54d9da", size = 7635971, upload-time = "2026-11-16T14:36:42.781Z" },
+    { url = "https://files.pythonhosted.org/packages/23/8d/4f0ad49ba9cf442cdbc5c87503d9e2239eeeaa218c423423442d1c11ed2a/adrlint-0.5.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:921567366148c744449c65a96ae450a28d0bab5411884ad339592b566472b6bb", size = 7277270, upload-time = "2026-11-16T14:36:44.992Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/6e/1e34f75e8c0dedd12a1bead76fcde885b3cec4d35833cb96a626ab4e753b/adrlint-0.5.2-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:b0c8d9693fe6e61a04a777c1ef30059159eef27cb328cbd2036276ba029278c1", size = 7824520, upload-time = "2026-11-16T14:36:47.941Z" },
+    { url = "https://files.pythonhosted.org/packages/09/a7/0116d39eac66338f82cea708346874a6415bbbd883ea2491e16c8b99b004/adrlint-0.5.2-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:5018d45b75ace0a66c2f129613ab15d7dba55e4fd28b9bbba70999e7fd4b1736", size = 8011018, upload-time = "2026-11-16T14:36:50.672Z" },
+    { url = "https://files.pythonhosted.org/packages/09/74/16a53058bde5b9b08810d2f14f47dce6390b99cdc8e1b18dfa93c79cecf2/adrlint-0.5.2-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:30a293dd4a11980f72e9bfd7c0d696aa68a7e30f1520bebe84fb91e978c27b46", size = 7817881, upload-time = "2026-11-16T14:36:52.872Z" },
+    { url = "https://files.pythonhosted.org/packages/08/cb/c765356d60847c7f139b4fb2d115abcf1bda2a63d72758bfa4151563f6f2/adrlint-0.5.2-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:9ca44667cb3e3ff96178332029ecf3b11ca544c3116f235df6fe0224a8b8f68e", size = 8305310, upload-time = "2026-11-16T14:36:55.374Z" },
+    { url = "https://files.pythonhosted.org/packages/34/94/012ad48a4d7f9bdc510248a86e6d80eb9a37d59a0e63801d6c2f6e872f71/adrlint-0.5.2-py3-none-win_amd64.whl", hash = "sha256:f02e852491f55ec652a5c6c07504d0dcba2e688c56bd6d243b5e93965d4f9603", size = 7000639, upload-time = "2026-11-16T14:36:57.711Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/35/5ee57ddfd714883d9390e946ac8f2096a4dcbc91139a2a40763a71a425f7/adrlint-0.5.2-py3-none-win_arm64.whl", hash = "sha256:d9389ae7de5a0ab4a4b1577469e5728c7d73498afb7cc0001525f28e74f4326a", size = 6465136, upload-time = "2026-11-16T14:36:59.857Z" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.7"
 source = { registry = "https://pypi.org/simple" }
@@ -1773,6 +1792,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "adrlint" },
     { name = "behave" },
     { name = "commitizen" },
     { name = "detect-secrets" },
@@ -1795,6 +1815,7 @@ docs = [
     { name = "mkdocs-material" },
 ]
 lint = [
+    { name = "adrlint" },
     { name = "commitizen" },
     { name = "mypy" },
     { name = "pre-commit" },
@@ -1823,6 +1844,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
+    { name = "adrlint", marker = "extra == 'lint'", specifier = ">=0.5.2" },
     { name = "behave", marker = "extra == 'test'", specifier = ">=1.2.6" },
     { name = "commitizen", marker = "extra == 'lint'", specifier = ">=4.0.0" },
     { name = "detect-secrets", marker = "extra == 'security'", specifier = ">=1.5.0" },

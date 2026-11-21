@@ -1,8 +1,11 @@
-# Enforce Multi-Tier Beekeeper and Queen Governance
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Governance & Institutional Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Governance & Institutional Architecture
-* Date: 2026-11-21
+# Enforce Multi-Tier Beekeeper and Queen Governance
 
 ## Context and Problem Statement
 

@@ -3,7 +3,7 @@
 # Fast Operational & Parameter Decision Log
 
 This log tracks fast, non-architectural parameter presets, research hygiene rules, workflow policies, and open simulation hypotheses.
-Structural **Architecture Decision Records (MADR)** are managed separately via `pyadr` in [Architecture Decision Records](../adr/index.md) (see [ADR Lifecycle Guide](../adr/lifecycle_guide.md)).
+Structural **Architecture Decision Records (MADR 4.0)** are managed separately via `adrlint` in [Architecture Decision Records](../adr/index.md).
 
 ## Locked Non-Architectural Decisions (`DEC`)
 
@@ -14,8 +14,8 @@ Structural **Architecture Decision Records (MADR)** are managed separately via `
 | **DEC-003** | `parameter-default` | **Baseline Pairwise Decay & Guard Acceptance Threshold** | Initialize HiveContractEngine defaults at collusion_alpha=1.5, lineage_gamma=0.5, and accepted_status_peer_threshold=3 distinct host-Hive peers tutored. | `contracts-service-agent` | [ADR-0005](../adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md) | `locked` |
 | **DEC-004** | `parameter-default` | **Default Senior Sink Split & Cross-Hive FX Corridor** | Target 40% Credentials/Swarming, 35% Campus Perks, 25% Freshman Bounties (+ dormant alumni sweep); clamp epoch cross-Hive FX to [0.5x, 2.0x] with 5% Comb toll. | `business-proposal-agent` | [ADR-0006](../adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md) | `locked` |
 | **DEC-005** | `research-hygiene` | **Primary-Source Citation & Empirical Self-Citation Rule** | Exclude placeholder URLs, plagiarism notices, AI-wikis, Reddit, and SEO blogs from paper/; cite primary peer-reviewed works and reproducible experiments/ runs. | `sci-research-agent` | — | `locked` |
-| **DEC-006** | `workflow-policy` | **Outside-In OpenSpec -> Behave BDD -> Strict TDD Pipeline** | Require an openspec/changes/<id>/ spec, Gherkin feature, and xfail_strict Red-Green-Refactor atomic SSH-signed commits for every behavioral or tooling change. | `meta-orchestrator` | [ADR-0000](../adr/0000-use-markdown-architectural-decision-records.md) | `locked` |
-| **DEC-007** | `security-oss` | **Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy** | Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; ship zero-CVE MIT pyadr CLI in devtools with no waivers. | `meta-orchestrator` | [ADR-0000](../adr/0000-use-markdown-architectural-decision-records.md) | `locked` |
+| **DEC-006** | `workflow-policy` | **Outside-In OpenSpec -> Behave BDD -> Strict TDD Pipeline** | Require an openspec/changes/<id>/ spec, Gherkin feature, and xfail_strict Red-Green-Refactor atomic SSH-signed commits for every behavioral or tooling change. | `meta-orchestrator` | [ADR-0012](../adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md) | `locked` |
+| **DEC-007** | `security-oss` | **Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy** | Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; delegate MADR linting and locking to MIT OSS adrlint with zero waivers. | `meta-orchestrator` | [ADR-0012](../adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md) | `locked` |
 | **DEC-008** | `workflow-policy` | **IDE-Agnostic Docs, Defined Terms & Living Trees** | Never assume IDE/skill access in public docs; define all acronyms (MV=PQ, PoUW-PoW) in glossary, and auto-generate or CI-check directory trees and nav. | `meta-orchestrator` | — | `locked` |
 | **DEC-009** | `parameter-default` | **Mesa ABM + ML/RL Over LLM Frameworks (CrewAI/k8n)** | Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations rather than LLM orchestration frameworks (CrewAI/k8n). | `ux-behavior-agent` | [ADR-0010](../adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md) | `locked` |
 
@@ -32,5 +32,5 @@ Structural **Architecture Decision Records (MADR)** are managed separately via `
 ## Tooling & Code-Level Controls
 
 - **Add/update fast decisions:** Edit `docs/planning/decisions.yaml` or run `uv run nectr-decisions add-decision ...`, then `uv run nectr-decisions render`.
-- **Propose/accept MADR architecture records:** Run `uv run pyadr new "<Title>"`, `uv run pyadr accept --toc` (`<= 70` lines, `<= 380` words).
+- **Propose/accept MADR architecture records:** Run `uv run adrlint new "<Title>"`, promote `status: accepted` in YAML front matter, and run `uv run adrlint lock` (`<= 70` lines, `<= 380` words).
 - **Verify all governance gates:** Run `uv run nectr-decisions check` (use `--allow-proposed` on WIP feature branches).

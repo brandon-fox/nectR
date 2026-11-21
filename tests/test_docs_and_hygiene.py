@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_handoff_untracked_gitattributes_and_zero_cve_persona_extras() -> None:
-    """Verify HANDOFF.md is untracked, LF normalization exists, and dev extras have no pyadr."""
+    """Verify HANDOFF.md is untracked, LF normalization exists, and dev uses MIT adrlint."""
     ls_handoff = subprocess.run(
         ["git", "ls-files", "HANDOFF.md"],
         cwd=REPO_ROOT,
@@ -27,6 +27,7 @@ def test_handoff_untracked_gitattributes_and_zero_cve_persona_extras() -> None:
     opt_deps = pyproject["project"]["optional-dependencies"]
     for group in ("test", "lint", "security", "docs", "research", "dev"):
         assert group in opt_deps
+    assert any("adrlint" in item for item in opt_deps["lint"])
     assert not any("pyadr" in item for item in opt_deps["dev"])
     assert pyproject["tool"]["mypy"].get("overrides") is None
 
