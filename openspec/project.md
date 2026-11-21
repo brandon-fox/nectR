@@ -4,7 +4,7 @@
 **nectR** is an open-source, research-driven monorepo for a private, closed-loop Proof-of-Useful-Work & Proof-of-Work (`PoUW-PoW`) blockchain and multi-agent behavioral economy modeled after honeybee (*Apis mellifera*) colony dynamics.
 
 ## Domain-Driven Design (DDD) Bounded Contexts
-All code, specs, and tests MUST respect strict Bounded Context boundaries and Ubiquitous Language:
+All code, specs, and tests MUST respect strict Bounded Context boundaries and Ubiquitous Language (defined in [docs/glossary.md](../docs/glossary.md)):
 
 1. **Consensus & Ledger Context (`src/nectr/chain/`)**
    - *Aggregate Roots:* `Block`, `BlockchainLedger`
@@ -28,8 +28,8 @@ All code, specs, and tests MUST respect strict Bounded Context boundaries and Ub
 ## Mandatory Engineering Workflow (No Exceptions)
 Every feature, bugfix, or protocol change MUST follow this exact sequence:
 1. **Security & Privacy Gate:** Verify no secrets, private references, or local hardcoded paths exist (`detect-secrets`, `.githooks/`).
-2. **OpenSpec (`openspec/changes/<change-id>/`):** Author `proposal.md`, `design.md`, `tasks.md`, and `specs/<domain>/spec.md` delta before writing code.
-3. **BDD (`features/*.feature`):** Define executable Gherkin acceptance scenarios in `features/` and verify they fail (`behave`) before implementation.
+2. **OpenSpec (`openspec/changes/<change-id>/`):** Author `proposal.md`, `design.md`, `tasks.md`, and `specs/<domain>/spec.md` delta before writing code. Specs MUST state `### Requirement:` intent and invariants and link directly to `features/<domain>.feature` and `features/steps/<domain>_steps.py` — **never** hardcode user stories or Given/When/Then scenarios inside `spec.md`.
+3. **BDD (`features/*.feature`):** Define all user stories and executable Gherkin acceptance scenarios in `features/` (with step definitions in `features/steps/`) as the single source of truth, and verify they fail (`behave`) before implementation.
 4. **Strict TDD (Red-Green-Refactor):**
    - **RED:** Write a failing unit/invariant test in `tests/` first and observe it fail.
    - **GREEN:** Write the minimal domain code to make the test pass.

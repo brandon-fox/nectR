@@ -6,7 +6,8 @@ Welcome to the **nectR** monorepo documentation and System Design Portfolio hub.
 
 1. **[1. Published Academic Paper & Theory](theory/whitepaper_outline.md)**
    - Formal game theory, honeybee (*Apis mellifera*) biomimetic mechanics, closed-loop monetary velocity, and graph-theoretic anti-collusion math.
-2. **[2. Prototype & Behavioral Experimentation](architecture/persona_swarm_spec.md)**
+   - Foundational Deep Research Papers: [Tokenomics & Anti-Collusion](theory/research/federated_barter_tokenomics.md) · [Campus Barter Mechanism Design](theory/research/student_tutoring_mechanism_design.md) · [Biomimetic Hive Economics](theory/research/biomimetic_hive_economics.md)
+2. **[2. Prototype & Behavioral Experimentation](experiments/persona_swarm_spec.md)**
    - Agent-Based Computational Economics (ACE) powered by 6 Behavioral Persona Sub-Agents executing real transactions against the private blockchain.
 3. **[3. Institutional Business & Campus Sponsorship Proposals](business/institutional_proposal.md)**
    - University Seed Comb ROI models, student retention impact, and multi-campus autonomous Swarming playbooks.
@@ -15,6 +16,7 @@ Welcome to the **nectR** monorepo documentation and System Design Portfolio hub.
 
 ## Autonomous Development & Project Planning
 
+- **[Domain Glossary & Ubiquitous Language](glossary.md)**
 - **[Roadmap & Milestones](planning/roadmap.md)**
 - **[Multi-Agent Orchestration Guide](planning/agent_orchestration.md)**
 - **[Design Decision Log (`/grill-me`)](planning/decision_log.md)**

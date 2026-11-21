@@ -1,31 +1,20 @@
-# Specification: Dual-Track Decision Governance (`pyadr` MADR & Fast Decision Registry)
+# Specification: Dual-Track Decision Governance
 
-## Purpose
-Separate structural, cross-cutting architectural decisions (`docs/adr/` MADR managed by `pyadr` with strict verbosity caps) from fast, tunable parameter/workflow/experimental decisions (`docs/planning/decisions.yaml` -> `docs/planning/decision_log.md`) under automated code-level controls.
+## Linked Behavior & Executable Steps
+- **Feature File:** [features/decision_governance.feature](../../../features/decision_governance.feature)
+- **Step Definitions:** [features/steps/decision_governance_steps.py](../../../features/steps/decision_governance_steps.py)
 
 ## Requirements
 
 ### Requirement: MADR Architectural Decision Records Managed by `pyadr`
-All structural, cross-cutting architectural decisions SHALL be stored as individual Markdown Architectural Decision Records (MADR) in `docs/adr/NNNN-<slug>.md`, configured by `.adr` and validated by `pyadr` (`AdrCore.check_adr_repo`) with an auto-generated `docs/adr/index.md` table of contents (`pyadr toc`).
-
-#### Scenario: Repository ADRs pass `pyadr` structure and TOC synchronization checks
-- **GIVEN** the `docs/adr/` directory configured in `.adr`
-- **WHEN** `nectr-decisions check` runs
-- **THEN** `pyadr` repository validation SHALL pass with unique 4-digit IDs, matching title slugs, and `accepted` status
-- **AND** `docs/adr/index.md` SHALL match the output of `pyadr toc`.
+All structural, cross-cutting architectural decisions SHALL be stored as individual Markdown Architectural Decision Records (MADR) in `docs/adr/NNNN-<slug>.md`, configured by `.adr` (`records-dir`) documented in `docs/adr/lifecycle_guide.md`, and managed/validated by the zero-CVE, pure-MIT `nectr.devtools.adr` engine (`pyadr` CLI entry point, with zero GPL/Artistic dependencies and `--allow-proposed` support for pre-merge branches), maintaining an auto-generated `docs/adr/index.md` table of contents (`pyadr toc`).
+- **Linked Scenario:** `Repository MADR records pass pyadr validation and verbosity limits` in [decision_governance.feature](../../../features/decision_governance.feature#L6-L9)
+- **Linked Scenario:** `Proposed ADR is permitted only when allow-proposed flag is active` in [decision_governance.feature](../../../features/decision_governance.feature#L21-L24)
 
 ### Requirement: Strict ADR Length and Verbosity Limits
-Every ADR in `docs/adr/` (excluding `template.md` and `index.md`) SHALL obey automated verbosity budgets: at most `70` lines, at most `380` words, an H1 title of at most `70` characters, and at most `6` bullet items per Markdown section.
-
-#### Scenario: Overly verbose ADR is rejected by code-level controls
-- **GIVEN** an ADR file in a temporary ADR directory exceeding `70` lines or `380` words
-- **WHEN** the ADR verbosity validator inspects the directory
-- **THEN** validation SHALL fail with a `DecisionGovernanceError` naming the verbosity limit exceeded.
+Every ADR in `docs/adr/` (excluding `template.md`, `index.md`, and `lifecycle_guide.md`) SHALL obey automated verbosity budgets: at most `70` lines, at most `380` words, an H1 title of at most `70` characters, and at most `6` bullet items per Markdown section.
+- **Linked Scenario:** `Verbose MADR record exceeding line or word limits is rejected` in [decision_governance.feature](../../../features/decision_governance.feature#L11-L14)
 
 ### Requirement: Tool-Managed Fast Non-Architectural Decision Log
 Non-architectural decisions (`DEC-NNN`) and open experimental hypotheses (`EXP-NNN`) SHALL be defined in `docs/planning/decisions.yaml`, validated against strict Pydantic field-length and cross-reference schemas, and deterministically rendered to `docs/planning/decision_log.md`.
-
-#### Scenario: Hand-edited drift in `decision_log.md` or verbose YAML entry is rejected
-- **GIVEN** a validated `docs/planning/decisions.yaml` registry and rendered `docs/planning/decision_log.md`
-- **WHEN** a manual edit introduces drift into `decision_log.md` or an entry exceeds `180` characters
-- **THEN** `nectr-decisions check` SHALL fail and report the exact schema or synchronization violation.
+- **Linked Scenario:** `Manual drift in rendered non-architectural decision_log.md is rejected` in [decision_governance.feature](../../../features/decision_governance.feature#L16-L19)
