@@ -103,15 +103,6 @@ wheels = [
 ]
 
 [[package]]
-name = "anytree"
-version = "2.13.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bc/a8/eb55fab589c56f9b6be2b3fd6997aa04bb6f3da93b01154ce6fc8e799db2/anytree-2.13.0.tar.gz", hash = "sha256:c9d3aa6825fdd06af7ebb05b4ef291d2db63e62bb1f9b7d9b71354be9d362714", size = 48389, upload-time = "2025-04-08T21:06:30.662Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7b/98/f6aa7fe0783e42be3093d8ef1b0ecdc22c34c0d69640dfb37f56925cb141/anytree-2.13.0-py3-none-any.whl", hash = "sha256:4cbcf10df36b1f1cba131b7e487ff3edafc9d6e932a3c70071b5b768bab901ff", size = 45077, upload-time = "2025-04-08T21:06:29.494Z" },
-]
-
-[[package]]
 name = "application-file-scanner"
 version = "0.6.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1234,15 +1225,6 @@ wheels = [
 ]
 
 [[package]]
-name = "future-fstrings"
-version = "1.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5d/e2/3874574cce18a2e3608abfe5b4b5b3c9765653c464f5da18df8971cf501d/future_fstrings-1.2.0.tar.gz", hash = "sha256:6cf41cbe97c398ab5a81168ce0dbb8ad95862d3caf23c21e4430627b90844089", size = 5786, upload-time = "2019-06-16T03:04:42.651Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ab/6d/ea1d52e9038558dd37f5d30647eb9f07888c164960a5d4daa5f970c6da25/future_fstrings-1.2.0-py2.py3-none-any.whl", hash = "sha256:90e49598b553d8746c4dc7d9442e0359d038c3039d802c91c0a55505da318c63", size = 6138, upload-time = "2019-06-16T03:04:40.395Z" },
-]
-
-[[package]]
 name = "gast"
 version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2000,20 +1982,6 @@ wheels = [
 ]
 
 [[package]]
-name = "merklelib"
-version = "1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anytree" },
-    { name = "future-fstrings" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/94/5a/567cbe6c8425b0e625624f79b4f8e975d4d120dd392ec3fe0618fe10ce4e/merklelib-1.0.tar.gz", hash = "sha256:ad8deb51552fa897f5bac48f13885b260159481cdf12cd1fccafe0b942f0da10", size = 18557, upload-time = "2019-01-08T05:15:13.984Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/30/bd/f81892ec0e1a264e89058132fce856c87722111e0d7078f0ba0f5df43daf/merklelib-1.0-py2.py3-none-any.whl", hash = "sha256:f1b22ac0f21c26d61db1bbb377c368b6222bad62189ec3f9adb58c63d8a13b6b", size = 19348, upload-time = "2019-01-08T05:15:11.518Z" },
-]
-
-[[package]]
 name = "mesa"
 version = "3.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2310,7 +2278,6 @@ dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "httpx" },
-    { name = "merklelib" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -2318,6 +2285,7 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "pydantic" },
     { name = "pyyaml" },
+    { name = "remerkleable" },
     { name = "rich" },
     { name = "sqlmodel" },
     { name = "structlog" },
@@ -2406,7 +2374,6 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "hypothesis", marker = "extra == 'test'", specifier = ">=6.100.0" },
     { name = "matplotlib", marker = "extra == 'research'", specifier = ">=3.9.0" },
-    { name = "merklelib", specifier = ">=1.0" },
     { name = "mesa", marker = "extra == 'research'", specifier = ">=3.0.0" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6.0" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5.0" },
@@ -2425,6 +2392,7 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.23.7" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5.0.0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "remerkleable", specifier = ">=0.1.28" },
     { name = "rich", specifier = ">=13.7.0" },
     { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.4.8" },
     { name = "scipy", marker = "extra == 'research'", specifier = ">=1.13.0" },
@@ -3872,6 +3840,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/68/e2/47d95e9ab2fb8d25ea55159f5ebdfe46b3a0481f2c0b5aea0324927aceb0/regress-2026.9.1-pp311-pypy311_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:8afbf5d63444502d785e49669680638cf266c1a0462f403f24f95fb7ab8c74fc", size = 788882, upload-time = "2026-09-05T23:15:19.353Z" },
     { url = "https://files.pythonhosted.org/packages/4e/50/eec5beaf37f93ba6dc7b512c26ab33a6be8aa1f22f7ee8c5d64a2557ec55/regress-2026.9.1-pp311-pypy311_pp73-musllinux_1_2_i686.whl", hash = "sha256:976ee2dcf94b42dbc722c0c34c193c0c9aeddfa0e75a0478753296bd0825e240", size = 834516, upload-time = "2026-09-05T23:15:21.174Z" },
     { url = "https://files.pythonhosted.org/packages/77/c2/7ea49e46391f39784dc9f05282faf61d16803796ddeb103754666096c0fe/regress-2026.9.1-pp311-pypy311_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:331ef4269adaefb13de18a758b151ad595dd4bdff0c60213fdbc9711eb723905", size = 820401, upload-time = "2026-09-05T23:15:23.152Z" },
+]
+
+[[package]]
+name = "remerkleable"
+version = "0.1.28"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/a3/5b1206c4281f7337945a8e86ef73f40093c41f3b78291d6f66250fe5aaf8/remerkleable-0.1.28.tar.gz", hash = "sha256:1e19e9a927961b29c4efa210795bfad5d20a28545a6f78f7552b1e4449c24890", size = 45671, upload-time = "2024-06-16T03:16:47.967Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/c2/c89771e64163950a0016251080523cfbdf1f1d2cae2ad0b8b9c52bc0c846/remerkleable-0.1.28-py3-none-any.whl", hash = "sha256:133cb1283f1d6fd2a020f47ee3653e93385acf2aa4ddc30f3d00eb9404751bda", size = 51439, upload-time = "2024-06-16T03:16:45.836Z" },
 ]
 
 [[package]]

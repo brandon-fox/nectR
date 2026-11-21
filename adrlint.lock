@@ -44,7 +44,7 @@ blake3 = "654135304f86345ec3caf248888c4d484058dc2878214911cb58b3592e3def11"
 [adrs."docs/adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md"]
 number = 8
 status = "accepted"
-blake3 = "d18527633ced9a704f9cf9037ea2930ea9c6d4feb4005ac145708e40be269b47"
+blake3 = "a6dc31c4c83aeadf4a0100825501fbc5210a44dc2f36f52277829d02da15d809"
 
 [adrs."docs/adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md"]
 number = 9
