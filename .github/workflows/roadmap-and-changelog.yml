@@ -22,16 +22,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v7
+      - name: Set up uv & Python 3.12
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
+          enable-cache: true
 
-      - name: Install commitizen
-        run: pip install commitizen
+      - name: Install locked lint dependencies
+        run: uv sync --frozen --extra lint
 
       - name: Generate Conventional Commits changelog
-        run: cz changelog --dry-run > CHANGELOG.generated.md
+        run: uv run cz changelog --dry-run > CHANGELOG.generated.md
 
       - name: Summarize OpenSpec specs & active changes
         run: |
