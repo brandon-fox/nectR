@@ -124,6 +124,14 @@ decisions:
     owner_agent: business-proposal-agent
     related_adr: docs/adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md
 
+  - id: DEC-016
+    category: workflow-policy
+    status: locked
+    title: Mutation Targets & Ratchet Floors
+    decision: Enforce >=85% Tier-1 and >=75% Tier-2 Poodle targets on changed lines (pre-merge/pre-push/PR), upward-only main baseline floors (floor-1), and zero src/ pragmas.
+    owner_agent: meta-orchestrator
+    related_adr: docs/adr/0017-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md
+
 experiments:
   - id: EXP-001
     status: open-simulation
