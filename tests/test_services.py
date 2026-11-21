@@ -670,10 +670,6 @@ def test_telemetry_redacts_tuple_set_and_exception_pem() -> None:
     assert marker_span.status.description == "[REDACTED]"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: polymorphic BaseModel/SignedTransaction mempool & block serialization not yet implemented",
-)
 def test_sqlmodel_repository_round_trips_polymorphic_mempool_and_block_transactions(
     tmp_path: Path,
 ) -> None:
@@ -787,10 +783,6 @@ def test_sqlmodel_repository_round_trips_polymorphic_mempool_and_block_transacti
     reloaded_repo.close()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: _serialize_tx_entry helper and polymorphic snapshot normalization not yet implemented",
-)
 def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
     from types import MappingProxyType
     from typing import Any, cast
