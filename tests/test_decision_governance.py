@@ -210,9 +210,6 @@ def test_oss_adrlint_replaces_bespoke_adr_module_and_locks_decisions(tmp_path: P
     assert validate_adrlint_repo(tmp_path, allow_proposed=False) == 2
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: add-n8n-workflow-roadmap-decisions not yet implemented"
-)
 def test_n8n_workflow_decisions_adr_and_roadmap_options() -> None:
     """DEC-009 clarifies CrewAI/n8n while DEC-016, EXP-006, ADR-0016, and roadmap govern Milestone 3 options."""
     from nectr.devtools.decisions import (
