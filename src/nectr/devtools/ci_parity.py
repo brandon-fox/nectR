@@ -425,6 +425,51 @@ def _validate_lychee_step(rel_path: str, job_name: str, step: dict[str, Any]) ->
     return errors
 
 
+def _validate_workflow_file(wf_path: Path, repo_root: Path) -> list[str]:
+    rel_path = wf_path.relative_to(repo_root).as_posix()
+    data = yaml.safe_load(wf_path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        return [f"{rel_path}: workflow root must be a YAML mapping."]
+
+    jobs = data.get("jobs")
+    if not isinstance(jobs, dict):
+        return []
+
+    errors: list[str] = []
+    seen_suffixes: set[str] = set()
+    for job_name, job_body in jobs.items():
+        if not isinstance(job_body, dict):
+            continue
+        steps = job_body.get("steps")
+        if not isinstance(steps, list):
+            continue
+
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            uses = str(step.get("uses", "")).strip()
+            run_cmd = str(step.get("run", ""))
+
+            if uses.startswith("astral-sh/setup-uv@"):
+                errors.extend(_validate_setup_uv_step(rel_path, str(job_name), step, seen_suffixes))
+            elif DEPRECATED_GH_RELEASE_RE.match(uses):
+                errors.append(
+                    f"{rel_path} ({job_name}): '{uses}' targets deprecated Node.js 20; use v3+ (Node 24)."
+                )
+            elif uses.startswith("actions/dependency-review-action@"):
+                errors.extend(_validate_dependency_review_step(rel_path, str(job_name), step))
+            elif uses.startswith("lycheeverse/lychee-action@"):
+                errors.extend(_validate_lychee_step(rel_path, str(job_name), step))
+
+            if "mkdocs build --strict" in run_cmd and not _has_env_var(
+                "NO_MKDOCS_2_WARNING", step, job_body, data
+            ):
+                errors.append(
+                    f"{rel_path} ({job_name}): mkdocs build --strict should set NO_MKDOCS_2_WARNING='1'."
+                )
+    return errors
+
+
 def check_workflow_action_hygiene(repo_root: Path) -> list[str]:
     """Validate Node 24 action runtimes, cache isolation, lychee output, and SPDX allow-list."""
     workflows_dir = repo_root / ".github" / "workflows"
@@ -437,50 +482,7 @@ def check_workflow_action_hygiene(repo_root: Path) -> list[str]:
 
     errors: list[str] = []
     for wf_path in workflow_files:
-        rel_path = wf_path.relative_to(repo_root).as_posix()
-        data = yaml.safe_load(wf_path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            errors.append(f"{rel_path}: workflow root must be a YAML mapping.")
-            continue
-
-        jobs = data.get("jobs")
-        if not isinstance(jobs, dict):
-            continue
-
-        seen_suffixes: set[str] = set()
-        for job_name, job_body in jobs.items():
-            if not isinstance(job_body, dict):
-                continue
-            steps = job_body.get("steps")
-            if not isinstance(steps, list):
-                continue
-
-            for step in steps:
-                if not isinstance(step, dict):
-                    continue
-                uses = str(step.get("uses", "")).strip()
-                run_cmd = str(step.get("run", ""))
-
-                if uses.startswith("astral-sh/setup-uv@"):
-                    errors.extend(
-                        _validate_setup_uv_step(rel_path, str(job_name), step, seen_suffixes)
-                    )
-                elif DEPRECATED_GH_RELEASE_RE.match(uses):
-                    errors.append(
-                        f"{rel_path} ({job_name}): '{uses}' targets deprecated Node.js 20; use v3+ (Node 24)."
-                    )
-                elif uses.startswith("actions/dependency-review-action@"):
-                    errors.extend(_validate_dependency_review_step(rel_path, str(job_name), step))
-                elif uses.startswith("lycheeverse/lychee-action@"):
-                    errors.extend(_validate_lychee_step(rel_path, str(job_name), step))
-
-                if "mkdocs build --strict" in run_cmd and not _has_env_var(
-                    "NO_MKDOCS_2_WARNING", step, job_body, data
-                ):
-                    errors.append(
-                        f"{rel_path} ({job_name}): mkdocs build --strict should set NO_MKDOCS_2_WARNING='1'."
-                    )
-
+        errors.extend(_validate_workflow_file(wf_path, repo_root))
     return errors
 
 

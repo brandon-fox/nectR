@@ -15,5 +15,5 @@
    - Confirm `pytest` hits `XPASS` under `xfail_strict = true`, then remove `@pytest.mark.xfail(...)` and `@red`.
    - Run `run_bdd_tdd_gate.py --phase green`, `nectr-ci-parity check --forbid-red ...`, `ruff`, `mypy`, `mkdocs build --strict`, `detect-secrets`, and commit (`feat(ci): upgrade action runtimes to Node 24, isolate uv caches, and switch to SPDX allow-licenses`).
 
-4. **[ ] Phase 3 — REFACTOR & Verification:**
+4. **[x] Phase 3 — REFACTOR & Verification:**
    - Review `ci_parity.py` and workflow YAML clarity, run full `--phase all` and security audit, and open PR against `main`.
