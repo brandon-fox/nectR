@@ -15,6 +15,8 @@ Structural **Architecture Decision Records (MADR)** are managed separately via `
 | **DEC-005** | `research-hygiene` | **Primary-Source Citation & Empirical Self-Citation Rule** | Exclude placeholder URLs, plagiarism notices, AI-wikis, Reddit, and SEO blogs from paper/; cite primary peer-reviewed works and reproducible experiments/ runs. | `sci-research-agent` | — | `locked` |
 | **DEC-006** | `workflow-policy` | **Outside-In OpenSpec -> Behave BDD -> Strict TDD Pipeline** | Require an openspec/changes/<id>/ spec, Gherkin feature, and xfail_strict Red-Green-Refactor atomic SSH-signed commits for every behavioral or tooling change. | `meta-orchestrator` | [ADR-0000](../adr/0000-use-markdown-architectural-decision-records.md) | `locked` |
 | **DEC-007** | `security-oss` | **Permissive OSS Runtime & Approved pyadr Dev Waiver** | Enforce MIT-compatible runtime deps and detect-secrets hooks; waive local dev-only pyadr cleo PYSEC-2022-43178 and elect Artistic-1.0 on text-unidecode. | `meta-orchestrator` | [ADR-0000](../adr/0000-use-markdown-architectural-decision-records.md) | `locked` |
+| **DEC-008** | `workflow-policy` | **IDE-Agnostic Docs, Defined Terms & Living Trees** | Never assume IDE/skill access in public docs; define all acronyms (MV=PQ, PoUW-PoW) in glossary, and auto-generate or CI-check directory trees and nav. | `meta-orchestrator` | — | `locked` |
+| **DEC-009** | `parameter-default` | **Mesa ABM + ML/RL Over LLM Frameworks (CrewAI/k8n)** | Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations rather than LLM orchestration frameworks (CrewAI/k8n). | `ux-behavior-agent` | [ADR-0010](../adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md) | `locked` |
 
 ---
 
