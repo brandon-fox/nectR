@@ -1,0 +1,46 @@
+site_name: "nectR: Biomimetic Campus Blockchain & Closed Economy"
+site_description: "Published Theory, Agentic Behavioral Simulation, Business Proposals & Flagship Blockchain System Design"
+repo_name: "nectR"
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.arithmatex:
+      generic: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Planning & Autonomous Ops:
+      - Roadmap & Milestones: planning/roadmap.md
+      - Agent Orchestration Guide: planning/agent_orchestration.md
+      - Design Decision Log (/grill-me): planning/decision_log.md
+      - Deep Research Prompts: planning/deep_research_prompts.md
+  - 1. Theory & Academic Paper:
+      - Whitepaper Draft: theory/whitepaper_outline.md
+      - Biomimetic Hive Mechanics: theory/biomimicry_model.md
+      - Tokenomics & Game Theory: theory/tokenomics_game_theory.md
+  - 2. Behavioral Experimentation:
+      - Persona Swarm Specification: architecture/persona_swarm_spec.md
+  - 3. Business & Campus Proposals:
+      - Institutional Sponsorship Proposal: business/institutional_proposal.md
+  - 4. System Design Portfolio:
+      - Blockchain & Service Layer Architecture: architecture/system_design.md
+      - Smart Contracts Specification: architecture/smart_contracts.md
