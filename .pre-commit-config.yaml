@@ -61,11 +61,26 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: ruff-check-and-format
-        name: ruff lint & format check (src, tests, features)
+      - id: ruff-check
+        name: ruff lint check (src, tests, features)
         entry: ruff check src tests features
         language: system
         pass_filenames: false
+        stages: [pre-commit]
+
+      - id: ruff-format-check
+        name: ruff format check (src, tests, features)
+        entry: ruff format --check src tests features
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: mkdocs-build-strict
+        name: mkdocs strict build check (docs, mkdocs.yml)
+        entry: mkdocs build --strict
+        language: system
+        pass_filenames: false
+        files: ^(docs/|mkdocs\.yml$)
         stages: [pre-commit]
 
       - id: pymarkdown-lint

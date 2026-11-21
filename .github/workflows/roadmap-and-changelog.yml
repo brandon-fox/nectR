@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -38,7 +42,7 @@ jobs:
             find openspec/specs -name "spec.md" | sort | sed 's/^/- /'
             echo ""
             echo "## Active OpenSpec Changes"
-            find openspec/changes -maxdepth 2 -name "tasks.md" | sort | sed 's/^/- /'
+            find openspec/changes -maxdepth 2 -not -path "openspec/changes/archive/*" -name "tasks.md" | sort | sed 's/^/- /'
           } > openspec-roadmap.md
 
       - name: Upload changelog & roadmap artifacts

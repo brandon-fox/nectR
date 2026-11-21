@@ -22,7 +22,12 @@ site/
 .pytest_cache/
 .ruff_cache/
 .coverage
+coverage.xml
 htmlcov/
+
+# Generated audit reports
+licenses-report.md
+sbom.cdx.json
 
 # Local experiment runtime artifacts (keep committed datasets in experiments/results/tracked/)
 experiments/runs/tmp/

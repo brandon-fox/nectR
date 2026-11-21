@@ -10,6 +10,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 permissions:
   contents: read
   pull-requests: read
@@ -28,6 +32,8 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: pyproject.toml
 
       - name: Install project and dev/audit tools
         run: |
@@ -70,13 +76,13 @@ jobs:
           mypy src .agents/lib .agents/skills tests/test_skills_spec.py
           mkdocs build --strict
 
-      - name: Strict TDD suite (pytest)
-        run: python -m pytest
+      - name: Strict TDD suite with coverage gate (pytest)
+        run: python -m pytest --cov=src/nectr --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
 
       - name: BDD acceptance suite (behave)
         run: python -m behave
 
-      - name: Upload license & SBOM artifacts
+      - name: Upload license, SBOM & coverage artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -84,6 +90,7 @@ jobs:
           path: |
             licenses-report.md
             sbom.cdx.json
+            coverage.xml
           retention-days: 30
 
   dependency-review:
@@ -98,4 +105,4 @@ jobs:
         uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
-          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, SSPL-1.0
+          deny-licenses: GPL-2.0, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0, GPL-3.0-only, GPL-3.0-or-later, AGPL-3.0, AGPL-3.0-only, AGPL-3.0-or-later, LGPL-2.1, LGPL-2.1-only, LGPL-3.0, LGPL-3.0-only, SSPL-1.0
