@@ -1,0 +1,79 @@
+name: License, Security & Quality Scan
+
+on:
+  schedule:
+    # Daily at 06:00 UTC
+    - cron: "0 6 * * *"
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  license-and-security-scan:
+    name: Transitive License, CVE, Secret & Test Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project and dev/audit tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Secret & entropy scan (detect-secrets)
+        run: |
+          git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
+
+      - name: Forbid hardcoded local/private paths
+        run: |
+          ! git grep -nE '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/[:space:]]+|\.gemini[/\\]|\.ollama[/\\])'
+
+      - name: Transitive license audit (pip-licenses)
+        run: |
+          pip-licenses --from=mixed --format=markdown --output-file=licenses-report.md
+          pip-licenses --from=mixed --allow-only="MIT;MIT License;Apache-2.0;Apache Software License;BSD-2-Clause;BSD-3-Clause;BSD License;ISC;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);Unlicense;CC0-1.0"
+
+      - name: Vulnerability audit (pip-audit)
+        run: pip-audit
+
+      - name: Strict TDD suite (pytest)
+        run: python -m pytest
+
+      - name: BDD acceptance suite (behave)
+        run: python -m behave
+
+      - name: Upload license report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transitive-license-report
+          path: licenses-report.md
+          retention-days: 30
+
+  dependency-review:
+    name: PR Dependency & License Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review (block copyleft & vulnerable PR deps)
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, SSPL-1.0
