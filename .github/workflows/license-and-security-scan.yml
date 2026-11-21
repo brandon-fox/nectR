@@ -55,6 +55,9 @@ jobs:
       - name: Strict TDD suite (pytest)
         run: python -m pytest
 
+      - name: OpenSpec-to-Feature link check
+        run: PYTHONPATH=src python -m nectr.devtools.spec_links
+
       - name: BDD acceptance suite (behave)
         run: python -m behave
 
