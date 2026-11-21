@@ -1,6 +1,7 @@
 # Design: Worktree Isolation & Tiered Mutation Testing (`dev-workflow`)
 
 ## Locked Architecture Decisions
+
 1. **Clean Trunk + Ephemeral Task Worktrees:** The primary checkout remains clean on `main`. Every OpenSpec change and concurrent task runs in a short-lived worktree and is pruned immediately on merge.
 2. **Hybrid Sandbox-Friendly Layout:** Automated subagents use agent harness isolated workspaces (shared-repo worktrees), while CLI and scripted tasks use `.worktrees/<branch-slug>/` inside the repo root so sandboxed paths never escape workspace boundaries.
 3. **Worktrunk (`git-wt`) & Isolated Virtual Environments:** Worktrunk manages creation, hooks, and merge cleanup. User configuration sets `worktree-path = ".worktrees/{{ branch | sanitize }}"` and `merge.squash = false` for this repository; `.config/wt.toml` uses ordered `[[pre-start]]` steps to run `uv sync --frozen --extra dev` (giving every worktree its own editable `.pth` so `behave` imports that worktree's `src/nectr/`) and verify commit readiness, plus `[[pre-merge]]` to enforce mutation and orchestration gates.
@@ -19,5 +20,6 @@
 9. **Rollout Sequence:** `main` starts clean with prior governance updates landed; this change executes from `.worktrees/feat-worktrees-and-mutation-testing/` with additive hook/workflow files to avoid colliding with concurrent CI changes.
 
 ## Invariants
+
 - Every worktree maintains independent `.venv` editable resolution, `core.hooksPath = .githooks`, and SSH commit signing.
 - Mutation thresholds can never be bypassed via source comments inside `src/`.
