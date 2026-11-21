@@ -432,3 +432,278 @@ def test_chain_additional_edge_cases_and_json_roundtrip() -> None:
     empty_chain = HiveBlockchain(hive_id="HIVE_EMPTY", difficulty=1)
     empty_chain.chain.clear()
     assert empty_chain.verify_chain() is False
+
+
+@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
+def test_verification_paths_reject_nan_inf_bytes_without_crashing() -> None:
+    import json
+
+    from pydantic import ValidationError
+
+    from nectr.chain import (
+        Block,
+        CanonicalPayload,
+        Ed25519Signer,
+        HiveBlockchain,
+        SignedTransaction,
+        UsefulComputeProof,
+        compute_sha256,
+    )
+
+    signer = Ed25519Signer.from_seed(b"\x12" * 32)
+    valid_tx = SignedTransaction.create({"k": "v"}, signer=signer, signer_id="bee_1")
+
+    with pytest.raises(ValidationError):
+        SignedTransaction(
+            payload={"x": float("nan")},
+            signer_public_key=signer.public_key_hex,
+            signature=valid_tx.signature,
+        )
+    with pytest.raises(ValidationError):
+        SignedTransaction(
+            payload={"x": float("inf")},
+            signer_public_key=signer.public_key_hex,
+            signature=valid_tx.signature,
+        )
+    with pytest.raises(ValidationError):
+        SignedTransaction(
+            payload={"x": b"raw-bytes"},
+            signer_public_key=signer.public_key_hex,
+            signature=valid_tx.signature,
+        )
+
+    stx_nan = valid_tx.model_copy(update={"payload": {"x": float("nan")}})
+    assert stx_nan.verify_signature() is False
+    with pytest.raises(ValueError):
+        CanonicalPayload.encode(stx_nan)
+
+    stx_bytes = valid_tx.model_copy(update={"payload": {"x": b"raw-bytes"}})
+    assert stx_bytes.verify_signature() is False
+
+    assert signer.verifier.verify({"x": float("nan")}, valid_tx.signature) is False
+    assert signer.verifier.verify({"x": b"raw-bytes"}, valid_tx.signature) is False
+
+    chain = HiveBlockchain(hive_id="HIVE_NAN", difficulty=1)
+    chain.submit_transaction({"type": "DICT_TX", "val": 1.0})
+    block = chain.mine_block(
+        useful_compute_proof=UsefulComputeProof(
+            epoch=1,
+            active_bees=1,
+            total_directional_edges=0,
+            collusion_discounted_velocity=0.0,
+            gini_coefficient=0.0,
+            graph_state_hash=compute_sha256("nan-test"),
+        ),
+        timestamp=1700000050.0,
+    )
+    nan_block_dict = block.model_dump()
+    nan_block_dict["transactions"][0]["val"] = float("nan")
+    nan_block = Block.model_validate_json(json.dumps(nan_block_dict, allow_nan=True))
+    chain.chain[1] = nan_block
+    assert chain.verify_chain() is False
+
+    # Non-finite float injected into header or UsefulComputeProof also returns False cleanly.
+    chain.chain[1] = block.model_copy(
+        update={"header": block.header.model_copy(update={"timestamp": float("nan")})}
+    )
+    assert chain.verify_chain() is False
+    chain.chain[1] = block.model_copy(
+        update={
+            "useful_compute_proof": block.useful_compute_proof.model_copy(
+                update={"gini_coefficient": float("inf")}
+            )
+        }
+    )
+    assert chain.verify_chain() is False
+
+
+@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
+def test_merkle_proof_binds_leaf_count_and_rejects_zero_slot_forgery() -> None:
+    from nectr.chain import MerkleInclusionProof, compute_merkle_root
+
+    txs_3 = [{"i": 0}, {"i": 1}, {"i": 2}]
+    root_3 = compute_merkle_root(txs_3)
+    p3_0 = MerkleInclusionProof.from_transactions(txs_3, 0)
+    p3_2 = MerkleInclusionProof.from_transactions(txs_3, 2)
+
+    forged_zero_slot = MerkleInclusionProof(
+        leaf_hash="00" * 32,
+        index=3,
+        branch=(p3_2.leaf_hash, p3_2.branch[1]),
+        merkle_root=root_3,
+        leaf_count=4,
+    )
+    assert forged_zero_slot.verify(root_3) is False
+    assert p3_0.model_copy(update={"leaf_count": 4}).verify(root_3) is False
+
+    txs_5 = [{"i": i} for i in range(5)]
+    root_5 = compute_merkle_root(txs_5)
+    p5_4 = MerkleInclusionProof.from_transactions(txs_5, 4)
+    assert p5_4.model_copy(update={"leaf_count": 8}).verify(root_5) is False
+
+    # 1-leaf depth == 0 continues to verify while rejecting zero-slot leaf_hash.
+    one_root = compute_merkle_root([{"i": 0}])
+    one_proof = MerkleInclusionProof.from_transactions([{"i": 0}], 0)
+    assert len(one_proof.branch) == 0
+    assert one_proof.verify(one_root) is True
+    assert one_proof.model_copy(update={"leaf_hash": "00" * 32}).verify(one_root) is False
+
+
+@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
+def test_strict_canonical_lowercase_hex_rejects_uppercase_and_whitespace() -> None:
+    from pydantic import ValidationError
+
+    from nectr.chain import (
+        Ed25519Signer,
+        Ed25519Verifier,
+        HiveBlockchain,
+        MerkleInclusionProof,
+        SignedTransaction,
+        UsefulComputeProof,
+        compute_merkle_root,
+        compute_sha256,
+    )
+
+    signer = Ed25519Signer.from_seed(b"\x13" * 32)
+    pk = signer.public_key_hex
+    ws_pk = " ".join(pk[i : i + 2] for i in range(0, len(pk), 2))
+    payload = {"action": "HEX_TEST", "amount": 1.0}
+    valid_stx = SignedTransaction.create(payload, signer=signer, signer_id="bee_hex")
+    sig = valid_stx.signature
+    ws_sig = " ".join(sig[i : i + 2] for i in range(0, len(sig), 2))
+
+    for bad_pk in (pk.upper(), ws_pk, f"{pk}\n"):
+        with pytest.raises(ValueError):
+            Ed25519Verifier.from_public_hex(bad_pk)
+        with pytest.raises(ValidationError):
+            SignedTransaction(payload=payload, signer_public_key=bad_pk, signature=sig)
+
+    for bad_sig in (sig.upper(), ws_sig, f"{sig}\n"):
+        assert signer.verifier.verify(payload, bad_sig) is False
+        with pytest.raises(ValidationError):
+            SignedTransaction(payload=payload, signer_public_key=pk, signature=bad_sig)
+
+    stx_upper = valid_stx.model_copy(update={"signature": sig.upper()})
+    stx_ws = valid_stx.model_copy(update={"signature": ws_sig})
+    stx_upper_pk = valid_stx.model_copy(update={"signer_public_key": pk.upper()})
+    assert stx_upper.verify_signature() is False
+    assert stx_ws.verify_signature() is False
+    assert stx_upper_pk.verify_signature() is False
+
+    chain = HiveBlockchain(hive_id="HIVE_HEX", difficulty=1)
+    with pytest.raises(ValueError):
+        chain.submit_transaction(stx_upper)
+    with pytest.raises(ValueError):
+        chain.submit_transaction(stx_ws)
+
+    # Even if forced into a mined block, verify_chain rejects non-canonical hex variants.
+    chain.mempool.append(stx_upper)
+    chain.mine_block(
+        useful_compute_proof=UsefulComputeProof(
+            epoch=1,
+            active_bees=1,
+            total_directional_edges=1,
+            collusion_discounted_velocity=1.0,
+            gini_coefficient=0.0,
+            graph_state_hash=compute_sha256("hex"),
+        )
+    )
+    assert chain.verify_chain() is False
+
+    txs = [{"a": 1}, {"a": 2}]
+    root = compute_merkle_root(txs)
+    proof = MerkleInclusionProof.from_transactions(txs, 0)
+    ws_leaf = " ".join(proof.leaf_hash[i : i + 2] for i in range(0, len(proof.leaf_hash), 2))
+    with pytest.raises(ValidationError):
+        MerkleInclusionProof(
+            leaf_hash=proof.leaf_hash.upper(),
+            index=0,
+            branch=proof.branch,
+            merkle_root=root,
+            leaf_count=2,
+        )
+    with pytest.raises(ValidationError):
+        MerkleInclusionProof(
+            leaf_hash=proof.leaf_hash,
+            index=0,
+            branch=(proof.branch[0].upper(),),
+            merkle_root=root,
+            leaf_count=2,
+        )
+    with pytest.raises(ValidationError):
+        MerkleInclusionProof(
+            leaf_hash=proof.leaf_hash,
+            index=0,
+            branch=proof.branch,
+            merkle_root=root.upper(),
+            leaf_count=2,
+        )
+    assert proof.model_copy(update={"leaf_hash": ws_leaf}).verify(root) is False
+    assert proof.model_copy(update={"branch": (proof.branch[0].upper(),)}).verify(root) is False
+
+
+@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
+def test_recursive_normalize_payload_for_nested_basemodel_in_mapping_and_sequence() -> None:
+    from pydantic import BaseModel
+
+    from nectr.chain import CanonicalPayload
+
+    class Inner(BaseModel):
+        b: int
+        a: str
+
+    class Outer(BaseModel):
+        inner: Inner
+        items: list[Inner]
+
+    model_instance = Outer(inner=Inner(b=2, a="x"), items=[Inner(b=1, a="y")])
+    mapping_with_models = {"items": (Inner(b=1, a="y"),), "inner": Inner(b=2, a="x")}
+    plain_mapping = {"inner": {"a": "x", "b": 2}, "items": [{"a": "y", "b": 1}]}
+
+    encoded_model = CanonicalPayload.encode(model_instance)
+    assert CanonicalPayload.encode(mapping_with_models) == encoded_model
+    assert CanonicalPayload.encode(plain_mapping) == encoded_model
+
+    with pytest.raises(TypeError):
+        CanonicalPayload.encode({"nested": {"raw": b"bytes"}})
+    with pytest.raises(ValueError):
+        CanonicalPayload.encode({"nested": [{"bad": float("nan")}]})
+
+
+@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
+def test_verify_chain_rejects_duplicate_transaction_proof_swapping() -> None:
+    from nectr.chain import (
+        Ed25519Signer,
+        HiveBlockchain,
+        SignedTransaction,
+        UsefulComputeProof,
+        compute_sha256,
+    )
+
+    signer = Ed25519Signer.from_seed(b"\x14" * 32)
+    tx = SignedTransaction.create({"dup": True, "amt": 3.0}, signer=signer, signer_id="bee_dup")
+    chain = HiveBlockchain(hive_id="HIVE_DUP", difficulty=1)
+    chain.submit_signed_transaction(tx)
+    chain.submit_signed_transaction(tx)
+    block = chain.mine_block(
+        useful_compute_proof=UsefulComputeProof(
+            epoch=1,
+            active_bees=2,
+            total_directional_edges=2,
+            collusion_discounted_velocity=3.0,
+            gini_coefficient=0.0,
+            graph_state_hash=compute_sha256("dup"),
+        ),
+        timestamp=1700000060.0,
+    )
+    assert chain.verify_chain() is True
+
+    # Duplicating proof_0 across both identical transactions must be rejected.
+    swapped_proofs = [block.inclusion_proofs[0], block.inclusion_proofs[0]]
+    chain.chain[1] = block.model_copy(update={"inclusion_proofs": swapped_proofs})
+    assert chain.verify_chain() is False
+
+    # Reversing [proof_1, proof_0] must also be rejected.
+    reversed_proofs = [block.inclusion_proofs[1], block.inclusion_proofs[0]]
+    chain.chain[1] = block.model_copy(update={"inclusion_proofs": reversed_proofs})
+    assert chain.verify_chain() is False
