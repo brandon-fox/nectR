@@ -53,4 +53,30 @@ def test_docs_sync_passes_with_zero_orphan_pages_and_synced_nav() -> None:
     assert summary["orphan_pages"] == []
     assert summary["readme_in_sync"] is True
     assert summary["mkdocs_adr_nav_in_sync"] is True
-    assert summary["adr_nav_count"] >= 12
+    assert summary["adr_nav_count"] >= 15
+
+
+def test_six_deep_research_tracks_and_five_wave_swarm_plan_documented() -> None:
+    """Verify all 6 deep research tracks, 5 roadmap milestones, and 5 swarm waves are documented."""
+    prompts = (REPO_ROOT / "docs" / "planning" / "deep_research_prompts.md").read_text(
+        encoding="utf-8"
+    )
+    for report in (
+        "federated_barter_tokenomics.md",
+        "student_tutoring_mechanism_design.md",
+        "biomimetic_hive_economics.md",
+        "permissive_tooling_survey_for_nectR.md",
+        "federated_PoUW-PoW_blockchain_infrastructure.md",
+        "nectR_funding_and_pilot_strategy.md",
+    ):
+        assert report in prompts
+
+    roadmap = (REPO_ROOT / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
+    assert "Milestone 5:" in roadmap
+    assert "Apereo Foundation" in roadmap
+
+    orchestration = (REPO_ROOT / "docs" / "planning" / "agent_orchestration.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Swarm Wave 1" in orchestration
+    assert "Swarm Wave 5" in orchestration

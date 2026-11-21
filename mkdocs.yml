@@ -50,6 +50,8 @@ nav:
           - "0011: Adopt Streamlit and NetworkX for Telem...": adr/0011-adopt-streamlit-and-networkx-for-telemetry-ui.md
           - "0012: Adopt adrlint for MADR Linting and Imm...": adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
           - "0013: Restrict CrewAI to Isolated Off-Chain...": adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md
+          - "0014: Adopt NATS Leaf Nodes JetStream and CQ...": adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
+          - "0015: Enforce Zero-PII FERPA GDPR and Title...": adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md
   - 1. Theory & Academic Paper:
       - Whitepaper Draft: theory/whitepaper_outline.md
       - Biomimetic Hive Mechanics: theory/biomimicry_model.md
@@ -59,6 +61,9 @@ nav:
           - Tokenomics & Anti-Collusion Design: theory/research/federated_barter_tokenomics.md
           - Campus Barter Mechanism Design: theory/research/student_tutoring_mechanism_design.md
           - Biomimetic Hive Economics: theory/research/biomimetic_hive_economics.md
+          - Permissive Tooling & Verification Survey: theory/research/permissive_tooling_survey_for_nectR.md
+          - Federated PoUW-PoW & NATS Infrastructure: theory/research/federated_PoUW-PoW_blockchain_infrastructure.md
+          - Non-Dilutive Funding & Campus Pilot Strategy: theory/research/nectR_funding_and_pilot_strategy.md
   - 2. Behavioral Experimentation:
       - Persona Swarm Specification: experiments/persona_swarm_spec.md
   - 3. Business & Campus Proposals:

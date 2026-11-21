@@ -1,4 +1,4 @@
-# Smart Contracts Specification
+# Smart Contracts Specification (`src/nectr/contracts/`)
 
 All five deterministic smart contracts execute inside `src/nectr/contracts/engine.py` (`HiveContractEngine`) using pure Python standard library primitives (`dataclasses`, `enum.StrEnum`, `typing`), with zero database, HTTP, or telemetry dependencies. Any invariant violation raises `ContractViolationError(ValueError)`. Refer to [System Design](system_design.md) for C4 deployment topology and the [Domain Glossary](../glossary.md) for ubiquitous language definitions (`DEC-008`).
 
@@ -220,3 +220,60 @@ The architecture skill specification (`.agents/skills/blockchain-architect/refer
 | `GraphTelemetryService` | `HiveServiceLayer.compute_useful_work_proof()`, `compute_gini_coefficient()` | `TelemetryPort` (`ports.py`) -> `TelemetryAdapter` (`telemetry.py` using `structlog` + `opentelemetry-sdk`) + read-only UI feed (`ADR-0011`) |
 | `QueenArbitrationService` | `HiveContractEngine.allocate_raw_pollen_to_learner()`, `certify_worker_bee()`, `resolve_disputed_session()` | Expose Queen allocation/arbitration commands via `HiveServiceLayer` and `FastAPIHiveRouter` (currently invoked directly on `contracts` in `personas/simulator.py`) |
 | `CrossHiveBridgeService` | `HiveContractEngine.bridge_nectr_to_target_hive()` + `blockchain.submit_transaction()` | Expose bridge execution via `HiveServiceLayer` and `FastAPIHiveRouter` (currently invoked directly on `hive_a.contracts` in `personas/simulator.py`) |
+
+---
+
+## Long-Term Biomimetic Contract Roadmap (Planned Extensions)
+
+All 5 smart contracts reside in `src/nectr/contracts/` and execute as pure, deterministic finite-state machines on every block without external oracle calls or non-deterministic wall-clock reads. Every transition is guarded by `icontract` Design-by-Contract decorators, `Hypothesis` stateful property fuzzing, and **Quint / TLA+** formal specifications (`specs/quint/`).
+
+---
+
+## 1. The 5 Core Deterministic Smart Contracts
+
+### 1.1 `TokenStateAndCombContract`
+
+- **State Partitioning:** Manages `RAW_POLLEN` (restricted institutional seed voucher), `LIQUID_NECTR` (unrestricted P2P tutoring currency), `ROYAL_COMB_RESERVE` (shared Hive treasury), and locked escrow/bivouac balances (`ADR-0002`, `ADR-0006`).
+- **Lazy Demurrage & Safety Cushion (`DEC-001`, `D-06`):** Lazily decays idle `LIQUID_NECTR` balances above `safety_cushion` at `~2%/month` during Weeks 1–13 (pausing during Finals Weeks 14–15) and routes 100% of decayed tokens into `comb_reserve`.
+- **Burn-Mint Equilibrium (`BME`) & 3-Door Senior Graduation Sinks (`DEC-004`):** Tracks the Comb Collateralization Ratio ($CR \ge 1.0$) and clears graduating Senior surpluses across the 3-door off-ramp (`40%` Credentials/Swarming, `35%` Campus Perks, `25%` Freshman Pay-It-Forward Bounties + dormant alumni Comb sweeps).
+
+### 1.2 `DirectionalServiceBarterContract`
+
+- **3-Phase Tutoring Handshake (`ADR-0002`, `D-01`):**
+  1. `INTENT_ESCROWED`: Learner locks `RAW_POLLEN` (only with a `CERTIFIED_WORKER_BEE` certified in `subject_id`, `D-05`) or `LIQUID_NECTR` (or `0-nectR` paired with a mandatory `reciprocal_subject_id` for mutual skill-for-skill barter), enforcing a minimum structured block of `25 minutes` (`DEC-011`).
+  2. `SESSION_CO_SIGNED`: Tutor and Learner co-sign session completion and private diagnostic attestation.
+  3. `SETTLED` (`0%` protocol fee; refines `RAW_POLLEN` $\rightarrow$ `LIQUID_NECTR`) or `DISPUTED_TO_QUEEN` (routes dispute fee 100% to `comb_reserve`, `D-03`).
+- **Waggle Surge Co-Pay (`DEC-002`) & Tremble / Stop-Signal Routing (`DEC-013`):** Co-pays `60%` of `2.2x` peak Midterm/Finals tutor payouts from the Comb Waggle pool, ramps Tremble validation fee splits linearly across `20s–80s` queue latency, and applies cross-inhibitory Stop-Signals ($\sigma_{j \to k}$) to congested cohorts.
+
+### 1.3 `QueenGovernanceContract`
+
+- **Three-Tier Separation of Powers (`ADR-0003`, `D-02`):** Enforces the `BEEKEEPER` (logged institutional emergency override and $p = 0.15$ random meta-auditor), non-tutoring `QUEEN` (cryptographically barred from acting as `Tutor` or receiving `CERTIFIED_WORKER_BEE` accreditation), and `WORKER` / `LEARNER` hierarchy.
+- **Fee-to-Comb & Phase-Split Royal Jelly (`ADR-0004`, `D-03`):** Routes 100% of certification, arbitration, and bridge fees to `comb_reserve`. Computes epoch Royal Jelly $R_Q(e) = \beta \Delta S_{\text{comb}}^+(e)\mathcal{V}_{\text{graph}}(e)(1 - \text{Gini}(e))$ (non-coin impact credits for Phase 1 Faculty-Queens; bond-backed `LIQUID_NECTR` dividends for Phase 2 Student-Queens).
+- **Network-Decayed QMP & Epigenetic Supersedure / Emergency Election:** Tracks graph-hop decayed QMP gated by Brood Synergy ($\Phi_{\text{brood}}$) and manages the `RoyalJellyBitmask` (`DNMT3`/`HDAC3`/`UHRF1`) across Graceful Supersedure (`1–3` slots, 1-epoch dual coexistence) and 24-hour Emergency Succession (up to `27` candidate slots weighted toward recent `<24h larval window` high-velocity contributors).
+
+### 1.4 `KnowledgeGraphAndPolicingContract`
+
+- **Pairwise Discoordination & Learn-then-Teach Lineage (`DEC-003`):** Records directed tutoring edges $(u \xrightarrow{s} v)$, decays repeated/reciprocal wash loops via $W(u,v,s) = \frac{A(v \to u)}{1 + \alpha N_{u \leftrightarrow v}(\tau)}(1 + \gamma L_{\text{down}})$ ($\alpha = 1.5, \gamma = 0.5$), and emits the 32-byte `knowledge_graph_root` (`kg_root`) for off-chain CQRS projection (`ADR-0014`).
+- **Polyandrous Oophagy Fraud Proofs & Whistleblower Framing Bounties:** Allows any peer in a diverse validator cohort ($m_{\text{eff}} > 2$) to slash unverified claims via Oophagy Fraud Proofs and rewards insiders who prove bribery or phantom-session solicitation via Escrow-DKG framing bounties.
+- **Temporal Polyethism & Khoury Promotion Circuit Breaker (`D-07`, `DEC-013`):** Regulates `LEARNER_BEE` $\rightarrow$ `CERTIFIED_WORKER_BEE` $\rightarrow$ `COMB_VALIDATOR_GUARD` $\rightarrow$ `SCOUT_POLLINATOR` progression via Ethyl Oleate (`EO`) inhibition and freezes Nurse-Tutor outbound promotion whenever Scout churn approaches Khoury critical mortality $\mu_{\text{crit}}$.
+
+### 1.5 `GuardBeeCrossHiveBridgeContract`
+
+- **Reserve-Coupled Guard Acceptance & Accepted Status (`ADR-0005`, `D-04`, `DEC-003`):** Evaluates foreign Cuticular Hydrocarbon (`CHC`) credential distance against the reserve-coupled Reeve/Downs-Ratnieks threshold $\theta_{\text{guard}}(t)$, granting **Accepted Status** in target Hive $H_B$ only after a migrating `Pollinator` completes $K = 3$ verified tutoring sessions with distinct local peers.
+- **Clamped Epoch FX & Export Quotas (`DEC-004`):** Executes Comb-to-Comb liquidity swaps at once-per-epoch Effective Backing Ratio FX clamped to `[0.5x, 2.0x]` with a `5%` source Comb toll and monthly Kolektivo/Sardex export caps over NATS JetStream (`ADR-0014`).
+- **Reproductive Swarming Bivouac Escrow (`ADR-0006`, `D-08`, `DEC-012`):** Triggers `SWARM_PREP` at $\ge 90\%$ Comb congestion + QMP attenuation + tutor surplus, locks `30–40` credit-unit Honey Engorgement stakes, evaluates Scout Waggle stakes and Reina contra stop-signals, triggers a **1-hour Worker Piping Timelock** upon reaching a **15-Scout (`30%`) quorum**, and burns a **`6.25x–8.0x` Honey-to-Wax deployment fee** while isolating legacy parent disputes inside the parent Hive.
+
+---
+
+## 2. Canonical Protocol Invariants Table (`D-01` through `D-08`)
+
+| Invariant ID | Name | Formal Contract Predicate | Verified By |
+| :--- | :--- | :--- | :--- |
+| **`D-01`** | **No Blind Token Transfers** | Every balance delta requires a co-signed `DirectionalServiceBarterSession` (`tutor != learner`, `amount > 0` or `reciprocal_subject_id != None`) or explicit `Comb`/bridge call. | `protocol_invariants.feature`, `test_invariants.py` |
+| **`D-02`** | **Queen Separation of Powers** | `account.role == BeeRole.QUEEN` $\implies$ prohibited from `tutor_id` in escrow, `CERTIFIED_WORKER_BEE` accreditation, or `RAW_POLLEN` draw. | `protocol_invariants.feature`, `test_invariants.py` |
+| **`D-03`** | **Fee-to-Comb & Supply Conservation** | P2P settlement fee $= 0\%$; governance fees flow $100\%$ to `comb_reserve`; $M_{\text{total}} = S_{\text{comb}} + \sum B_{\text{pollen}} + \sum B_{\text{nectR}} + E_{\text{locked}}$. | `protocol_invariants.feature`, `test_invariants.py` |
+| **`D-04`** | **Guard Bee Accepted Status & Clamped FX** | Cross-Hive bridge requires `target_hive_id in account.accepted_in_hives` ($\ge K$ distinct local peers tutored) and $\text{FX} \in [0.5, 2.0]$. | `protocol_invariants.feature`, `test_invariants.py` |
+| **`D-05`** | **Restricted `RAW_POLLEN` Refinement** | `token_state == RAW_POLLEN` requires `tutor.role == CERTIFIED_WORKER_BEE` and `subject_id in tutor.certified_subjects`, refining into `LIQUID_NECTR`. | `protocol_invariants.feature`, `test_invariants.py` |
+| **`D-06`** | **Minimum Block & Demurrage Safety Buffer** | Paid sessions enforce `duration_hours >= 25/60` (`DEC-011`); lazy demurrage never reduces balances below `safety_cushion` and pauses in Finals (`DEC-001`). | `add-biomimetic-lifecycle-and-swarming-contracts` |
+| **`D-07`** | **Khoury Collapse Circuit Breaker** | When rolling Scout attrition $\mu_{\text{churn}} \ge \mu_{\text{crit}}$, Nurse-Tutor promotion to external Scout is clamped to preserve internal teaching supply (`DEC-013`). | `add-biomimetic-lifecycle-and-swarming-contracts`, `EXP-004` |
+| **`D-08`** | **Swarm Quorum & Legacy Debt Isolation** | Daughter Hive deployment requires $\ge 15$ Scout attestations (`30%` quorum), `1h` piping timelock, and `6.25x–8.0x` Honey-to-Wax burn; unresolved disputes remain in Parent Hive (`DEC-012`). | `add-biomimetic-lifecycle-and-swarming-contracts` |

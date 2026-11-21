@@ -1,14 +1,22 @@
-# Academic Whitepaper Outline: nectR
+# Academic Whitepaper Blueprint: nectR
 
-**Working Title:** *nectR: Biomimetic Mechanism Design and Closed-Loop Monetary Equilibrium for Federated Peer-to-Peer Campus Economies*
+**Working Title:** *nectR: Biomimetic Mechanism Design, Graph-Theoretic Collusion Resistance, and Closed-Loop Monetary Equilibrium for Federated Peer-to-Peer Campus Economies*
 
-## Structure
-1. **Abstract**
-2. **Introduction & The Oracle Problem in Service-Backed Currencies**
-3. **Biomimetic Formalism: From *Apis mellifera* to Protocol State Machines**
-4. **Two-Phase Hive Genesis: Institutional Seed Combs to Autonomous Swarming**
-5. **Directional Proof-of-Service & Graph-Theoretic Anti-Collusion Decay**
-6. **Separation of Powers: Non-Tutoring Queen Incentives & Comb Equilibria**
-7. **Cross-Hive Pollination: Guard Bee Gating & Comb-to-Comb Liquidity Bridges**
-8. **Agent-Based Computational Economics (ACE): Empirical Simulation Results**
-9. **Conclusion & Institutional Deployment Playbook**
+This outline governs the publication manuscript in `paper/nectR_whitepaper.md`. Every section traces directly to verified literature in [`paper/references.yaml`](https://github.com/brandon-fox/nectR/blob/main/paper/references.yaml), formal provenance edges in [`paper/lineage.yaml`](https://github.com/brandon-fox/nectR/blob/main/paper/lineage.yaml) ([rendered report](provenance_lineage.md)), and reproducible simulation outputs in `experiments/`.
+
+---
+
+## Manuscript Section Architecture & Traceability Map
+
+| Section | Core Theoretical & Empirical Contributions | Primary Citations (`references.yaml`) | Linked Code & Experiments |
+| :--- | :--- | :--- | :--- |
+| **1. Abstract & Executive Summary** | Synthesizes the closed-loop service-barter trilemma (cold-start illiquidity, roommate Sybil wash-trading, and zero-fee treasury exhaustion) and summarizes empirical ACE telemetry and institutional ROI (`$42.50/hr` $\rightarrow$ `$3.33/hr`). | `sweeney_1977`, `mattsson_2023`, `nectr_sim_baseline_2026` | `src/nectr/personas/simulator.py` |
+| **2. The Oracle & Liquidity Problem in Service Currencies** | Formalizes why naive 1:1 timebanks (`sweeney_1977`), unbacked personal UBI, and public 5-star ratings (`filippas_2020`) fail under 15-week university exam volatility (`0.3x` $\rightarrow$ `10.0x` Finals surge) and OLG senior graduation drain. | `sweeney_1977`, `filippas_2020`, `iosifidis_2018`, `gneezy_rustichini_2000` | `EXP-002` (15-Week Finals Crunch) |
+| **3. Biomimetic Formalism: From *Apis mellifera* to Protocol FSMs** | Derives the 1-to-1 mathematical mappings: Trophallaxis unloading wait-time cues (`seeley_tovey_1994`), Waggle/Tremble ODEs (`camazine_sneyd_1991`), Stop-Signal cross-inhibition (`reina_2017`), EO temporal polyethism (`leoncini_2004`), Khoury critical mortality (`khoury_2011`), and Bonabeau response thresholds (`bonabeau_1996`). | `seeley_tovey_1994`, `camazine_sneyd_1991`, `leoncini_2004`, `khoury_2011`, `bonabeau_1996`, `reina_2017` | `src/nectr/contracts/engine.py`, `EXP-004` |
+| **4. Two-Phase Hive Genesis & Reproductive Swarming** | Proves closed-loop supply conservation ($MV = PQ$, $\text{SSR} = 1.00$), Phase 1 Sponsored Seed Comb refinement (`RAW_POLLEN` $\rightarrow$ `LIQUID_NECTR`), 3-door Senior graduation sinks (`DEC-004`), and Phase 2 Reproductive Swarming (`6.25–8.0:1` Honey-to-Wax burn + 15-Scout Quorum Sensing, `seeley_visscher_2004`). | `mattsson_2023`, `seeley_visscher_2004`, `reina_2017`, `leung_2019` | `ADR-0006`, `DEC-004`, `DEC-012` |
+| **5. Directional Proof-of-Service & Graph Anti-Collusion Stack** | Proves the $\binom{m}{2}k$ extraction ceiling under Pairwise Discoordination (`buterin_2019`), EigenTrust pre-trusted department anchors (`kamvar_2003`), COCM Fiedler-vector dorm-SBT clustering (`weyl_2022`), Polyandrous Worker Policing (`ratnieks_1988`, `wenseleers_ratnieks_2006`), and Spence single-crossing downstream mastery ($s^* = 6$, `spence_1973`). | `buterin_2019`, `kamvar_2003`, `weyl_2022`, `ratnieks_1988`, `wenseleers_ratnieks_2006`, `spence_1973` | `ADR-0002`, `DEC-003`, `EXP-003` |
+| **6. Separation of Powers: Three-Tier Queen Governance & Auditing** | Solves the Principal-Beekeeper-Queen-Worker agency game (`tirole_1986`, `kofman_lawarree_1993`), proving Honest Stewardship ($E[U]=60.0$) strictly dominates Bribery ($31.0$) and Dispute-Farming ($20.0$) under $p=0.15$ random audits, Comb-routed fees, and phase-split Royal Jelly (`ADR-0003`, `ADR-0004`). | `tirole_1986`, `kofman_lawarree_1993` | `ADR-0003`, `ADR-0004`, `EXP-001` |
+| **7. Cross-Hive Pollination: Guard Bee Gating & NATS Federation** | Formalizes Reeve/Downs-Ratnieks (`downs_ratnieks_2000`) Reserve-Coupled Guard Acceptance Thresholds, Nectar-Laden Foreign Admission (**Accepted Status**), clamped `[0.5x, 2.0x]` Effective Backing Ratio FX (`ADR-0005`), and asynchronous NATS Leaf Node + JetStream proof replication (`ADR-0014`). | `downs_ratnieks_2000`, `iosifidis_2018`, `saltini_2019` | `ADR-0005`, `ADR-0014`, `EXP-005` |
+| **8. Hybrid `PoUW-PoW` Consensus & CQRS Graph Isolation** | Formulates Transcript-Oracle Proof-of-Useful-Work (`ball_2018`, $\Delta_{\text{sec}} > 0$) coupled to the capped Comb Compute Jar (`ADR-0007`), Ed25519 + canonical JSON + domain-separated Sparse Merkle Trees (`ADR-0008`), and event-sourced CQRS off-chain graph projection (`treinish_2022`). | `ball_2018`, `treinish_2022` | `src/nectr/chain/ledger.py`, `ADR-0007`, `ADR-0008` |
+| **9. Agent-Based Computational Economics (ACE) Evaluation** | Reports reproducible multi-semester Monte Carlo and adversarial simulation benchmarks across the 6 Behavioral Persona Sub-Agents in Mesa (`kazil_2020`, `ADR-0010`) and Hypothesis state-machine fuzzing across `EXP-001` through `EXP-005`. | `kazil_2020`, `nectr_sim_baseline_2026` | `src/nectr/personas/simulator.py`, `experiments/` |
+| **10. Institutional ROI, Zero-PII Compliance & Pilot Roadmap** | Translates ACE telemetry into the 10,000-student university retention ROI model (`nickow_2024`, `$42.50/hr` $\rightarrow$ `$3.33/hr`, `2.40` break-even retained freshmen), Zero-PII FERPA/GDPR/Title IV compliance (`ADR-0015`), LTI 1.3/HECVAT 4.1.6 readiness, and Apereo Foundation incubation. | `nickow_2024`, `leung_2019`, `gneezy_rustichini_2000` | `docs/business/institutional_proposal.md`, `ADR-0015` |

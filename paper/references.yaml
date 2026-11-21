@@ -13,6 +13,18 @@ references:
     plagiarism_screen: clean
     status: verified
 
+  - id: tirole_1986
+    title: "Hierarchies and Bureaucracies: On the Role of Collusion in Organizations"
+    authors:
+      - Tirole, Jean
+    year: 1986
+    source_type: peer-reviewed-journal
+    venue: Journal of Law, Economics, & Organization, 2(2), 181-214
+    doi: 10.1093/oxfordjournals.jleo.a036907
+    custody_agent: sci-research-agent
+    plagiarism_screen: clean
+    status: verified
+
   - id: kofman_lawarree_1993
     title: Collusion in Hierarchical Agency
     authors:
@@ -117,6 +129,20 @@ references:
     plagiarism_screen: clean
     status: verified
 
+  - id: bonabeau_1996
+    title: Quantitative study of the fixed threshold model for the regulation of division of labor in insect societies
+    authors:
+      - Bonabeau, Eric
+      - Theraulaz, Guy
+      - Deneubourg, Jean-Louis
+    year: 1996
+    source_type: peer-reviewed-journal
+    venue: Proceedings of the Royal Society of London B, 263(1376), 1565-1569
+    doi: 10.1098/rspb.1996.0229
+    custody_agent: sci-research-agent
+    plagiarism_screen: clean
+    status: verified
+
   - id: ratnieks_1988
     title: Reproductive harmony via mutual policing by workers in eusocial Hymenoptera
     authors:
@@ -191,6 +217,19 @@ references:
     plagiarism_screen: clean
     status: verified
 
+  - id: seeley_visscher_2004
+    title: Group decision making in nest-site selection by honeybee swarms
+    authors:
+      - Seeley, Thomas D.
+      - Visscher, P. Kirk
+    year: 2004
+    source_type: peer-reviewed-journal
+    venue: Apidologie, 35(2), 101-116
+    doi: 10.1051/apido:2004004
+    custody_agent: sci-research-agent
+    plagiarism_screen: clean
+    status: verified
+
   - id: reina_2017
     title: Model of the best-of-N nest-site selection process in honeybees
     authors:
@@ -248,6 +287,50 @@ references:
     venue: Nature Human Behaviour, 2, 822-829
     doi: 10.1038/s41562-018-0450-0
     custody_agent: sci-research-agent
+    plagiarism_screen: clean
+    status: verified
+
+  - id: ball_2018
+    title: Proofs of Work From Worst-Case Assumptions
+    authors:
+      - Ball, Marshall
+      - Rosen, Alon
+      - Sabin, Manuel
+      - Vasudevan, Prashant Nalini
+    year: 2018
+    source_type: conference-proceedings
+    venue: Advances in Cryptology - CRYPTO 2018, LNCS 10991, 789-819
+    doi: 10.1007/978-3-319-96884-1_26
+    custody_agent: pow-compute-agent
+    plagiarism_screen: clean
+    status: verified
+
+  - id: kazil_2020
+    title: "Utilizing Python for Agent-Based Modeling: The Mesa Framework"
+    authors:
+      - Kazil, Jackie
+      - Masad, David
+      - Crooks, Andrew
+    year: 2020
+    source_type: conference-proceedings
+    venue: Social, Cultural, and Behavioral Modeling (SBP-BRiMS 2020), LNCS 12268, 308-317
+    doi: 10.1007/978-3-030-61255-9_30
+    custody_agent: ux-behavior-agent
+    plagiarism_screen: clean
+    status: verified
+
+  - id: treinish_2022
+    title: "rustworkx: A High-Performance Graph Library for Python"
+    authors:
+      - Treinish, Matthew
+      - Gambetta, Jay
+      - Thomas, S.
+      - Nation, Paul
+    year: 2022
+    source_type: peer-reviewed-journal
+    venue: Journal of Open Source Software, 7(79), 3968
+    doi: 10.21105/joss.03968
+    custody_agent: system-arch-agent
     plagiarism_screen: clean
     status: verified
 

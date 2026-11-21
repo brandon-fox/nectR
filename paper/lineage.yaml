@@ -4,6 +4,10 @@ nodes:
     kind: source
     label: Sweeney & Sweeney (1977) Babysitting Co-op
     path: paper/references.yaml
+  - id: source:tirole_1986
+    kind: source
+    label: Tirole (1986) Hierarchical Collusion
+    path: paper/references.yaml
   - id: source:mattsson_2023
     kind: source
     label: Mattsson et al. (2023) Sarafu Demurrage
@@ -28,9 +32,33 @@ nodes:
     kind: source
     label: Downs & Ratnieks (2000) Guard Bees
     path: paper/references.yaml
+  - id: source:bonabeau_1996
+    kind: source
+    label: Bonabeau et al. (1996) Response Thresholds
+    path: paper/references.yaml
+  - id: source:seeley_visscher_2004
+    kind: source
+    label: Seeley & Visscher (2004) Swarm Quorum
+    path: paper/references.yaml
   - id: source:reina_2017
     kind: source
-    label: Reina et al. (2017) Swarm Quorum
+    label: Reina et al. (2017) Stop-Signal Cross-Inhibition
+    path: paper/references.yaml
+  - id: source:ball_2018
+    kind: source
+    label: Ball et al. (2018) Proofs of Useful Work
+    path: paper/references.yaml
+  - id: source:kazil_2020
+    kind: source
+    label: Kazil et al. (2020) Mesa ABM Framework
+    path: paper/references.yaml
+  - id: source:treinish_2022
+    kind: source
+    label: Treinish et al. (2022) rustworkx Graph Engine
+    path: paper/references.yaml
+  - id: source:weyl_2022
+    kind: source
+    label: Weyl et al. (2022) Soulbound Credentials
     path: paper/references.yaml
   - id: source:nectr_sim_baseline_2026
     kind: source
@@ -53,6 +81,14 @@ nodes:
     kind: theory
     label: Guard Bee Acceptance & Swarming
     path: docs/theory/biomimicry_model.md
+  - id: theory:duplex_pouw_security
+    kind: theory
+    label: Transcript-Oracle PoUW-PoW Duplex Security
+    path: docs/theory/tokenomics_game_theory.md
+  - id: theory:campus_zero_pii_compliance
+    kind: theory
+    label: Zero-PII FERPA/GDPR & Title IV Mandate Model
+    path: docs/business/institutional_proposal.md
 
   - id: decision:ADR-0002
     kind: decision
@@ -74,7 +110,32 @@ nodes:
     kind: decision
     label: ADR-0006 Two-Phase Genesis & Swarming
     path: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+  - id: decision:ADR-0007
+    kind: decision
+    label: ADR-0007 PoUW-PoW Capped Comb Compute Jar
+    path: docs/adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md
+  - id: decision:ADR-0008
+    kind: decision
+    label: ADR-0008 Ed25519 CanonicalJSON & Merklelib
+    path: docs/adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md
+  - id: decision:ADR-0010
+    kind: decision
+    label: ADR-0010 Mesa ABM & Hypothesis Testing
+    path: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
+  - id: decision:ADR-0014
+    kind: decision
+    label: ADR-0014 NATS Leaf Nodes & CQRS Graph Isolation
+    path: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
+  - id: decision:ADR-0015
+    kind: decision
+    label: ADR-0015 Zero-PII FERPA/GDPR & Title IV Firewall
+    path: docs/adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md
 
+  - id: code:chain_ledger
+    kind: code
+    label: HiveBlockchain & UsefulComputeProof
+    path: src/nectr/chain/ledger.py
+    test_path: tests/test_invariants.py
   - id: code:contracts_engine
     kind: code
     label: HiveContractEngine
@@ -107,15 +168,36 @@ edges:
   - source: source:spence_1973
     target: theory:pairwise_decay
     intent: single-crossing downstream mastery signal
+  - source: source:tirole_1986
+    target: theory:queen_payoff
+    intent: three-tier hierarchical collusion model
   - source: source:kofman_lawarree_1993
     target: theory:queen_payoff
     intent: delegated auditing collusion deterrence
   - source: source:downs_ratnieks_2000
     target: theory:biomimetic_guards
     intent: adaptive guard acceptance threshold
+  - source: source:bonabeau_1996
+    target: theory:biomimetic_guards
+    intent: response-threshold division of labor
+  - source: source:seeley_visscher_2004
+    target: theory:biomimetic_guards
+    intent: 15-scout quorum sensing & piping timelock
   - source: source:reina_2017
     target: theory:biomimetic_guards
     intent: swarm quorum cross-inhibition dynamics
+  - source: source:ball_2018
+    target: theory:duplex_pouw_security
+    intent: fine-grained worst-case PoUW complexity
+  - source: source:treinish_2022
+    target: theory:duplex_pouw_security
+    intent: high-performance off-chain graph projection
+  - source: source:kazil_2020
+    target: theory:pairwise_decay
+    intent: reproducible Mesa ABM scheduling & telemetry
+  - source: source:weyl_2022
+    target: theory:campus_zero_pii_compliance
+    intent: non-transferable institutional credential commitments
   - source: source:nectr_sim_baseline_2026
     target: theory:pairwise_decay
     intent: empirical collusion attenuation telemetry
@@ -135,6 +217,21 @@ edges:
   - source: theory:biomimetic_guards
     target: decision:ADR-0005
     intent: requires Accepted Status & epoch FX bounds
+  - source: theory:duplex_pouw_security
+    target: decision:ADR-0007
+    intent: couples PoUW-PoW to capped Comb Compute Jar
+  - source: theory:duplex_pouw_security
+    target: decision:ADR-0008
+    intent: enforces Ed25519, canonical JSON & Merkle proofs
+  - source: theory:duplex_pouw_security
+    target: decision:ADR-0014
+    intent: isolates CQRS graph analytics & NATS Leaf Node relay
+  - source: theory:pairwise_decay
+    target: decision:ADR-0010
+    intent: validates invariants via Mesa ABM & Hypothesis
+  - source: theory:campus_zero_pii_compliance
+    target: decision:ADR-0015
+    intent: enforces zero-PII FERPA/GDPR & Title IV firewall
 
   - source: decision:ADR-0002
     target: code:contracts_engine
@@ -151,3 +248,18 @@ edges:
   - source: decision:ADR-0006
     target: code:persona_simulator
     intent: validates multi-hive genesis & bridging
+  - source: decision:ADR-0007
+    target: code:chain_ledger
+    intent: commits UsefulComputeProof in BlockHeader
+  - source: decision:ADR-0008
+    target: code:chain_ledger
+    intent: verifies deterministic SHA-256 & Merkle roots
+  - source: decision:ADR-0010
+    target: code:persona_simulator
+    intent: orchestrates 6 persona sub-agent epochs
+  - source: decision:ADR-0014
+    target: code:hive_service
+    intent: decouples CQRS graph telemetry & NATS bridge
+  - source: decision:ADR-0015
+    target: code:hive_service
+    intent: guards off-chain PII & LTI 1.3 service ports
