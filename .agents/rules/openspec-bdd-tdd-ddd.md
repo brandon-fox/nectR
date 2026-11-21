@@ -41,6 +41,6 @@ Every behavior change MUST be executed and committed in three strict phases, enf
 
 ## 4. Post-Action Verification (Mandatory)
 Before reporting completion of any task, run and verify all gates pass:
-1. `python scripts/security_scan.py --all`
+1. `detect-secrets-hook --baseline .secrets.baseline` (on modified/tracked files)
 2. `python -m pytest`
 3. `python -m behave`
