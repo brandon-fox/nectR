@@ -7,4 +7,6 @@
 4. **Strict Typing & Commit Gate:** All skill scripts, `.agents/lib/`, `src/`, and `tests/test_skills_spec.py` MUST pass `mypy --strict`, and `mypy` MUST be configured in both `.pre-commit-config.yaml` and `.githooks/pre-commit`.
 
 ## Verification
+- BDD Feature: [features/skills_conformance.feature](../../../../../features/skills_conformance.feature)
+- BDD Steps: [features/steps/skills_conformance_steps.py](../../../../../features/steps/skills_conformance_steps.py)
 - Automated tests: [tests/test_skills_spec.py](../../../../../tests/test_skills_spec.py)
