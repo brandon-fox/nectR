@@ -23,7 +23,6 @@ Feature: Dual-Track Decision Governance (adrlint MADR 4.0 and Fast Decision Regi
     When a proposed ADR is created with adrlint new and checked before and after acceptance
     Then bespoke adr.py is absent and strict check rejects proposed until accepted and locked
 
-  @red
   Scenario: Decision registry and Milestone 3 roadmap define n8n off-chain boundaries and options
     Given the repository root decision governance workspace
     When the n8n workflow governance and Milestone 3 roadmap checks inspect decisions and ADR records
