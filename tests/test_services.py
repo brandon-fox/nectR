@@ -668,3 +668,156 @@ def test_telemetry_redacts_tuple_set_and_exception_pem() -> None:
         raise RuntimeError("leaked " + "OPENSSH PRIVATE KEY" + " data")
     marker_span = telemetry.get_finished_spans()[-1]
     assert marker_span.status.description == "[REDACTED]"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: polymorphic BaseModel/SignedTransaction mempool & block serialization not yet implemented",
+)
+def test_sqlmodel_repository_round_trips_polymorphic_mempool_and_block_transactions(
+    tmp_path: Path,
+) -> None:
+    from typing import Any, cast
+
+    from pydantic import BaseModel
+
+    import nectr.chain as nectr_chain
+    from nectr.services.persistence import SQLModelHiveRepository
+
+    class _SignedTxStub(BaseModel):
+        payload: dict[str, Any]
+        signer_public_key: str
+        signature: str
+        signer_id: str | None = None
+
+    db_url = f"sqlite:///{tmp_path / 'poly_mempool.db'}"
+    repo = SQLModelHiveRepository(database_url=db_url)
+    service = HiveServiceLayer(hive_id="HIVE_POLY", difficulty=1, repository=repo)
+    service.bootstrap_sponsored_hive(
+        seed_comb_amount=150.0,
+        queen_ids=["queen_1"],
+        certified_workers={"worker_1": ["CS-101"]},
+    )
+
+    signed_tx_cls = getattr(nectr_chain, "SignedTransaction", None)
+    signer_cls = getattr(nectr_chain, "Ed25519Signer", None)
+
+    # Queue a transaction (real SignedTransaction when M1 is present, else signed-shaped dict)
+    # plus a plain dict transaction, and mine them into a block.
+    mempool_list = cast(list[Any], service.blockchain.mempool)
+    mined_signed_tx: Any = None
+    if signed_tx_cls is not None and signer_cls is not None:
+        signer = signer_cls.generate()
+        mined_signed_tx = signed_tx_cls.create(
+            payload={"action": "REAL_MINED", "amount": 5.0},
+            signer=signer,
+            signer_id="worker_1",
+        )
+        mempool_list.append(mined_signed_tx)
+    else:
+        mempool_list.append(
+            {
+                "payload": {"action": "SHAPED_MINED", "amount": 5.0},
+                "signer_public_key": "a" * 64,
+                "signature": "b" * 128,
+                "signer_id": "worker_1",
+            }
+        )
+    mempool_list.append({"action": "DICT_MINED", "amount": 2.0})
+    service.mine_epoch_block()
+
+    # Queue a BaseModel transaction + dict (+ real SignedTransaction on M1) into pending mempool
+    stub_pending = _SignedTxStub(
+        payload={"action": "STUB_PENDING", "amount": 7.5},
+        signer_public_key="c" * 64,
+        signature="d" * 128,
+        signer_id="learner_1",
+    )
+    mempool_list = cast(list[Any], service.blockchain.mempool)
+    mempool_list.append(stub_pending)
+    mempool_list.append({"action": "DICT_PENDING", "amount": 3.0})
+
+    pending_signed_tx: Any = None
+    if signed_tx_cls is not None and signer_cls is not None:
+        signer2 = signer_cls.generate()
+        pending_signed_tx = signed_tx_cls.create(
+            payload={"action": "REAL_PENDING", "amount": 9.0},
+            signer=signer2,
+            signer_id="worker_1",
+        )
+        mempool_list.append(pending_signed_tx)
+
+    service.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
+    repo.close()
+
+    reloaded_repo = SQLModelHiveRepository(database_url=db_url)
+    reloaded = HiveServiceLayer.from_repository("HIVE_POLY", repository=reloaded_repo)
+
+    assert reloaded.blockchain.verify_chain() is True
+    assert len(reloaded.blockchain.mempool) == (3 if pending_signed_tx is not None else 2)
+    if signed_tx_cls is not None:
+        assert isinstance(reloaded.blockchain.mempool[0], signed_tx_cls)
+        assert reloaded.blockchain.mempool[0].model_dump(mode="json") == stub_pending.model_dump(
+            mode="json"
+        )
+        assert reloaded.blockchain.mempool[1] == {"action": "DICT_PENDING", "amount": 3.0}
+        if pending_signed_tx is not None:
+            reloaded_real = reloaded.blockchain.mempool[2]
+            assert isinstance(reloaded_real, signed_tx_cls)
+            assert reloaded_real.verify_signature() is True
+            assert reloaded_real == pending_signed_tx
+    else:
+        assert reloaded.blockchain.mempool[0] == stub_pending.model_dump(mode="json")
+        assert reloaded.blockchain.mempool[1] == {"action": "DICT_PENDING", "amount": 3.0}
+
+    mined_block = reloaded.blockchain.chain[-1]
+    assert len(mined_block.transactions) == 2
+    if signed_tx_cls is not None and mined_signed_tx is not None:
+        assert isinstance(mined_block.transactions[0], signed_tx_cls)
+        assert mined_block.transactions[0].verify_signature() is True
+        assert mined_block.transactions[0] == mined_signed_tx
+    else:
+        assert mined_block.transactions[0] == {
+            "payload": {"action": "SHAPED_MINED", "amount": 5.0},
+            "signer_public_key": "a" * 64,
+            "signature": "b" * 128,
+            "signer_id": "worker_1",
+        }
+    assert mined_block.transactions[1] == {"action": "DICT_MINED", "amount": 2.0}
+    reloaded_repo.close()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: _serialize_tx_entry helper and polymorphic snapshot normalization not yet implemented",
+)
+def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
+    from types import MappingProxyType
+    from typing import Any, cast
+
+    from pydantic import BaseModel
+
+    from nectr.services.hive_service import _serialize_tx_entry
+
+    class _ModelTx(BaseModel):
+        kind: str
+        amount: float
+
+    model_tx = _ModelTx(kind="BARTER", amount=4.5)
+    assert _serialize_tx_entry(model_tx) == {"kind": "BARTER", "amount": 4.5}
+
+    proxy_tx = MappingProxyType({"kind": "PROXY", "nested": {"x": 1}})
+    dumped_proxy = _serialize_tx_entry(proxy_tx)
+    assert dumped_proxy == {"kind": "PROXY", "nested": {"x": 1}}
+    assert isinstance(dumped_proxy, dict)
+
+    with pytest.raises(TypeError, match="Unsupported transaction entry type"):
+        _serialize_tx_entry(12345)
+
+    service = HiveServiceLayer(hive_id="HIVE_SNAP", difficulty=1)
+    cast(list[Any], service.blockchain.mempool).extend([model_tx, proxy_tx])
+    snapshot = service._build_snapshot()
+    assert snapshot.mempool == [
+        {"kind": "BARTER", "amount": 4.5},
+        {"kind": "PROXY", "nested": {"x": 1}},
+    ]
