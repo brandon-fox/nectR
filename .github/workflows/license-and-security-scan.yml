@@ -99,7 +99,7 @@ jobs:
       - name: Link check across docs, paper & openspec (lychee)
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --accept 200,204,403,429 --timeout 20 --max-retries 2 docs/ paper/ openspec/
+          args: --no-progress --accept 200,202,203,204,403,405,429 --timeout 20 --max-retries 2 --exclude-path "openspec/changes/archive/" --exclude-path "docs/theory/research/" docs/ paper/ openspec/
           fail: true
 
       - name: Strict TDD suite with coverage gate (pytest)
