@@ -26,9 +26,30 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: nectr-decisions-check
+        name: nectR Decision & MADR ADR Governance Check (pre-commit)
+        entry: python -m nectr.devtools.decisions check
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: nectr-spec-links-check
+        name: nectR OpenSpec-to-Feature Link Check (pre-commit)
+        entry: python -m nectr.devtools.spec_links
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: nectr-tdd-unit-tests
         name: nectR Strict TDD Unit Test Suite (pre-commit)
         entry: python -m pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: mypy-strict-typecheck
+        name: mypy (Strict Static Type Check on src, .agents, and skill tests)
+        entry: python -m mypy src .agents/lib .agents/skills tests/test_skills_spec.py
         language: system
         pass_filenames: false
         stages: [pre-commit]
