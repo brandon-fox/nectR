@@ -20,6 +20,7 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0010` | [Adopt Mesa ABM and Hypothesis Invariant Testing](0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md) | `accepted` |
 | `ADR-0011` | [Adopt Streamlit and NetworkX for Telemetry UI](0011-adopt-streamlit-and-networkx-for-telemetry-ui.md) | `accepted` |
 | `ADR-0012` | [Adopt adrlint for MADR Linting and Immutability](0012-adopt-adrlint-for-madr-linting-and-immutability.md) | `accepted` |
+| `ADR-0013` | [Restrict CrewAI to Isolated Off-Chain Peripherals](0013-restrict-crewai-to-isolated-off-chain-peripherals.md) | `accepted` |
 <!-- END AUTO-ADR-INDEX -->
 
 ## `adrlint` Workflow & Configuration
