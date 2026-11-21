@@ -302,6 +302,26 @@ def _scan_comment_pragmas(text: str) -> set[int]:
     return lines_found
 
 
+def _serialize_toml_section(section: str, data: Mapping[str, Any]) -> str:
+    lines = [f"[{section}]"]
+    nested: list[tuple[str, Mapping[str, Any]]] = []
+    for key, val in data.items():
+        if isinstance(val, Mapping):
+            nested.append((f"{section}.{key}", val))
+        elif isinstance(val, bool):
+            lines.append(f"{key} = {'true' if val else 'false'}")
+        elif isinstance(val, (int, float)):
+            lines.append(f"{key} = {val}")
+        elif isinstance(val, str):
+            lines.append(f"{key} = {json.dumps(val)}")
+        elif isinstance(val, (list, tuple)):
+            lines.append(f"{key} = {json.dumps(list(val))}")
+    parts = ["\n".join(lines)]
+    for sub_name, sub_data in nested:
+        parts.append(_serialize_toml_section(sub_name, sub_data))
+    return "\n\n".join(parts) + "\n"
+
+
 class PoodleEngine:
     """Adapter executing Poodle mutation trials and parsing its JSON report."""
 
@@ -313,7 +333,7 @@ class PoodleEngine:
         policy: MutationPolicy,
     ) -> list[dict[str, Any]]:
         """Run Poodle scoped to *files* and return raw `mutant_trials` records."""
-        _ = tier, policy
+        _ = tier
         only_args: list[str] = []
         for file_path in files:
             norm = normalize_repo_path(file_path)
@@ -324,13 +344,34 @@ class PoodleEngine:
         venv_bin = str(Path(sys.executable).resolve().parent)
         env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
 
+        pyproject_path = repo_root / "pyproject.toml"
+        poodle_cfg: dict[str, Any] = {}
+        if pyproject_path.is_file():
+            poodle_cfg = dict(
+                tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+                .get("tool", {})
+                .get("poodle", {})
+            )
+
         with tempfile.TemporaryDirectory() as tmp_dir:
-            report_path = Path(tmp_dir) / "poodle-report.json"
+            tmp_path = Path(tmp_dir)
+            cfg_args: list[str] = []
+            if poodle_cfg.get("min_timeout") != policy.per_mutant_timeout_seconds:
+                poodle_cfg["min_timeout"] = policy.per_mutant_timeout_seconds
+                cfg_file = tmp_path / "poodle-override.toml"
+                cfg_file.write_text(
+                    _serialize_toml_section("tool.poodle", poodle_cfg),
+                    encoding="utf-8",
+                )
+                cfg_args = ["-c", str(cfg_file)]
+
+            report_path = tmp_path / "poodle-report.json"
             cmd = [
                 sys.executable,
                 "-m",
-                "poodle",
+                "poodle.cli",
                 "-q",
+                *cfg_args,
                 *only_args,
                 "--json",
                 str(report_path),
