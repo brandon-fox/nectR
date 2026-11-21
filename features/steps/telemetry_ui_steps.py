@@ -10,7 +10,9 @@ def step_given_telemetry_snapshot(context: object) -> None:
     raise NotImplementedError("RED: add-telemetry-dashboard-ui not yet implemented")
 
 
-@when("the Streamlit dashboard data loader prepares the Knowledge Graph, Collusion Matrix, Gini, and Comb views")
+@when(
+    "the Streamlit dashboard data loader prepares the Knowledge Graph, Collusion Matrix, Gini, and Comb views"
+)
 def step_when_dashboard_loads(context: object) -> None:
     raise NotImplementedError("RED: add-telemetry-dashboard-ui not yet implemented")
 

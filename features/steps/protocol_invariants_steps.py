@@ -79,7 +79,7 @@ def step_given_full_dispute_hive(
 
 @when(
     '"{tutor_id}" attempts to create a tutoring escrow for "{learner_id}" in "{subject_id}" '
-    'for {amount:f} RAW_POLLEN'
+    "for {amount:f} RAW_POLLEN"
 )
 def step_when_tutor_attempts_escrow(
     context, tutor_id: str, learner_id: str, subject_id: str, amount: float
@@ -98,7 +98,9 @@ def step_when_tutor_attempts_escrow(
         context.last_error = exc
 
 
-@when('"{learner_id}" attempts to escrow {amount:f} RAW_POLLEN with "{tutor_id}" for "{subject_id}"')
+@when(
+    '"{learner_id}" attempts to escrow {amount:f} RAW_POLLEN with "{tutor_id}" for "{subject_id}"'
+)
 def step_when_learner_attempts_escrow(
     context, learner_id: str, amount: float, tutor_id: str, subject_id: str
 ) -> None:
@@ -116,7 +118,9 @@ def step_when_learner_attempts_escrow(
         context.last_error = exc
 
 
-@when('"{learner_id}" escrows and settles {amount:f} RAW_POLLEN with "{tutor_id}" for "{subject_id}"')
+@when(
+    '"{learner_id}" escrows and settles {amount:f} RAW_POLLEN with "{tutor_id}" for "{subject_id}"'
+)
 def step_when_escrow_and_settle(
     context, learner_id: str, amount: float, tutor_id: str, subject_id: str
 ) -> None:

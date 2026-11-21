@@ -28,7 +28,9 @@ def step_when_full_check_runs(context) -> None:
         context.gov_error = exc
 
 
-@then("validation succeeds with at least {min_adrs:d} accepted MADR records and an in-sync ADR index")
+@then(
+    "validation succeeds with at least {min_adrs:d} accepted MADR records and an in-sync ADR index"
+)
 def step_then_validation_succeeds(context, min_adrs: int) -> None:
     assert context.gov_error is None, f"Unexpected governance error: {context.gov_error}"
     assert context.gov_summary is not None
@@ -107,7 +109,10 @@ def step_when_drift_injected(context) -> None:
     from nectr.devtools.decisions import DecisionGovernanceError, check_all_governance
 
     log_path = context.temp_dir / "docs" / "planning" / "decision_log.md"
-    log_path.write_text(log_path.read_text(encoding="utf-8") + "\n<!-- unapproved manual edit -->\n", encoding="utf-8")
+    log_path.write_text(
+        log_path.read_text(encoding="utf-8") + "\n<!-- unapproved manual edit -->\n",
+        encoding="utf-8",
+    )
     try:
         check_all_governance(context.temp_dir)
     except DecisionGovernanceError as exc:
@@ -118,7 +123,9 @@ def step_when_drift_injected(context) -> None:
 
 @then('governance validation fails with "{expected_substring}"')
 def step_then_governance_fails(context, expected_substring: str) -> None:
-    assert context.gov_error is not None, "Expected DecisionGovernanceError, but validation succeeded"
+    assert context.gov_error is not None, (
+        "Expected DecisionGovernanceError, but validation succeeded"
+    )
     assert expected_substring in str(context.gov_error), (
         f"Expected '{expected_substring}' in '{context.gov_error}'"
     )
