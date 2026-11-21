@@ -1,7 +1,7 @@
 # Project Roadmap & Autonomous Development Milestones
 
 ## Milestone 1: Theoretical Foundation & `/grill-me` Specification
-- [ ] Run the 3 Gemini Deep Research prompts (`docs/planning/deep_research_prompts.md`) and synthesize findings into `docs/theory/`.
+- [x] Run the 3 Gemini Deep Research prompts (`docs/planning/deep_research_prompts.md`) and archive the reports in [`docs/theory/research/`](../theory/research/federated_barter_tokenomics.md).
 - [ ] Complete the interactive `/grill-me` session to lock down open equations in `docs/planning/decision_log.md`.
 - [ ] Finalize the mathematical model in `docs/theory/tokenomics_game_theory.md` and `docs/theory/biomimicry_model.md`.
 
