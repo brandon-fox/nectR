@@ -9,7 +9,6 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.xfail(strict=True, reason="RED: split-madr-and-decision-registry not yet implemented")
 def test_repository_adrs_and_fast_decision_log_pass_all_controls() -> None:
     """Repo docs/adr/ (pyadr) and docs/planning/decisions.yaml + decision_log.md must pass all gates."""
     from nectr.devtools.decisions import check_all_governance
@@ -22,7 +21,6 @@ def test_repository_adrs_and_fast_decision_log_pass_all_controls() -> None:
     assert summary["decision_log_in_sync"] is True
 
 
-@pytest.mark.xfail(strict=True, reason="RED: split-madr-and-decision-registry not yet implemented")
 def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(tmp_path: Path) -> None:
     """MADR verbosity gate enforces line, word, title-length, and per-section bullet caps."""
     from nectr.devtools.decisions import DecisionGovernanceError, validate_adr_verbosity
@@ -69,12 +67,15 @@ def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(tm
         validate_adr_verbosity(adr_dir)
 
 
-@pytest.mark.xfail(strict=True, reason="RED: split-madr-and-decision-registry not yet implemented")
 def test_fast_decision_registry_rejects_verbose_entries_and_missing_links(tmp_path: Path) -> None:
     """Fast non-architectural decisions enforce concise 180-char summaries and verified file links."""
     from pydantic import ValidationError
 
-    from nectr.devtools.decisions import DecisionGovernanceError, DecisionRegistry, validate_registry_links
+    from nectr.devtools.decisions import (
+        DecisionGovernanceError,
+        DecisionRegistry,
+        validate_registry_links,
+    )
 
     with pytest.raises(ValidationError):
         DecisionRegistry.model_validate(
@@ -115,7 +116,6 @@ def test_fast_decision_registry_rejects_verbose_entries_and_missing_links(tmp_pa
         validate_registry_links(reg, tmp_path)
 
 
-@pytest.mark.xfail(strict=True, reason="RED: split-madr-and-decision-registry not yet implemented")
 def test_cli_add_decision_updates_yaml_and_renders_markdown_in_sync(tmp_path: Path) -> None:
     """CLI `add` command appends a validated DEC entry and keeps decision_log.md in sync."""
     from nectr.devtools.decisions import DecisionRegistry, load_registry, main, render_decision_log

@@ -19,6 +19,13 @@ repos:
         language: system
         stages: [commit-msg]
 
+      - id: nectr-decision-governance
+        name: nectR pyadr MADR & Fast Decision Registry Check (pre-commit)
+        entry: python -m nectr.devtools.decisions check
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: nectr-tdd-unit-tests
         name: nectR Strict TDD Unit Test Suite (pre-commit)
         entry: python -m pytest
