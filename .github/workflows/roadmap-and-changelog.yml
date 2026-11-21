@@ -1,0 +1,51 @@
+name: Automated Changelog & OpenSpec Roadmap
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  changelog-and-openspec-summary:
+    name: Generate Changelog & OpenSpec Feature Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install commitizen
+        run: pip install commitizen
+
+      - name: Generate Conventional Commits changelog
+        run: cz changelog --dry-run > CHANGELOG.generated.md
+
+      - name: Summarize OpenSpec specs & active changes
+        run: |
+          {
+            echo "# nectR Automated Feature & Spec Status"
+            echo ""
+            echo "## Active Specs"
+            find openspec/specs -name "spec.md" | sort | sed 's/^/- /'
+            echo ""
+            echo "## Active OpenSpec Changes"
+            find openspec/changes -maxdepth 2 -name "tasks.md" | sort | sed 's/^/- /'
+          } > openspec-roadmap.md
+
+      - name: Upload changelog & roadmap artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: roadmap-and-changelog
+          path: |
+            CHANGELOG.generated.md
+            openspec-roadmap.md
+          retention-days: 30
