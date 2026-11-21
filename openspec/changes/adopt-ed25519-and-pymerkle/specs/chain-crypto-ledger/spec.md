@@ -11,5 +11,5 @@ All ledger transactions, `BlockHeader` commitments, and `UsefulComputeProof` pay
 - **Linked Scenario:** `Ed25519-signed canonical transaction produces verifiable Merkle inclusion proof` in [chain_crypto_ledger.feature](../../../../../features/chain_crypto_ledger.feature#L6-L10)
 
 ### Requirement: ADDED — Permissive-License Merkle Inclusion Proofs
-Block transaction commitments SHALL construct and verify Merkle roots and inclusion proofs using `merklelib` (`MIT`), prohibiting copyleft (`GPLv3+`) alternatives such as `pymerkle`.
+Block transaction commitments SHALL construct and verify Merkle roots and inclusion proofs via `MerkleInclusionProof` backed by `remerkleable` (`MIT`), prohibiting copyleft (`GPLv3+`) alternatives such as `pymerkle` and Python 3.10+ broken `merklelib`.
 - **Linked Scenario:** `Ed25519-signed canonical transaction produces verifiable Merkle inclusion proof` in [chain_crypto_ledger.feature](../../../../../features/chain_crypto_ledger.feature#L6-L10)
