@@ -252,7 +252,7 @@ def test_check_workflow_action_hygiene_accepts_hardened_workflows(tmp_path: Path
             jobs:
               license-and-security-scan:
                 steps:
-                  - uses: astral-sh/setup-uv@v10.4.0
+                  - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                     with:
                       python-version: "3.12"
                       enable-cache: true
@@ -260,20 +260,20 @@ def test_check_workflow_action_hygiene_accepts_hardened_workflows(tmp_path: Path
                   - env:
                       NO_MKDOCS_2_WARNING: "1"
                     run: uv run mkdocs build --strict
-                  - uses: lycheeverse/lychee-action@v2
+                  - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
                     with:
                       args: --exclude-path "openspec/changes/archive/" --exclude-path "docs/theory/research/" docs/ paper/ openspec/
                       output: ${{ runner.temp }}/lychee-out.md
               test-matrix:
                 steps:
-                  - uses: astral-sh/setup-uv@v10.4.0
+                  - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                     with:
                       python-version: "3.12"
                       enable-cache: true
                       cache-suffix: dev
               dependency-review:
                 steps:
-                  - uses: actions/dependency-review-action@v5
+                  - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
                     with:
                       fail-on-severity: high
                       allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, PSF-2.0, Python-2.0, MPL-2.0, 0BSD, Zlib, Unlicense, CC0-1.0
@@ -289,12 +289,12 @@ def test_check_workflow_action_hygiene_accepts_hardened_workflows(tmp_path: Path
             jobs:
               release:
                 steps:
-                  - uses: astral-sh/setup-uv@v10.4.0
+                  - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                     with:
                       python-version: "3.12"
                       enable-cache: true
                       cache-suffix: release
-                  - uses: softprops/action-gh-release@v3
+                  - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
             """
         ),
         encoding="utf-8",
@@ -306,7 +306,7 @@ def test_check_workflow_action_hygiene_accepts_hardened_workflows(tmp_path: Path
             jobs:
               changelog-and-openspec-summary:
                 steps:
-                  - uses: astral-sh/setup-uv@v10.4.0
+                  - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                     with:
                       python-version: "3.12"
                       enable-cache: true
