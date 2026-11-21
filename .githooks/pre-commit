@@ -1,6 +1,14 @@
 #!/usr/bin/env sh
 set -eu
 
-python scripts/security_scan.py --staged
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -n "$STAGED_FILES" ]; then
+    echo "$STAGED_FILES" | xargs detect-secrets-hook --baseline .secrets.baseline
+    if echo "$STAGED_FILES" | xargs git grep -nE '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/[:space:]]+|\.gemini[/\\]|\.ollama[/\\])' -- 2>/dev/null; then
+        echo "COMMIT REJECTED: Hardcoded local/private path detected in staged files." >&2
+        exit 1
+    fi
+fi
+
 python -m pytest
 python -m behave --tags=-red

@@ -1,6 +1,11 @@
 #!/usr/bin/env sh
 set -eu
 
-python scripts/security_scan.py --push
+git ls-files | xargs detect-secrets-hook --baseline .secrets.baseline
+if git grep -nE '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/[:space:]]+|\.gemini[/\\]|\.ollama[/\\])' -- 2>/dev/null; then
+    echo "PUSH REJECTED: Hardcoded local/private path detected in tracked files." >&2
+    exit 1
+fi
+
 python -m pytest
 python -m behave
