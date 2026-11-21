@@ -7,7 +7,7 @@ description: Executes the mandatory Outside-In OpenSpec -> Behave BDD -> Strict 
 
 Follow this exact sequence for every feature, fix, or refactor (no exceptions):
 
-1. **Pre-Action Security Scan:** `python scripts/security_scan.py --all`
+1. **Pre-Action Security Scan:** `detect-secrets scan` / `pre-commit run --all-files`
 2. **OpenSpec Proposal:** Create `openspec/changes/<change-id>/` with `proposal.md`, `design.md`, `tasks.md`, and `specs/<domain>/spec.md`.
 3. **RED Commit (Tests First with Expected Failure):**
    - Add outside-in Gherkin scenarios to `features/<domain>.feature` and steps in `features/steps/`.
@@ -23,4 +23,4 @@ Follow this exact sequence for every feature, fix, or refactor (no exceptions):
 5. **REFACTOR Commit:**
    - Clean up code while preserving DDD boundaries and keeping `pytest` + `behave` 100% green.
    - Commit atomically: `refactor(<scope>): <summary>`.
-6. **Post-Action Gate:** Run `python scripts/security_scan.py --all`, `python -m pytest`, and `python -m behave`.
+6. **Post-Action Gate:** Run `detect-secrets-hook --baseline .secrets.baseline` on changed files, `python -m pytest`, and `python -m behave`.

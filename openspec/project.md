@@ -27,11 +27,11 @@ All code, specs, and tests MUST respect strict Bounded Context boundaries and Ub
 
 ## Mandatory Engineering Workflow (No Exceptions)
 Every feature, bugfix, or protocol change MUST follow this exact sequence:
-1. **Security & Privacy Gate:** Verify no secrets, private references, or local hardcoded paths exist (`python scripts/security_scan.py --all`).
+1. **Security & Privacy Gate:** Verify no secrets, private references, or local hardcoded paths exist (`detect-secrets`, `.githooks/`).
 2. **OpenSpec (`openspec/changes/<change-id>/`):** Author `proposal.md`, `design.md`, `tasks.md`, and `specs/<domain>/spec.md` delta before writing code.
 3. **BDD (`features/*.feature`):** Define executable Gherkin acceptance scenarios in `features/` and verify they fail (`behave`) before implementation.
 4. **Strict TDD (Red-Green-Refactor):**
    - **RED:** Write a failing unit/invariant test in `tests/` first and observe it fail.
    - **GREEN:** Write the minimal domain code to make the test pass.
    - **REFACTOR:** Clean up while keeping all `pytest` and `behave` tests green.
-5. **Pre-Commit & Pre-Push Verification:** `python scripts/security_scan.py`, `python -m pytest`, and `python -m behave` must all pass.
+5. **Pre-Commit & Pre-Push Verification:** `detect-secrets-hook`, `cz check`, `python -m pytest`, and `python -m behave` must all pass.

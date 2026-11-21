@@ -9,7 +9,7 @@ description: Enforces atomic, SSH-signed Conventional Commits with strict file i
 - **NEVER** run `git add .` or `git commit -a`. Always stage only the explicit files you created or modified (`git add <file1> <file2>`).
 - **NEVER** use `--no-verify`. All `.githooks/` (`pre-commit`, `commit-msg`, `pre-push`) must execute and pass.
 - **Mandatory SSH Signing:** Ensure commits are signed (`commit.gpgsign=true`, `gpg.format=ssh`).
-- **Conventional Commits Format** (enforced by `.githooks/commit-msg` and `scripts/validate_commit_msg.py`):
+- **Conventional Commits Format** (enforced by `.githooks/commit-msg` via `commitizen` `cz check`):
   `<type>(<scope>): <imperative summary>` (<= 100 chars)
   - Allowed `<type>`: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
