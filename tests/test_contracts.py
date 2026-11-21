@@ -667,3 +667,223 @@ def test_contract_engine_from_snapshot_rejects_corrupted_supply_and_bad_pairs() 
 
     with pytest.raises(ContractViolationError, match="Invalid HiveContractEngine snapshot"):
         HiveContractEngine.from_snapshot({"schema_version": 1})
+
+
+# ---------------------------------------------------------------------------
+# Iteration 2 RED Regression Tests: Contract Validation Hardening
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.xfail(strict=True, reason="RED: BUG-1 duplicate session_id not yet rejected")
+def test_escrow_rejects_duplicate_session_id() -> None:
+    engine = _setup_basic_hive()
+    engine.create_service_barter_escrow(
+        session_id="dup_sess",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=5.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    engine.settle_co_signed_session("dup_sess", 1.0, "hash_1")
+    with pytest.raises(ContractViolationError, match="already exists"):
+        engine.create_service_barter_escrow(
+            session_id="dup_sess",
+            tutor_id="worker_1",
+            learner_id="learner_1",
+            subject_id="CS-101",
+            duration_hours=1.0,
+            amount=5.0,
+            token_state=TokenState.RAW_POLLEN,
+        )
+
+
+@pytest.mark.xfail(strict=True, reason="RED: BUG-2 service_fee_rate bounds not yet enforced")
+@pytest.mark.parametrize("bad_fee", [-0.1, 1.1, 2.0, float("nan"), float("inf")])
+def test_dispute_rejects_out_of_bounds_service_fee_rate(bad_fee: float) -> None:
+    engine = _setup_basic_hive()
+    engine.create_service_barter_escrow(
+        session_id="s_bad_fee",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=10.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    with pytest.raises(ContractViolationError, match="service_fee_rate"):
+        engine.resolve_disputed_session(
+            "queen_1", "s_bad_fee", tutor_share_ratio=0.5, service_fee_rate=bad_fee
+        )
+
+
+@pytest.mark.xfail(
+    strict=True, reason="RED: BUG-3 duration_hours <= 0 / non-finite not yet rejected"
+)
+@pytest.mark.parametrize("bad_duration", [0.0, -1.0, float("nan"), float("inf")])
+def test_escrow_rejects_non_positive_duration_hours(bad_duration: float) -> None:
+    engine = _setup_basic_hive()
+    with pytest.raises(ContractViolationError, match="duration_hours"):
+        engine.create_service_barter_escrow(
+            session_id="s_bad_dur",
+            tutor_id="worker_1",
+            learner_id="learner_1",
+            subject_id="CS-101",
+            duration_hours=bad_duration,
+            amount=5.0,
+            token_state=TokenState.RAW_POLLEN,
+        )
+
+
+@pytest.mark.xfail(strict=True, reason="RED: BUG-5 non-finite numeric inputs not yet rejected")
+def test_contract_methods_reject_non_finite_and_invalid_rates() -> None:
+    engine = _setup_basic_hive()
+    target = _setup_basic_hive(hive_id="HIVE_TARGET", accepted_threshold=1)
+    target.register_bee("worker_1", home_hive_id="HIVE_UNIT")
+    target.accounts["worker_1"].accepted_in_hives.add("HIVE_TARGET")
+
+    for bad_num in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ContractViolationError):
+            engine.inject_sponsored_seed_comb(bad_num)
+        with pytest.raises(ContractViolationError):
+            engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", bad_num)
+        with pytest.raises(ContractViolationError):
+            engine.certify_worker_bee("queen_1", "worker_1", "BIO-101", certification_fee=bad_num)
+        with pytest.raises(ContractViolationError):
+            engine.create_service_barter_escrow(
+                session_id="s_nan",
+                tutor_id="worker_1",
+                learner_id="learner_1",
+                subject_id="CS-101",
+                duration_hours=1.0,
+                amount=bad_num,
+                token_state=TokenState.RAW_POLLEN,
+            )
+        with pytest.raises(ContractViolationError):
+            engine.bridge_nectr_to_target_hive("worker_1", target, bad_num)
+
+    with pytest.raises(ContractViolationError):
+        engine.certify_worker_bee("queen_1", "worker_1", "BIO-101", certification_fee=-1.0)
+
+    engine.create_service_barter_escrow(
+        session_id="s_earn",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=10.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    engine.settle_co_signed_session("s_earn", 1.0, "h_earn")
+    for bad_toll in (-0.1, 1.1, float("nan")):
+        with pytest.raises(ContractViolationError):
+            engine.bridge_nectr_to_target_hive("worker_1", target, 5.0, bridge_toll_rate=bad_toll)
+
+
+@pytest.mark.xfail(
+    strict=True, reason="RED: BUG-5/C1 assert_supply_conservation ignores NaN/Inf/negatives"
+)
+def test_assert_supply_conservation_rejects_nan_inf_and_negative_balances() -> None:
+    engine_nan = _setup_basic_hive(hive_id="HIVE_NAN")
+    engine_nan.comb_reserve = float("nan")
+    engine_nan.total_minted_supply = float("nan")
+    with pytest.raises(ContractViolationError):
+        engine_nan.assert_supply_conservation()
+
+    engine_inf = _setup_basic_hive(hive_id="HIVE_INF")
+    engine_inf.comb_reserve = float("inf")
+    engine_inf.total_minted_supply = float("inf")
+    with pytest.raises(ContractViolationError):
+        engine_inf.assert_supply_conservation()
+
+    engine_neg = _setup_basic_hive(hive_id="HIVE_NEG")
+    engine_neg.accounts["learner_1"].raw_pollen_balance = -50.0
+    engine_neg.comb_reserve += 100.0
+    with pytest.raises(ContractViolationError):
+        engine_neg.assert_supply_conservation()
+
+
+@pytest.mark.xfail(
+    strict=True, reason="RED: C1/R2 snapshot hydration lacks pairwise/non-neg/NaN/type checks"
+)
+def test_snapshot_hydration_rejects_corrupted_fields_and_bad_types() -> None:
+    engine = _setup_basic_hive(hive_id="HIVE_SNAP_HARDEN")
+    engine.create_service_barter_escrow(
+        session_id="s1",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=5.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    base_snap = engine.to_snapshot()
+
+    neg_pair = json.loads(json.dumps(base_snap))
+    neg_pair["pairwise_counts"] = [{"pair": ["worker_1", "learner_1"], "count": -1}]
+    with pytest.raises(ContractViolationError):
+        HiveContractEngine.from_snapshot(neg_pair)
+
+    dup_pair = json.loads(json.dumps(base_snap))
+    dup_pair["pairwise_counts"] = [
+        {"pair": ["worker_1", "learner_1"], "count": 1},
+        {"pair": ["learner_1", "worker_1"], "count": 99},
+    ]
+    with pytest.raises(ContractViolationError):
+        HiveContractEngine.from_snapshot(dup_pair)
+
+    nan_snap = json.loads(json.dumps(base_snap))
+    nan_snap["comb_reserve"] = float("nan")
+    nan_snap["total_minted_supply"] = float("nan")
+    with pytest.raises(ContractViolationError):
+        HiveContractEngine.from_snapshot(nan_snap)
+
+    neg_bal_snap = json.loads(json.dumps(base_snap))
+    neg_bal_snap["accounts"]["learner_1"]["raw_pollen_balance"] = -50.0
+    neg_bal_snap["comb_reserve"] += 95.0
+    with pytest.raises(ContractViolationError):
+        HiveContractEngine.from_snapshot(neg_bal_snap)
+
+    for bad_key, bad_val in (
+        ("collusion_alpha", -1.0),
+        ("lineage_gamma", -0.5),
+        ("accepted_status_peer_threshold", 0),
+    ):
+        bad_cfg = json.loads(json.dumps(base_snap))
+        bad_cfg[bad_key] = bad_val
+        with pytest.raises(ContractViolationError):
+            HiveContractEngine.from_snapshot(bad_cfg)
+
+    bad_eff = json.loads(json.dumps(base_snap))
+    bad_eff["tutor_effectiveness"] = {"worker_1": -1.0}
+    with pytest.raises(ContractViolationError):
+        HiveContractEngine.from_snapshot(bad_eff)
+
+    bad_accts_type = json.loads(json.dumps(base_snap))
+    bad_accts_type["accounts"] = []
+    with pytest.raises(ContractViolationError):
+        HiveContractEngine.from_snapshot(bad_accts_type)
+
+    acct_dict = engine.accounts["worker_1"].to_dict()
+    bad_str_set = dict(acct_dict)
+    bad_str_set["certified_subjects"] = "CS-101"
+    with pytest.raises(ContractViolationError):
+        BeeAccount.from_dict(bad_str_set)
+
+    bad_rj = dict(acct_dict)
+    bad_rj["royal_jelly_earned"] = -1.0
+    with pytest.raises(ContractViolationError):
+        BeeAccount.from_dict(bad_rj)
+
+    sess_dict = engine.sessions["s1"].to_dict()
+    for field_name, bad_val in (
+        ("duration_hours", 0.0),
+        ("escrowed_amount", -1.0),
+        ("learner_attestation_score", 1.5),
+        ("effective_weight", -0.1),
+    ):
+        bad_sess = dict(sess_dict)
+        bad_sess[field_name] = bad_val
+        with pytest.raises(ContractViolationError):
+            ServiceBarterSession.from_dict(bad_sess)
