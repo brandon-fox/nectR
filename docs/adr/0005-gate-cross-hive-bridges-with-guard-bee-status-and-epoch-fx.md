@@ -1,8 +1,11 @@
-# Gate Cross-Hive Bridges with Guard Bee Status and Epoch FX
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Protocol & Cross-Hive Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Protocol & Cross-Hive Architecture
-* Date: 2026-11-21
+# Gate Cross-Hive Bridges with Guard Bee Status and Epoch FX
 
 ## Context and Problem Statement
 

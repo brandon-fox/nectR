@@ -13,11 +13,14 @@ import yaml
 
 BEGIN_SPACES_MARKER = "<!-- BEGIN AUTO-WORKSPACE-SPACES -->"
 END_SPACES_MARKER = "<!-- END AUTO-WORKSPACE-SPACES -->"
+BEGIN_ADR_INDEX_MARKER = "<!-- BEGIN AUTO-ADR-INDEX -->"
+END_ADR_INDEX_MARKER = "<!-- END AUTO-ADR-INDEX -->"
 
 EXCLUDED_TREE_DIRS: frozenset[str] = frozenset(
     {
         ".git",
         ".venv",
+        ".worktrees",
         "venv",
         "__pycache__",
         ".pytest_cache",
@@ -76,7 +79,7 @@ SPACE_DESCRIPTIONS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "`src/nectr/devtools/`",
-        "Zero-CVE `pyadr` MADR engine, decision registry, citation custody & docs sync",
+        "Decision registry, citation custody & living docs sync (MADR linting via OSS `adrlint`)",
         "`meta-orchestrator`",
     ),
     (
@@ -152,11 +155,44 @@ def render_workspace_spaces_block(repo_root: Path) -> str:
     return "\n".join(rows)
 
 
-def _read_adr_h1(adr_path: Path) -> str:
-    for line in adr_path.read_text(encoding="utf-8").splitlines():
+def _parse_adr_frontmatter(adr_path: Path) -> tuple[str, str]:
+    raw = adr_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    status = "unknown"
+    body = raw
+    if raw.startswith("---\n"):
+        end_idx = raw.find("\n---\n", 4)
+        if end_idx != -1:
+            meta = yaml.safe_load(raw[4:end_idx]) or {}
+            if isinstance(meta, dict) and meta.get("status"):
+                status = str(meta["status"]).strip()
+            body = raw[end_idx + 5 :]
+    title = adr_path.stem
+    for line in body.splitlines():
         if line.startswith("# "):
-            return line[2:].strip()
-    return adr_path.stem
+            title = line[2:].strip()
+            break
+    return title, status
+
+
+def _read_adr_h1(adr_path: Path) -> str:
+    title, _ = _parse_adr_frontmatter(adr_path)
+    return title
+
+
+def render_adr_index_block(repo_root: Path) -> str:
+    """Render the auto-synced MADR index table from docs/adr/[0-9][0-9][0-9][0-9]-*.md."""
+    adr_dir = repo_root / "docs" / "adr"
+    rows = [
+        BEGIN_ADR_INDEX_MARKER,
+        "| ADR | Title | Status |",
+        "| :--- | :--- | :--- |",
+    ]
+    for adr_file in sorted(adr_dir.glob("[0-9][0-9][0-9][0-9]-*.md")):
+        adr_id = adr_file.stem.split("-", 1)[0]
+        title, status = _parse_adr_frontmatter(adr_file)
+        rows.append(f"| `ADR-{adr_id}` | [{title}]({adr_file.name}) | `{status}` |")
+    rows.append(END_ADR_INDEX_MARKER)
+    return "\n".join(rows)
 
 
 def _build_expected_adr_nav_lines(repo_root: Path) -> list[str]:
@@ -164,7 +200,6 @@ def _build_expected_adr_nav_lines(repo_root: Path) -> list[str]:
     lines = [
         "      - Architecture Decision Records (MADR):",
         "          - ADR Index: adr/index.md",
-        "          - ADR Lifecycle Guide: adr/lifecycle_guide.md",
     ]
     for adr_file in sorted(adr_dir.glob("[0-9][0-9][0-9][0-9]-*.md")):
         adr_id = adr_file.stem.split("-", 1)[0]
@@ -225,12 +260,23 @@ def sync_docs(repo_root: Path) -> None:
     updated_readme = pattern.sub(spaces_block, readme_text)
     readme_path.write_text(updated_readme, encoding="utf-8", newline="\n")
 
+    adr_index_path = repo_root / "docs" / "adr" / "index.md"
+    adr_index_text = adr_index_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    adr_pattern = re.compile(
+        re.escape(BEGIN_ADR_INDEX_MARKER) + r".*?" + re.escape(END_ADR_INDEX_MARKER),
+        re.DOTALL,
+    )
+    if not adr_pattern.search(adr_index_text):
+        raise DocsSyncError("docs/adr/index.md missing AUTO-ADR-INDEX markers.")
+    updated_index = adr_pattern.sub(render_adr_index_block(repo_root), adr_index_text)
+    adr_index_path.write_text(updated_index, encoding="utf-8", newline="\n")
+
     mkdocs_path = repo_root / "mkdocs.yml"
     mkdocs_path.write_text(render_synced_mkdocs(repo_root), encoding="utf-8", newline="\n")
 
 
 def check_docs_sync(repo_root: Path) -> dict[str, Any]:
-    """Verify README spaces, IDE/skill agnosticism, mkdocs ADR nav sync, and zero orphan pages."""
+    """Verify README spaces, IDE/skill agnosticism, ADR index, mkdocs nav, and zero orphans."""
     glossary_path = repo_root / "docs" / "glossary.md"
     if not glossary_path.exists():
         raise DocsSyncError("Missing docs/glossary.md.")
@@ -252,6 +298,13 @@ def check_docs_sync(repo_root: Path) -> dict[str, Any]:
         raise DocsSyncError(
             "README.md workspace spaces block is out of sync (run `nectr-docs sync`)."
         )
+
+    adr_index_path = repo_root / "docs" / "adr" / "index.md"
+    if not adr_index_path.exists():
+        raise DocsSyncError("Missing docs/adr/index.md.")
+    adr_index_text = adr_index_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    if render_adr_index_block(repo_root) not in adr_index_text:
+        raise DocsSyncError("docs/adr/index.md ADR index is out of sync (run `nectr-docs sync`).")
 
     mkdocs_path = repo_root / "mkdocs.yml"
     actual_mkdocs = mkdocs_path.read_text(encoding="utf-8").replace("\r\n", "\n")

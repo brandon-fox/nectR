@@ -1,8 +1,11 @@
-# Adopt Streamlit and NetworkX for Telemetry UI
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR System Design & Visualization Architecture
+---
 
-* Status: accepted
-* Deciders: nectR System Design & Visualization Architecture
-* Date: 2026-11-21
+# Adopt Streamlit and NetworkX for Telemetry UI
 
 ## Context and Problem Statement
 

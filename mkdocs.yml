@@ -2,8 +2,6 @@ site_name: "nectR: Biomimetic Campus Blockchain & Closed Economy"
 site_description: "Published Theory, Agentic Behavioral Simulation, Business Proposals & Flagship Blockchain System Design"
 repo_name: "nectR"
 strict: true
-exclude_docs: |
-  adr/template.md
 
 theme:
   name: material
@@ -38,7 +36,6 @@ nav:
       - Deep Research Prompts: planning/deep_research_prompts.md
       - Architecture Decision Records (MADR):
           - ADR Index: adr/index.md
-          - ADR Lifecycle Guide: adr/lifecycle_guide.md
           - "0000: Use Markdown Architectural Decision Re...": adr/0000-use-markdown-architectural-decision-records.md
           - "0001: Use Commitizen for Automated Changelog...": adr/0001-use-commitizen-for-automated-changelogs-and-releases.md
           - "0002: Enforce Directional Service Barter Sta...": adr/0002-enforce-directional-service-barter-state-transitions.md
@@ -51,6 +48,7 @@ nav:
           - "0009: Adopt SQLModel Alembic Structlog and O...": adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md
           - "0010: Adopt Mesa ABM and Hypothesis Invarian...": adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
           - "0011: Adopt Streamlit and NetworkX for Telem...": adr/0011-adopt-streamlit-and-networkx-for-telemetry-ui.md
+          - "0012: Adopt adrlint for MADR Linting and Imm...": adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
   - 1. Theory & Academic Paper:
       - Whitepaper Draft: theory/whitepaper_outline.md
       - Biomimetic Hive Mechanics: theory/biomimicry_model.md

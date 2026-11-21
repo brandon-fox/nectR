@@ -47,16 +47,16 @@ decisions:
     title: Outside-In OpenSpec -> Behave BDD -> Strict TDD Pipeline
     decision: Require an openspec/changes/<id>/ spec, Gherkin feature, and xfail_strict Red-Green-Refactor atomic SSH-signed commits for every behavioral or tooling change.
     owner_agent: meta-orchestrator
-    related_adr: docs/adr/0000-use-markdown-architectural-decision-records.md
+    related_adr: docs/adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
     openspec_ref: openspec/project.md
 
   - id: DEC-007
     category: security-oss
     status: locked
     title: Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy
-    decision: Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; ship zero-CVE MIT pyadr CLI in devtools with no waivers.
+    decision: Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; delegate MADR linting and locking to MIT OSS adrlint with zero waivers.
     owner_agent: meta-orchestrator
-    related_adr: docs/adr/0000-use-markdown-architectural-decision-records.md
+    related_adr: docs/adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
 
   - id: DEC-008
     category: workflow-policy

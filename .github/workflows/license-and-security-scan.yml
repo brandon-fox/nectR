@@ -54,6 +54,9 @@ jobs:
 
       - name: Governance, Citation Custody & Docs Sync checks
         run: |
+          adrlint lint
+          adrlint format --check
+          adrlint lock --check
           nectr-decisions check
           nectr-citations check
           nectr-docs check

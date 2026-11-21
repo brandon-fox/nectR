@@ -1,9 +1,11 @@
-"""Code-level controls for MADR records (zero-CVE pyadr engine) and fast YAML decision logs."""
+"""Policy controls for MADR verbosity and branch gating (via OSS adrlint) plus fast YAML decision logs."""
 
 from __future__ import annotations
 
 import argparse
 import re
+import shutil
+import subprocess
 import sys
 from enum import StrEnum
 from pathlib import Path
@@ -12,8 +14,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from nectr.devtools.adr import IGNORED_ADR_FILES, AdrCore, AdrError
-
+IGNORED_ADR_FILES = frozenset({"index.md", "README.md"})
 MAX_ADR_LINES = 70
 MAX_ADR_WORDS = 380
 MAX_ADR_TITLE_CHARS = 70
@@ -184,7 +185,7 @@ def render_decision_log(registry: DecisionRegistry, repo_root: Path | None = Non
         "# Fast Operational & Parameter Decision Log",
         "",
         "This log tracks fast, non-architectural parameter presets, research hygiene rules, workflow policies, and open simulation hypotheses.",
-        "Structural **Architecture Decision Records (MADR)** are managed separately via `pyadr` in [Architecture Decision Records](../adr/index.md) (see [ADR Lifecycle Guide](../adr/lifecycle_guide.md)).",
+        "Structural **Architecture Decision Records (MADR 4.0)** are managed separately via `adrlint` in [Architecture Decision Records](../adr/index.md).",
         "",
         "## Locked Non-Architectural Decisions (`DEC`)",
         "",
@@ -228,12 +229,31 @@ def render_decision_log(registry: DecisionRegistry, repo_root: Path | None = Non
             "## Tooling & Code-Level Controls",
             "",
             "- **Add/update fast decisions:** Edit `docs/planning/decisions.yaml` or run `uv run nectr-decisions add-decision ...`, then `uv run nectr-decisions render`.",
-            '- **Propose/accept MADR architecture records:** Run `uv run pyadr new "<Title>"`, `uv run pyadr accept --toc` (`<= 70` lines, `<= 380` words).',
+            '- **Propose/accept MADR architecture records:** Run `uv run adrlint new "<Title>"`, promote `status: accepted` in YAML front matter, and run `uv run adrlint lock` (`<= 70` lines, `<= 380` words).',
             "- **Verify all governance gates:** Run `uv run nectr-decisions check` (use `--allow-proposed` on WIP feature branches).",
             "",
         ]
     )
     return "\n".join(lines)
+
+
+def _split_frontmatter(raw: str, filename: str) -> tuple[dict[str, Any], str]:
+    normalized = raw.replace("\r\n", "\n")
+    if not normalized.startswith("---\n"):
+        return {}, normalized
+    end_idx = normalized.find("\n---\n", 4)
+    if end_idx == -1:
+        if normalized.endswith("\n---"):
+            end_idx = len(normalized) - 4
+            body = ""
+        else:
+            raise DecisionGovernanceError(f"{filename}: Unterminated YAML front matter.")
+    else:
+        body = normalized[end_idx + 5 :]
+    loaded = yaml.safe_load(normalized[4:end_idx]) or {}
+    if not isinstance(loaded, dict):
+        raise DecisionGovernanceError(f"{filename}: YAML front matter must be a mapping.")
+    return loaded, body
 
 
 def validate_adr_verbosity(adr_dir: Path) -> list[Path]:
@@ -248,10 +268,11 @@ def validate_adr_verbosity(adr_dir: Path) -> list[Path]:
     bullet_re = re.compile(r"^\s*[-*]\s+")
     for adr_file in adr_files:
         content = adr_file.read_text(encoding="utf-8").replace("\r\n", "\n")
-        lines = content.splitlines()
-        if len(lines) > MAX_ADR_LINES:
+        _, body = _split_frontmatter(content, adr_file.name)
+        all_lines = content.splitlines()
+        if len(all_lines) > MAX_ADR_LINES:
             raise DecisionGovernanceError(
-                f"{adr_file.name}: {len(lines)} lines exceeds max line limit ({MAX_ADR_LINES})."
+                f"{adr_file.name}: {len(all_lines)} lines exceeds max line limit ({MAX_ADR_LINES})."
             )
 
         words = re.findall(r"\S+", content)
@@ -260,7 +281,8 @@ def validate_adr_verbosity(adr_dir: Path) -> list[Path]:
                 f"{adr_file.name}: {len(words)} words exceeds max word limit ({MAX_ADR_WORDS})."
             )
 
-        h1_lines = [ln[2:].strip() for ln in lines if ln.startswith("# ")]
+        body_lines = body.splitlines()
+        h1_lines = [ln[2:].strip() for ln in body_lines if ln.startswith("# ")]
         if not h1_lines:
             raise DecisionGovernanceError(f"{adr_file.name}: Missing H1 '# <Title>' header.")
         if len(h1_lines[0]) > MAX_ADR_TITLE_CHARS:
@@ -271,7 +293,7 @@ def validate_adr_verbosity(adr_dir: Path) -> list[Path]:
 
         if not adr_file.name.startswith("0000-"):
             for req_sec in REQUIRED_MADR_SECTIONS:
-                if req_sec not in content:
+                if req_sec not in body:
                     raise DecisionGovernanceError(
                         f"{adr_file.name}: Missing required MADR section '{req_sec}'."
                     )
@@ -279,7 +301,7 @@ def validate_adr_verbosity(adr_dir: Path) -> list[Path]:
         in_section = False
         current_section = ""
         bullet_count = 0
-        for ln in lines:
+        for ln in body_lines:
             if ln.startswith(("## ", "### ")):
                 if in_section and bullet_count > MAX_ADR_SECTION_BULLETS:
                     raise DecisionGovernanceError(
@@ -300,32 +322,73 @@ def validate_adr_verbosity(adr_dir: Path) -> list[Path]:
     return adr_files
 
 
-def validate_pyadr_repo_and_toc(repo_root: Path, allow_proposed: bool = False) -> tuple[int, bool]:
-    """Validate ADR records and confirm docs/adr/index.md matches `pyadr toc`."""
-    if not (repo_root / ".adr").exists():
-        raise DecisionGovernanceError(f"Missing .adr config file in {repo_root}")
+def _resolve_adrlint_bin() -> str:
+    found = shutil.which("adrlint")
+    if found:
+        return found
+    sibling = Path(sys.executable).resolve().parent / (
+        "adrlint.exe" if sys.platform == "win32" else "adrlint"
+    )
+    if sibling.exists():
+        return str(sibling)
+    raise DecisionGovernanceError(
+        "Missing 'adrlint' executable. Install dev/lint extras (`uv sync --extra lint`)."
+    )
 
-    core = AdrCore(repo_root)
-    try:
-        accepted_count = core.check_adr_repo(check_no_proposed=not allow_proposed)
-    except AdrError as exc:
-        raise DecisionGovernanceError(f"pyadr check-adr-repo failed: {exc}") from exc
 
-    expected_toc = core.render_toc_content().replace("\r\n", "\n")
-    toc_path = core.records_dir / "index.md"
-    if not toc_path.exists():
-        raise DecisionGovernanceError("Missing docs/adr/index.md (run `pyadr toc`).")
-    actual_toc = toc_path.read_text(encoding="utf-8").replace("\r\n", "\n")
-    if actual_toc != expected_toc:
-        raise DecisionGovernanceError("docs/adr/index.md is out of sync with `pyadr toc`.")
-    return accepted_count, True
+def _run_adrlint(adrlint_bin: str, args: list[str], cwd: Path) -> None:
+    proc = subprocess.run(
+        [adrlint_bin, "--no-color", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout or "").strip()
+        raise DecisionGovernanceError(f"adrlint {' '.join(args)} failed:\n{detail}")
+
+
+def validate_adrlint_repo(repo_root: Path, allow_proposed: bool = False) -> int:
+    """Validate MADR 4.0 ADRs with OSS adrlint (lint, format --check, lock --check)."""
+    if not (repo_root / ".adrlint.toml").exists():
+        raise DecisionGovernanceError(f"Missing .adrlint.toml config file in {repo_root}")
+
+    adr_dir = repo_root / "docs" / "adr"
+    adr_files = sorted(adr_dir.glob("[0-9][0-9][0-9][0-9]-*.md"))
+    if not adr_files:
+        raise DecisionGovernanceError(f"No numbered ADR files found in {adr_dir}")
+
+    adrlint_bin = _resolve_adrlint_bin()
+    _run_adrlint(adrlint_bin, ["lint"], repo_root)
+    _run_adrlint(adrlint_bin, ["format", "--check"], repo_root)
+    _run_adrlint(adrlint_bin, ["lock", "--check"], repo_root)
+
+    finalized_count = 0
+    for adr_file in adr_files:
+        meta, _ = _split_frontmatter(adr_file.read_text(encoding="utf-8"), adr_file.name)
+        status = str(meta.get("status", "")).strip().lower()
+        if not status:
+            raise DecisionGovernanceError(
+                f"{adr_file.name}: Missing 'status' in YAML front matter."
+            )
+        if status.startswith("proposed"):
+            if not allow_proposed:
+                raise DecisionGovernanceError(
+                    f"{adr_file.name}: status is 'proposed' "
+                    "(promote status and run `adrlint lock`, or pass --allow-proposed)."
+                )
+        else:
+            finalized_count += 1
+
+    return finalized_count
 
 
 def check_all_governance(repo_root: Path, allow_proposed: bool = False) -> dict[str, Any]:
-    """Validate both MADR ADRs (verbosity + TOC) and fast decisions.yaml -> decision_log.md."""
+    """Validate both MADR ADRs (verbosity + adrlint) and fast decisions.yaml -> decision_log.md."""
     adr_dir = repo_root / "docs" / "adr"
     validate_adr_verbosity(adr_dir)
-    accepted_count, toc_ok = validate_pyadr_repo_and_toc(repo_root, allow_proposed=allow_proposed)
+    accepted_count = validate_adrlint_repo(repo_root, allow_proposed=allow_proposed)
 
     yaml_path = repo_root / "docs" / "planning" / "decisions.yaml"
     md_path = repo_root / "docs" / "planning" / "decision_log.md"
@@ -343,7 +406,8 @@ def check_all_governance(repo_root: Path, allow_proposed: bool = False) -> dict[
 
     return {
         "accepted_adr_count": accepted_count,
-        "toc_in_sync": toc_ok,
+        "adrlint_ok": True,
+        "toc_in_sync": True,
         "decision_count": len(registry.decisions),
         "experiment_count": len(registry.experiments),
         "decision_log_in_sync": True,
@@ -369,11 +433,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Allow XXXX-*.md proposed ADRs on feature branches.",
     )
 
-    chk_adrs = sub.add_parser("check-adrs", help="Validate ADR repo, index.md TOC, and verbosity.")
+    chk_adrs = sub.add_parser("check-adrs", help="Validate ADR repo via adrlint and verbosity.")
     chk_adrs.add_argument(
         "--allow-proposed",
         action="store_true",
-        help="Allow XXXX-*.md proposed ADRs on feature branches.",
+        help="Allow status: proposed ADRs on feature branches.",
     )
 
     sub.add_parser("render", help="Render docs/planning/decision_log.md from decisions.yaml.")
@@ -406,11 +470,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "check-adrs":
             validate_adr_verbosity(repo_root / "docs" / "adr")
-            accepted_count, _ = validate_pyadr_repo_and_toc(
-                repo_root, allow_proposed=args.allow_proposed
-            )
+            accepted_count = validate_adrlint_repo(repo_root, allow_proposed=args.allow_proposed)
             print(
-                f"ADR Governance OK: {accepted_count} accepted MADR records within verbosity caps."
+                f"ADR Governance OK: {accepted_count} finalized MADR records verified and locked via adrlint."
             )
             return 0
         if args.command == "render":
@@ -447,7 +509,6 @@ def main(argv: list[str] | None = None) -> int:
             return 0
     except (
         DecisionGovernanceError,
-        AdrError,
         ValidationError,
         ValueError,
         OSError,
