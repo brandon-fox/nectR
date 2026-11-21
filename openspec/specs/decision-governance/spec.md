@@ -6,13 +6,13 @@
 
 ## Requirements
 
-### Requirement: MADR Architectural Decision Records Managed by `pyadr`
-All structural, cross-cutting architectural decisions SHALL be stored as individual Markdown Architectural Decision Records (MADR) in `docs/adr/NNNN-<slug>.md`, configured by `.adr` (`records-dir`) documented in `docs/adr/lifecycle_guide.md`, and managed/validated by the zero-CVE, pure-MIT `nectr.devtools.adr` engine (`pyadr` CLI entry point, with zero GPL/Artistic dependencies and `--allow-proposed` support for pre-merge branches), maintaining an auto-generated `docs/adr/index.md` table of contents (`pyadr toc`).
-- **Linked Scenario:** `Repository MADR records pass pyadr validation and verbosity limits` in [decision_governance.feature](../../../features/decision_governance.feature#L6-L9)
-- **Linked Scenario:** `Proposed ADR is permitted only when allow-proposed flag is active` in [decision_governance.feature](../../../features/decision_governance.feature#L21-L24)
+### Requirement: MADR 4.0 Architectural Decision Records Managed by OSS `adrlint`
+All structural, cross-cutting architectural decisions SHALL be stored as MADR 4.0 YAML front-matter records in `docs/adr/NNNN-<slug>.md`, configured by `.adrlint.toml` and enforced by external MIT OSS **`adrlint`** (`lint`, `format --check`, and semantic BLAKE3 `adrlint.lock` verification), with an auto-synced `docs/adr/index.md` table (`nectr-docs sync`) and zero bespoke ADR engine code (`src/nectr/devtools/adr.py` MUST NOT exist). `nectr.devtools.decisions` adds `--allow-proposed` branch gating (rejecting `status: proposed` on `main`).
+- **Linked Scenario:** `Repository MADR records pass adrlint validation, lock check, and verbosity limits` in [decision_governance.feature](../../../features/decision_governance.feature#L6-L9)
+- **Linked Scenario:** `OSS adrlint replaces bespoke ADR module and enforces lock and proposed gating` in [decision_governance.feature](../../../features/decision_governance.feature#L21-L24)
 
 ### Requirement: Strict ADR Length and Verbosity Limits
-Every ADR in `docs/adr/` (excluding `template.md`, `index.md`, and `lifecycle_guide.md`) SHALL obey automated verbosity budgets: at most `70` lines, at most `380` words, an H1 title of at most `70` characters, and at most `6` bullet items per Markdown section.
+Every numbered ADR in `docs/adr/` (excluding `index.md`) SHALL obey automated verbosity budgets: at most `70` lines, at most `380` words, an H1 title of at most `70` characters, and at most `6` bullet items per Markdown section (after stripping YAML front matter).
 - **Linked Scenario:** `Verbose MADR record exceeding line or word limits is rejected` in [decision_governance.feature](../../../features/decision_governance.feature#L11-L14)
 
 ### Requirement: Tool-Managed Fast Non-Architectural Decision Log
