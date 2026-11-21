@@ -8,10 +8,10 @@
 
 ## Phased Hardening Strategy
 
-1. **Rebase & Re-Baseline First:** After `adopt-worktrees-and-mutation-testing` rebases onto `main` (which removes `adr.py`), recompute `[tool.nectr.mutation.baseline]` from a fresh full sweep.
+1. **Rebase & Re-Baseline Completed:** After `adopt-worktrees-and-mutation-testing` rebased onto `main` (which removed `adr.py` and added `ci_parity.py`), `[tool.nectr.mutation.baseline]` was recomputed from a fresh full sweep (`devtools` floor raised from `57.0%` to `60.0%`).
 2. **Tier 1 Priority (`contracts/engine.py` — `71` survivors):** Coordinate with `adopt-mesa-abm-and-hypothesis` so `hypothesis` stateful properties exercise arithmetic tolerances, fee rates, reserve bounds, and error messages; then add targeted unit tests for any surviving `FuncCall`, `Keyword`, and `Return` mutants. Remaining `chain/ledger.py` survivors (`19`, predominantly numeric constants) can be hardened afterward toward `90%+`.
 3. **Tier 2 Services (`services/hive_service.py` — `60` survivors):** Assert exact pass-through parameters, boundary fees, and error messages in `HiveServiceLayer` wrappers until full-module score reaches `>= 75.0%`.
-4. **Tier 2 Devtools (`decisions.py`, `citations.py`, `docs_sync.py`, `mutation_gate.py`, `spec_links.py`):** Prioritize `FuncCall`, `Compare`, `Return`, and `BinOp` mutants around subprocess error handling, exit-code checks, and filesystem boundary conditions. Many surviving `Keyword`/`FuncCall` mutations on logging or CLI help text remain benign until dead options are simplified.
+4. **Tier 2 Devtools (`decisions.py`, `citations.py`, `docs_sync.py`, `mutation_gate.py`, `ci_parity.py`, `spec_links.py`):** Prioritize `FuncCall`, `Compare`, `Return`, and `BinOp` mutants around subprocess error handling, exit-code checks, and filesystem boundary conditions. Many surviving `Keyword`/`FuncCall` mutations on logging or CLI help text remain benign until dead options are simplified.
 
 ## Specification Delta
 

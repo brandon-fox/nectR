@@ -2,7 +2,7 @@
 
 ## Phase 0: Post-Rebase Baseline Calibration
 
-1. Run `uv run python -m nectr.devtools.mutation_gate full` after rebasing onto `main` (removing `adr.py`) and record updated `devtools` floor in `[tool.nectr.mutation.baseline]`.
+1. Run `uv run python -m nectr.devtools.mutation_gate full` after rebasing onto `main` (removing `adr.py`, adding `ci_parity.py`) and record updated `devtools` floor (`60.0%`) in `[tool.nectr.mutation.baseline]`.
 2. Verify CI `.github/workflows/mutation-testing.yml` full sweep clears committed floors on `ubuntu-latest`.
 
 ## Phase 1: Tier 1 Core Invariants (`src/nectr/contracts`, `src/nectr/chain`)
@@ -19,5 +19,5 @@
 
 ## Phase 3: Tier 2 Devtools (`src/nectr/devtools`)
 
-1. Run targeted `poodle` sweeps on post-rebase `decisions.py`, `citations.py`, `docs_sync.py`, `mutation_gate.py`, and `spec_links.py` to prioritize `Compare`, `Return`, and `BinOp` survivors.
+1. Run targeted `poodle` sweeps on post-rebase `decisions.py`, `citations.py`, `docs_sync.py`, `mutation_gate.py`, `ci_parity.py`, and `spec_links.py` to prioritize `Compare`, `Return`, and `BinOp` survivors.
 2. Add Red-Green devtools unit tests (killing redundant mutants or simplifying untestable dead code under REFACTOR) until `src/nectr/devtools` clears `75.0%`, then ratchet `[tool.nectr.mutation.baseline]."src/nectr/devtools"` upward.

@@ -145,4 +145,4 @@ excluded = ["src/nectr/personas", "src/nectr/ui", "experiments"]
 "src/nectr/contracts" = 77.0
 "src/nectr/chain" = 85.0
 "src/nectr/services" = 41.0
-"src/nectr/devtools" = 57.0
+"src/nectr/devtools" = 60.0
