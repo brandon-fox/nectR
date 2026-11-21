@@ -14,12 +14,14 @@ Coordinate parallel domain agents while enforcing zero git cross-contamination.
 ## Steps
 
 1. **Clarify Design Parameters (If Ambiguous):** Run an interactive `/grill-me` session against `docs/planning/decision_log.md` and record finalized parameters.
-2. **Assign Strict File Ownership:** Consult [domain_agents_matrix.md](./references/domain_agents_matrix.md) and assign each subagent (`define_subagent` / `invoke_subagent` / `swarm` / `run_workflow`) only its owned paths.
-3. **Run Post-Stage Verification Gate:** Execute [verify_orchestration_gate.py](./scripts/verify_orchestration_gate.py):
+2. **Isolate Worktrees & Assign Strict File Ownership:** Consult [domain_agents_matrix.md](./references/domain_agents_matrix.md) and isolate each concurrent builder in its own Worktrunk worktree (`.worktrees/<branch-slug>/` via `git-wt`) or `workspace: "share"` harness worktree (`ADR-0016`) with per-worktree `uv sync --frozen --extra dev` and explicit owned paths.
+3. **Run Pre-Merge & Post-Stage Verification Gates:** Execute [verify_orchestration_gate.py](./scripts/verify_orchestration_gate.py) and `mutation_gate diff --base main` (`ADR-0017`, `DEC-016`), mirroring `.config/wt.toml` `[[pre-merge]]`, before landing via `git-wt merge main --no-squash`:
+
    ```bash
+   uv run python -m nectr.devtools.mutation_gate diff --base main
    uv run python .agents/skills/orchestrate-nectr/scripts/verify_orchestration_gate.py
    ```
 
 ## Validation
 
-- Confirm `verify_orchestration_gate.py` exits `0` (`mypy`, `pytest`, `behave`, `mkdocs build --strict`, and git hygiene all pass).
+- Confirm `verify_orchestration_gate.py` and `nectr.devtools.mutation_gate diff --base main` exit `0` (`mypy`, `pytest`, `behave`, `mkdocs build --strict`, tiered mutation targets, and git hygiene all pass with zero leftover `.poodle-temp` artifacts).

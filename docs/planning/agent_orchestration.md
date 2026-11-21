@@ -27,9 +27,9 @@ flowchart TD
 
 To guarantee zero git cross-contamination during concurrent `/teamwork`, `swarm`, `invoke_subagent`, or `run_workflow` builds:
 
-- **Isolated Worktree per Worker:** Every parallel builder agent runs in its own isolated repository worktree (`workspace: "share"` or Worktrunk `.worktrees/<branch-slug>`).
+- **Isolated Worktree per Worker (`ADR-0016`):** Keep primary `main` clean; every parallel builder runs in its own isolated repository worktree (`workspace: "share"` or Worktrunk `.worktrees/<branch-slug>/`). `.config/wt.toml` `[[pre-start]]` runs `uv sync --frozen --extra dev` and `verify_commit_readiness.py --skip-mypy`; `[[pre-merge]]` enforces `mutation_gate diff --base main` and `verify_orchestration_gate.py` before `git-wt merge main --no-squash` preserves SSH-signed history.
 - **Explicit File Staging Only:** Agents MUST only run `git add <explicit-owned-file>` within their assigned domain scope. Running `git add .` or `git commit -a` is strictly prohibited (`DEC-006`).
-- **Outside-In Red-Green-Refactor Sequence:** Every worker executes Phase 1 (`RED` with `@pytest.mark.xfail(strict=True)`), Phase 2 (`GREEN` observing `XPASS` failure before removing `xfail`/`@red`), and Phase 3 (`REFACTOR` passing `verify_orchestration_gate.py`).
+- **Outside-In Red-Green-Refactor Sequence (`ADR-0017`, `DEC-016`):** Every worker executes Phase 1 (`RED` with `@pytest.mark.xfail(strict=True)`), Phase 2 (`GREEN` observing `XPASS` failure before removing `xfail`/`@red`, zero inline mutation pragmas in `src/`), and Phase 3 (`REFACTOR` passing `mutation_gate diff` at `>= 85%` Tier 1 / `>= 75%` Tier 2 plus `verify_orchestration_gate.py`).
 
 | Agent ID | Domain Scope | Monorepo Path Ownership | Primary Verification Gate |
 | :--- | :--- | :--- | :--- |
@@ -54,7 +54,7 @@ Each build wave below is designed for parallel execution via `/teamwork`, `swarm
 | Swarm Worker Roster Name | Assigned Role & OpenSpec Change | Owned Files & Paths | Definition of Done (`GREEN` Gate) |
 | :--- | :--- | :--- | :--- |
 | `wave1-ci-parity` | `meta-orchestrator` — `add-github-actions-and-schema-hooks` | `src/nectr/devtools/ci_parity.py`, `docs/planning/decisions.schema.json`, `.github/workflows/`, `tests/test_ci_parity.py`, `features/ci_and_hook_parity.feature` | `check-jsonschema`, `lychee`, uv-locked matrix (`3.11`–`3.13`), and `--forbid-red` parity pass 100%. |
-| `wave1-worktree-mutation` | `meta-orchestrator` — `adopt-worktrees-and-mutation-testing` | `src/nectr/devtools/mutation_gate.py`, `.config/wt.toml`, `tests/test_dev_workflow.py`, `features/dev_workflow.feature` | Worktrunk isolation and tiered changed-line mutation score floors pass 100%. |
+| `wave1-worktree-mutation` | `meta-orchestrator` — `adopt-worktrees-and-mutation-testing` | `src/nectr/devtools/mutation_gate.py`, `.config/wt.toml`, `tests/test_dev_workflow.py`, `features/dev_workflow.feature` | Worktrunk isolation (`ADR-0016`), Poodle diff targets (`85%`/`75%`), and ratcheting baseline floors (`ADR-0017`, `DEC-016`) pass 100%. |
 
 ### Swarm Wave 2: Cryptographic Chain, Phase 2 Biomimetic Contracts & Hexagonal Persistence (3 Parallel Workers)
 
@@ -93,6 +93,8 @@ Each build wave below is designed for parallel execution via `/teamwork`, `swarm
 Before the `meta-orchestrator` merges any swarm worker branch into `main`, the worker branch MUST exit `0` on the unified orchestration gate:
 
 ```powershell
+uv run python -m nectr.devtools.mutation_gate check-pragmas
+uv run python -m nectr.devtools.mutation_gate diff --base main
 uv run python .agents/skills/orchestrate-nectr/scripts/verify_orchestration_gate.py
 uv run python .agents/skills/security-privacy-guard/scripts/run_security_audit.py --mode full
 uv run adrlint lint
