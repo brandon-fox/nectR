@@ -28,21 +28,40 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v7
+      - name: Set up uv & Python 3.12
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: pyproject.toml
+          enable-cache: true
 
-      - name: Install project and dev/audit tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+      - name: Install locked project, dev & research dependencies
+        run: uv sync --frozen --extra dev --extra research
 
       - name: Secret & entropy scan (detect-secrets)
         run: |
-          git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
+          git ls-files -z | xargs -0 uv run detect-secrets-hook --baseline .secrets.baseline
+
+      - name: Scheduled .secrets.baseline drift check (detect-secrets scan)
+        if: github.event_name == 'schedule'
+        run: |
+          uv run python -c "
+          import json, subprocess, sys
+          current = json.loads(subprocess.check_output(['detect-secrets', 'scan']))
+          with open('.secrets.baseline', encoding='utf-8') as f:
+              baseline = json.load(f)
+          cur_files = set(current.get('results', {}).keys())
+          base_files = set(baseline.get('results', {}).keys())
+          if cur_files != base_files:
+              print(f'Baseline drift detected! current={sorted(cur_files)} baseline={sorted(base_files)}')
+              sys.exit(1)
+          for k in cur_files:
+              cur_hashes = {item['hashed_secret'] for item in current['results'][k]}
+              base_hashes = {item['hashed_secret'] for item in baseline['results'][k]}
+              if cur_hashes != base_hashes:
+                  print(f'Baseline hash drift in {k}')
+                  sys.exit(1)
+          print('.secrets.baseline is clean and matches current detect-secrets scan.')
+          "
 
       - name: Forbid hardcoded local/private paths
         run: |
@@ -50,37 +69,48 @@ jobs:
 
       - name: Transitive license audit (pip-licenses)
         run: |
-          pip-licenses --from=mixed --format=markdown --output-file=licenses-report.md
-          pip-licenses --from=mixed --allow-only="MIT;MIT License;MIT OR Apache-2.0;Apache-2.0;Apache Software License;Apache-2.0 OR BSD-2-Clause;BSD-2-Clause;BSD-3-Clause;BSD License;BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0;ISC;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);Unlicense;CC0-1.0"
+          uv run pip-licenses --from=mixed --format=markdown --output-file=licenses-report.md
+          uv run pip-licenses --from=mixed --allow-only="MIT;MIT License;MIT-CMU;MIT OR Apache-2.0;Apache-2.0;Apache Software License;Apache-2.0 OR BSD-2-Clause;BSD-2-Clause;BSD-3-Clause;BSD License;BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0;0BSD;Zlib;ISC;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);MPL-2.0;Unlicense;CC0-1.0"
 
       - name: Vulnerability audit & CycloneDX SBOM (pip-audit)
         run: |
-          pip-audit
-          pip-audit --format cyclonedx-json --output sbom.cdx.json
+          uv run pip-audit
+          uv run pip-audit --format cyclonedx-json --output sbom.cdx.json
 
       - name: Governance, Citation Custody & Docs Sync checks
         run: |
-          adrlint lint
-          adrlint format --check
-          adrlint lock --check
-          nectr-decisions check
-          nectr-citations check
-          nectr-docs check
-          python -m nectr.devtools.spec_links
+          uv run adrlint lint
+          uv run adrlint format --check
+          uv run adrlint lock --check
+          uv run nectr-decisions check
+          uv run check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
+          uv run nectr-citations check
+          uv run nectr-docs check
+          uv run python -m nectr.devtools.spec_links
 
       - name: Lint, Format, Typecheck & Strict Docs Build
         run: |
-          ruff check src tests features
-          ruff format --check src tests features
-          pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business
-          mypy src .agents/lib .agents/skills tests/test_skills_spec.py
-          mkdocs build --strict
+          uv run ruff check src tests features
+          uv run ruff format --check src tests features
+          uv run pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business docs/theory paper
+          uv run mypy src .agents/lib .agents/skills tests/test_skills_spec.py
+          uv run mkdocs build --strict
+
+      - name: Link check across docs, paper & openspec (lychee)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --accept 200,204,403,429 --timeout 20 --max-retries 2 docs/ paper/ openspec/
+          fail: true
 
       - name: Strict TDD suite with coverage gate (pytest)
-        run: python -m pytest --cov=src/nectr --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
+        run: uv run python -m pytest --cov=src/nectr --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
 
       - name: BDD acceptance suite (behave)
-        run: python -m behave
+        run: uv run python -m behave
+
+      - name: Enforce CI/hook parity & forbid @red scenarios on main
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: uv run python -m nectr.devtools.ci_parity --forbid-red
 
       - name: Upload license, SBOM & coverage artifacts
         if: always()
@@ -92,6 +122,36 @@ jobs:
             sbom.cdx.json
             coverage.xml
           retention-days: 30
+
+  test-matrix:
+    name: Test Matrix (${{ matrix.os }} / Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        include:
+          - os: windows-latest
+            python-version: "3.12"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up uv & Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Install locked project & dev dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run unit & invariant suite (pytest)
+        run: uv run python -m pytest
+
+      - name: Run BDD acceptance suite (behave)
+        run: uv run python -m behave --tags=-red
 
   dependency-review:
     name: PR Dependency & License Review
@@ -105,4 +165,4 @@ jobs:
         uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
-          deny-licenses: GPL-2.0, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0, GPL-3.0-only, GPL-3.0-or-later, AGPL-3.0, AGPL-3.0-only, AGPL-3.0-or-later, LGPL-2.1, LGPL-2.1-only, LGPL-3.0, LGPL-3.0-only, SSPL-1.0
+          deny-licenses: GPL-2.0, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0, GPL-3.0-only, GPL-3.0-or-later, AGPL-3.0, AGPL-3.0-only, AGPL-3.0-or-later, LGPL-2.1, LGPL-2.1-only, LGPL-2.1-or-later, LGPL-3.0, LGPL-3.0-only, LGPL-3.0-or-later, SSPL-1.0
