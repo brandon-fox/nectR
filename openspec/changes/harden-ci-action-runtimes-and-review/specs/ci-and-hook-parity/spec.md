@@ -12,4 +12,4 @@ PR dependency review (`actions/dependency-review-action@v5`) SHALL replace depre
 
 ### Requirement: ADDED — Node 24 Action Runtimes, Isolated `setup-uv` Caches & Clean Workspace Link/Docs Steps
 All `.github/workflows/*.yml` files SHALL pin Node 24-compatible action versions (`astral-sh/setup-uv@v10.4.0`, `softprops/action-gh-release@v3`), assign distinct `cache-suffix` values per job (`dev-research`, `dev`, `lint`) to avoid cache reservation conflicts, direct `lychee-action@v2` output to `${{ runner.temp }}/lychee-out.md` while excluding `openspec/changes/archive/` and `docs/theory/research/`, and set `NO_MKDOCS_2_WARNING: "1"` for `mkdocs build --strict`.
-- **Linked Scenario:** `GitHub Actions workflows enforce Node 24 runtimes, isolated uv caches, clean lychee temp outputs, and SPDX allow-list review` in [ci_and_hook_parity.feature](../../../../../features/ci_and_hook_parity.feature#L26-L30)
+- **Linked Scenario:** `GitHub Actions workflows enforce Node 24 runtimes, isolated uv caches, clean lychee temp outputs, and SPDX allow-list review` in [ci_and_hook_parity.feature](../../../../../features/ci_and_hook_parity.feature#L26-L29)

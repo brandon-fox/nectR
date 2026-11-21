@@ -21,9 +21,8 @@ Feature: End-to-End Hook, CI Pipeline, Scheduled Audit, and Release Parity
   Scenario: Scheduled security scan and release workflow enforce baseline drift, schema validation, and tagged changelogs
     Given the scheduled security scan, PR policy, and release workflow configurations
     When scheduled cron, JSON Schema, link-check, and Commitizen release steps are inspected
-    Then daily cron verifies secrets baseline drift, decisions.yaml schema, expanded SPDX deny-licenses, lychee links, and tagged release automation
+    Then daily cron verifies secrets baseline drift, decisions.yaml schema, permissive SPDX allow-licenses, lychee links, and tagged release automation
 
-  @red
   Scenario: GitHub Actions workflows enforce Node 24 runtimes, isolated uv caches, clean lychee temp outputs, and SPDX allow-list review
     Given all GitHub Actions workflow definitions under .github/workflows
     When the CI workflow runtime and action hygiene validator inspects all workflow files

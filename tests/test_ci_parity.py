@@ -5,11 +5,10 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-import pytest
-
 from nectr.devtools.ci_parity import (
     check_no_red_scenarios,
     check_pipeline_parity,
+    check_workflow_action_hygiene,
     main,
 )
 
@@ -119,6 +118,11 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                     os: [ubuntu-latest, windows-latest]
                     python-version: ['3.11', '3.12', '3.13']
                 steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      python-version: '3.12'
+                      enable-cache: true
+                      cache-suffix: dev-research
                   - run: uv sync --frozen --extra dev --extra research
                   - run: detect-secrets-hook --baseline .secrets.baseline
                   - run: git grep -nE '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
@@ -128,11 +132,23 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                   - run: ruff check src tests features
                   - run: ruff format --check src tests features
                   - run: pymarkdown --config pyproject.toml scan README.md docs/theory paper
-                  - run: lychee docs paper openspec
+                  - uses: lycheeverse/lychee-action@v2
+                    with:
+                      args: --exclude-path "openspec/changes/archive/" --exclude-path "docs/theory/research/" docs/ paper/ openspec/
+                      output: ${{ runner.temp }}/lychee-out.md
                   - run: mypy src
-                  - run: mkdocs build --strict
+                  - env:
+                      NO_MKDOCS_2_WARNING: "1"
+                    run: mkdocs build --strict
                   - run: python -m pytest --cov=src/nectr --cov-fail-under=80
                   - run: python -m behave
+              dependency-review:
+                steps:
+                  - uses: actions/dependency-review-action@v5
+                    with:
+                      fail-on-severity: high
+                      allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, PSF-2.0, Python-2.0, MPL-2.0, 0BSD, Zlib, Unlicense, CC0-1.0
+                      allow-dependencies-licenses: pkg:githubactions/astral-sh/setup-uv
             """
         ),
         encoding="utf-8",
@@ -140,7 +156,19 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
 
     if include_release:
         (workflows / "release.yml").write_text(
-            "name: Release\njobs:\n  release:\n    steps:\n      - run: cz bump --check-consistency\n",
+            textwrap.dedent(
+                """\
+                name: Release
+                jobs:
+                  release:
+                    steps:
+                      - uses: astral-sh/setup-uv@v10.4.0
+                        with:
+                          cache-suffix: release
+                      - run: cz bump --check-consistency
+                      - uses: softprops/action-gh-release@v3
+                """
+            ),
             encoding="utf-8",
         )
 
@@ -214,10 +242,6 @@ def test_cli_main_check_and_forbid_red(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: harden-ci-action-runtimes-and-review not yet implemented",
-)
 def test_check_workflow_action_hygiene_accepts_hardened_workflows(tmp_path: Path) -> None:
     workflows = tmp_path / ".github" / "workflows"
     workflows.mkdir(parents=True)
@@ -292,16 +316,10 @@ def test_check_workflow_action_hygiene_accepts_hardened_workflows(tmp_path: Path
         encoding="utf-8",
     )
 
-    from nectr.devtools import ci_parity
-
-    violations = ci_parity.check_workflow_action_hygiene(tmp_path)  # type: ignore[attr-defined]
+    violations = check_workflow_action_hygiene(tmp_path)
     assert violations == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: harden-ci-action-runtimes-and-review not yet implemented",
-)
 def test_check_workflow_action_hygiene_flags_node20_and_deprecated_review(
     tmp_path: Path,
 ) -> None:
@@ -321,6 +339,16 @@ def test_check_workflow_action_hygiene_flags_node20_and_deprecated_review(
                   - uses: lycheeverse/lychee-action@v2
                     with:
                       args: docs/ paper/ openspec/
+              matrix-a:
+                steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      cache-suffix: shared
+              matrix-b:
+                steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      cache-suffix: shared
               dependency-review:
                 steps:
                   - uses: actions/dependency-review-action@v5
@@ -344,13 +372,12 @@ def test_check_workflow_action_hygiene_flags_node20_and_deprecated_review(
         encoding="utf-8",
     )
 
-    from nectr.devtools import ci_parity
-
-    violations = ci_parity.check_workflow_action_hygiene(tmp_path)  # type: ignore[attr-defined]
+    violations = check_workflow_action_hygiene(tmp_path)
     joined = "\n".join(violations)
     assert "setup-uv" in joined
     assert "action-gh-release" in joined
     assert "deny-licenses" in joined
     assert "cache-suffix" in joined
+    assert "duplicate setup-uv cache-suffix" in joined
     assert "lychee" in joined
     assert "NO_MKDOCS_2_WARNING" in joined
