@@ -47,8 +47,10 @@ jobs:
           pip-licenses --from=mixed --format=markdown --output-file=licenses-report.md
           pip-licenses --from=mixed --allow-only="MIT;MIT License;Apache-2.0;Apache Software License;BSD-2-Clause;BSD-3-Clause;BSD License;ISC;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);Unlicense;CC0-1.0"
 
-      - name: Vulnerability audit (pip-audit)
-        run: pip-audit
+      - name: Vulnerability audit & CycloneDX SBOM (pip-audit)
+        run: |
+          pip-audit
+          pip-audit --format cyclonedx-json --output sbom.cdx.json
 
       - name: Strict TDD suite (pytest)
         run: python -m pytest
@@ -56,12 +58,14 @@ jobs:
       - name: BDD acceptance suite (behave)
         run: python -m behave
 
-      - name: Upload license report artifact
+      - name: Upload license & SBOM artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: transitive-license-report
-          path: licenses-report.md
+          name: license-and-sbom-report
+          path: |
+            licenses-report.md
+            sbom.cdx.json
           retention-days: 30
 
   dependency-review:
