@@ -4,7 +4,7 @@
 - [ ] 2. **Phase 1 — RED (BDD + Strict TDD):** Add `@red` Gherkin scenarios and `@pytest.mark.xfail(strict=True)` tests for issues `#5`–`#12`, verify `pytest` + `behave` pass, and commit atomically.
 - [ ] 3. **Phase 2 — GREEN (Implementation & Repo Fixes):**
   - [ ] Untrack `HANDOFF.md` (`#5`), remove stray unarchived spec (`B2`), add `.gitattributes` + `pymarkdownlnt` + `types-PyYAML` (`#8`), and split persona extras (`#10`).
-  - [ ] Implement zero-CVE MIT `src/nectr/devtools/adr.py` (`#6`), `--allow-proposed`, and `docs/adr/README.md` (`#11`).
+  - [ ] Implement zero-CVE MIT `src/nectr/devtools/adr.py` (`#6`), `--allow-proposed`, and `docs/adr/lifecycle_guide.md` (`#11`).
   - [ ] Implement `src/nectr/devtools/citations.py`, `paper/references.yaml`, `paper/lineage.yaml`, and `docs/theory/provenance_lineage.md` (`#7`).
   - [ ] Implement `docs/glossary.md`, IDE-agnostic `README.md` (`#12`), and `src/nectr/devtools/docs_sync.py` (`#9`).
   - [ ] Observe `XPASS(strict)` on `pytest`, remove `@pytest.mark.xfail` and `@red` tags, run full verification gate, and commit atomically.

@@ -20,16 +20,12 @@ def compute_merkle_root(transactions: list[dict[str, Any]]) -> str:
     if not transactions:
         return compute_sha256("EMPTY_BLOCK")
     layer = [
-        compute_sha256(json.dumps(tx, sort_keys=True, separators=(",", ":")))
-        for tx in transactions
+        compute_sha256(json.dumps(tx, sort_keys=True, separators=(",", ":"))) for tx in transactions
     ]
     while len(layer) > 1:
         if len(layer) % 2 == 1:
             layer.append(layer[-1])
-        layer = [
-            compute_sha256(layer[i] + layer[i + 1])
-            for i in range(0, len(layer), 2)
-        ]
+        layer = [compute_sha256(layer[i] + layer[i + 1]) for i in range(0, len(layer), 2)]
     return layer[0]
 
 

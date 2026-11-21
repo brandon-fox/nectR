@@ -4,7 +4,7 @@
 **nectR** is an open-source, research-driven monorepo for a private, closed-loop Proof-of-Useful-Work & Proof-of-Work (`PoUW-PoW`) blockchain and multi-agent behavioral economy modeled after honeybee (*Apis mellifera*) colony dynamics.
 
 ## Domain-Driven Design (DDD) Bounded Contexts
-All code, specs, and tests MUST respect strict Bounded Context boundaries and Ubiquitous Language:
+All code, specs, and tests MUST respect strict Bounded Context boundaries and Ubiquitous Language (defined in [docs/glossary.md](../docs/glossary.md)):
 
 1. **Consensus & Ledger Context (`src/nectr/chain/`)**
    - *Aggregate Roots:* `Block`, `BlockchainLedger`

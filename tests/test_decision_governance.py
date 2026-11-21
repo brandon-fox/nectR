@@ -21,7 +21,9 @@ def test_repository_adrs_and_fast_decision_log_pass_all_controls() -> None:
     assert summary["decision_log_in_sync"] is True
 
 
-def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(tmp_path: Path) -> None:
+def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(
+    tmp_path: Path,
+) -> None:
     """MADR verbosity gate enforces line, word, title-length, and per-section bullet caps."""
     from nectr.devtools.decisions import DecisionGovernanceError, validate_adr_verbosity
 
@@ -29,7 +31,9 @@ def test_adr_verbosity_limits_reject_excessive_lines_words_titles_and_bullets(tm
     adr_dir.mkdir(parents=True)
 
     # 1. Title > 70 chars rejected
-    long_title = "Establish Overly Verbose Architectural Decision Title Exceeding Seventy Characters Easily"
+    long_title = (
+        "Establish Overly Verbose Architectural Decision Title Exceeding Seventy Characters Easily"
+    )
     (adr_dir / "0002-long.md").write_text(
         f"# {long_title}\n\n* Status: accepted\n* Date: 2026-11-21\n\n"
         "## Context and Problem Statement\n\nShort.\n\n"
@@ -156,11 +160,11 @@ def test_cli_add_decision_updates_yaml_and_renders_markdown_in_sync(tmp_path: Pa
     assert "DEC-001" in rendered_file
 
 
-@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
 def test_mit_adr_engine_supports_proposed_lifecycle_and_zero_external_pyadr(tmp_path: Path) -> None:
     """Zero-CVE nectr.devtools.adr replaces external pyadr and supports --allow-proposed."""
     from nectr.devtools.adr import AdrCore, AdrError, slugify_title
-    from nectr.devtools.decisions import DecisionGovernanceError, main as decisions_main
+    from nectr.devtools.decisions import DecisionGovernanceError
+    from nectr.devtools.decisions import main as decisions_main
 
     assert slugify_title("Adopt Ed25519 CanonicalJSON and Merklelib") == (
         "adopt-ed25519-canonicaljson-and-merklelib"
@@ -186,7 +190,7 @@ def test_mit_adr_engine_supports_proposed_lifecycle_and_zero_external_pyadr(tmp_
     assert accepted.name == "0002-evaluate-cache-adapter.md"
     core.check_adr_repo(check_no_proposed=True)
 
-    # Docs README exists in repo docs/adr
-    assert (REPO_ROOT / "docs" / "adr" / "README.md").exists()
+    # Docs lifecycle guide exists in repo docs/adr
+    assert (REPO_ROOT / "docs" / "adr" / "lifecycle_guide.md").exists()
     with pytest.raises(DecisionGovernanceError):
         raise DecisionGovernanceError("sanity check type")

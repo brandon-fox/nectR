@@ -6,12 +6,9 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
 def test_handoff_untracked_gitattributes_and_zero_cve_persona_extras() -> None:
     """Verify HANDOFF.md is untracked, LF normalization exists, and dev extras have no pyadr."""
     ls_handoff = subprocess.run(
@@ -34,7 +31,6 @@ def test_handoff_untracked_gitattributes_and_zero_cve_persona_extras() -> None:
     assert pyproject["tool"]["mypy"].get("overrides") is None
 
 
-@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
 def test_glossary_and_ide_agnostic_readme() -> None:
     """Verify docs/glossary.md defines core acronyms and README has no IDE lock-in or static tree."""
     glossary = (REPO_ROOT / "docs" / "glossary.md").read_text(encoding="utf-8")
@@ -48,7 +44,6 @@ def test_glossary_and_ide_agnostic_readme() -> None:
     assert "Fisher" in readme
 
 
-@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
 def test_docs_sync_passes_with_zero_orphan_pages_and_synced_nav() -> None:
     """Verify nectr.devtools.docs_sync confirms zero orphan docs pages and synced mkdocs nav."""
     from nectr.devtools.docs_sync import check_docs_sync

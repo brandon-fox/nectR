@@ -11,7 +11,12 @@ if [ -n "$STAGED_FILES" ]; then
 fi
 
 PYTHONPATH=src python -m nectr.devtools.decisions check
+PYTHONPATH=src python -m nectr.devtools.citations check
+PYTHONPATH=src python -m nectr.devtools.docs_sync check
 PYTHONPATH=src python -m nectr.devtools.spec_links
+ruff check src tests features
+ruff format --check src tests features
+pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business
 python -m mypy src .agents/lib .agents/skills tests/test_skills_spec.py
 python -m pytest
 python -m behave --tags=-red

@@ -35,7 +35,11 @@ def step_given_banned_ref(context) -> None:
 
 @when("the citation quality validator checks the temporary registry")
 def step_when_cit_check_temp(context) -> None:
-    from nectr.devtools.citations import CitationGovernanceError, load_references, validate_references
+    from nectr.devtools.citations import (
+        CitationGovernanceError,
+        load_references,
+        validate_references,
+    )
 
     try:
         refs = load_references(context.temp_dir / "paper" / "references.yaml")
@@ -171,7 +175,9 @@ def step_when_repo_cit_check(context) -> None:
         context.cit_error = exc
 
 
-@then("citation validation succeeds with peer-reviewed ratio at least {min_ratio:f} and report in sync")
+@then(
+    "citation validation succeeds with peer-reviewed ratio at least {min_ratio:f} and report in sync"
+)
 def step_then_repo_cit_ok(context, min_ratio: float) -> None:
     assert context.cit_error is None, f"Unexpected error: {context.cit_error}"
     assert context.cit_summary is not None

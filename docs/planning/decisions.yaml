@@ -53,8 +53,8 @@ decisions:
   - id: DEC-007
     category: security-oss
     status: locked
-    title: Permissive OSS Runtime & Approved pyadr Dev Waiver
-    decision: Enforce MIT-compatible runtime deps and detect-secrets hooks; waive local dev-only pyadr cleo PYSEC-2022-43178 and elect Artistic-1.0 on text-unidecode.
+    title: Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy
+    decision: Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; ship zero-CVE MIT pyadr CLI in devtools with no waivers.
     owner_agent: meta-orchestrator
     related_adr: docs/adr/0000-use-markdown-architectural-decision-records.md
 

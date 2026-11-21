@@ -3,18 +3,21 @@
 These three prompts feed the theoretical foundation in `docs/theory/` and `paper/`.
 
 ## Prompt 1: Token Minting, Treasury Mechanics & Crypto Architectures in Closed Economies
+
 - **Completed Report:** [Federated Barter Economy Tokenomics Design](../theory/research/federated_barter_tokenomics.md)
 - Covers Treasury-Seeded Voucher Models (`RAW_POLLEN` $\rightarrow$ `LIQUID_NECTR`) vs. Mutual Credit (Sardex, Sarafu Network).
 - Graph-theoretic anti-collusion math (EigenTrust, pairwise coordination decay, directed skill graphs).
 - Comb sink/source equilibrium ($MV = PQ$) and Bancor-style Comb-to-Comb cross-hive bridging.
 
 ## Prompt 2: Game Theory of Student Populations, Peer Tutoring & Campus Barter Marketplaces
+
 - **Completed Report:** [Student Tutoring Barter Mechanism Design](../theory/research/student_tutoring_mechanism_design.md)
 - Capitol Hill Babysitting Co-op liquidity freezes during Midterm/Finals demand surges.
 - Freshman-to-Senior asymmetric skill gradients and graduation off-ramp mechanics.
 - Principal-Agent game theory for non-tutoring Queens and institutional sponsorship ROI.
 
 ## Prompt 3: Biomimicry & Evolutionary Game Theory of Real Honeybee Hives (*Apis mellifera*)
+
 - **Completed Report:** [Biomimetic Hive Economics For nectR](../theory/research/biomimetic_hive_economics.md)
 - Trophallaxis (raw nectar $\rightarrow$ liquid currency $\rightarrow$ stored Comb honey), Waggle Dance recruitment, and Tremble Dance throttling.
 - Queen Mandibular Pheromone (QMP) governance metrics and emergency Queen supersedure.

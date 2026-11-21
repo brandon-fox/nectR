@@ -9,7 +9,6 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
 def test_repository_citations_and_provenance_pass_all_gates() -> None:
     """Repo paper/references.yaml, lineage.yaml, and provenance_lineage.md pass quality gates."""
     from nectr.devtools.citations import check_all_citations
@@ -21,7 +20,6 @@ def test_repository_citations_and_provenance_pass_all_gates() -> None:
     assert summary["report_in_sync"] is True
 
 
-@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
 def test_citation_validator_blocks_banned_domains_low_ratio_and_missing_doi() -> None:
     """Quality floor rejects banned URLs, <70% peer-reviewed ratio, and missing DOI/URL."""
     from nectr.devtools.citations import (
@@ -83,16 +81,15 @@ def test_citation_validator_blocks_banned_domains_low_ratio_and_missing_doi() ->
         validate_references(low_ratio)
 
 
-@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
 def test_lineage_graph_propagates_quarantine_blast_radius(tmp_path: Path) -> None:
     """Flawed upstream source marks all transitive downstream artifacts for rebuild."""
     from nectr.devtools.citations import (
         CitationGovernanceError,
-        ReferenceEntry,
-        ReferenceRegistry,
+        LineageEdge,
         LineageGraph,
         LineageNode,
-        LineageEdge,
+        ReferenceEntry,
+        ReferenceRegistry,
         compute_impacted_downstream,
         render_provenance_report,
     )
@@ -124,9 +121,13 @@ def test_lineage_graph_propagates_quarantine_blast_radius(tmp_path: Path) -> Non
     )
     lineage = LineageGraph(
         nodes=[
-            LineageNode(id="source:s_bad", kind="source", label="Retracted", path="paper/references.yaml"),
+            LineageNode(
+                id="source:s_bad", kind="source", label="Retracted", path="paper/references.yaml"
+            ),
             LineageNode(id="theory:eq1", kind="theory", label="Eq 1", path="docs/theory/t.md"),
-            LineageNode(id="decision:ADR-0001", kind="decision", label="ADR 1", path="docs/adr/0001-a.md"),
+            LineageNode(
+                id="decision:ADR-0001", kind="decision", label="ADR 1", path="docs/adr/0001-a.md"
+            ),
             LineageNode(
                 id="code:m",
                 kind="code",

@@ -10,4 +10,4 @@ Code and documentation review surfaced 8 open GitHub issues (`#5`–`#12`) plus 
 ## Bounded Contexts & Paths Affected
 - `src/nectr/devtools/` (`adr.py`, `decisions.py`, `citations.py`, `docs_sync.py`)
 - `paper/references.yaml`, `paper/lineage.yaml`, `docs/theory/provenance_lineage.md`
-- `docs/glossary.md`, `docs/adr/README.md`, `README.md`, `mkdocs.yml`, `.adr`, `.gitattributes`, `pyproject.toml`, `.pre-commit-config.yaml`, `.githooks/pre-commit`, `.github/workflows/license-and-security-scan.yml`
+- `docs/glossary.md`, `docs/adr/lifecycle_guide.md`, `README.md`, `mkdocs.yml`, `.adr`, `.gitattributes`, `pyproject.toml`, `.pre-commit-config.yaml`, `.githooks/pre-commit`, `.github/workflows/license-and-security-scan.yml`

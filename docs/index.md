@@ -16,6 +16,7 @@ Welcome to the **nectR** monorepo documentation and System Design Portfolio hub.
 
 ## Autonomous Development & Project Planning
 
+- **[Domain Glossary & Ubiquitous Language](glossary.md)**
 - **[Roadmap & Milestones](planning/roadmap.md)**
 - **[Multi-Agent Orchestration Guide](planning/agent_orchestration.md)**
 - **[Design Decision Log (`/grill-me`)](planning/decision_log.md)**

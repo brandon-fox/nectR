@@ -22,7 +22,9 @@ def step_given_docs_root(context) -> None:
 def step_when_inspect_glossary(context) -> None:
     glossary_path = context.repo_root / "docs" / "glossary.md"
     readme_path = context.repo_root / "README.md"
-    context.glossary_text = glossary_path.read_text(encoding="utf-8") if glossary_path.exists() else ""
+    context.glossary_text = (
+        glossary_path.read_text(encoding="utf-8") if glossary_path.exists() else ""
+    )
     context.readme_text = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
 
 
@@ -70,7 +72,9 @@ def step_when_inspect_hygiene(context) -> None:
     context.tracked_handoff = res.stdout.strip()
     gitattr = context.repo_root / ".gitattributes"
     context.gitattributes_text = gitattr.read_text(encoding="utf-8") if gitattr.exists() else ""
-    pyproject_data = tomllib.loads((context.repo_root / "pyproject.toml").read_text(encoding="utf-8"))
+    pyproject_data = tomllib.loads(
+        (context.repo_root / "pyproject.toml").read_text(encoding="utf-8")
+    )
     context.optional_deps = pyproject_data.get("project", {}).get("optional-dependencies", {})
 
 
