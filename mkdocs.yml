@@ -34,7 +34,6 @@ nav:
       - Agent Orchestration Guide: planning/agent_orchestration.md
       - Fast Decision Log (DEC / EXP): planning/decision_log.md
       - Deep Research Prompts: planning/deep_research_prompts.md
-      - Mutation Engine Spike: experiments/mutation_engine_spike.md
       - Architecture Decision Records (MADR):
           - ADR Index: adr/index.md
           - "0000: Use Markdown Architectural Decision Re...": adr/0000-use-markdown-architectural-decision-records.md
@@ -67,6 +66,7 @@ nav:
           - Non-Dilutive Funding & Campus Pilot Strategy: theory/research/nectR_funding_and_pilot_strategy.md
   - 2. Behavioral Experimentation:
       - Persona Swarm Specification: experiments/persona_swarm_spec.md
+      - Mutation Engine Spike: experiments/mutation_engine_spike.md
   - 3. Business & Campus Proposals:
       - Institutional Sponsorship Proposal: business/institutional_proposal.md
   - 4. System Design Portfolio:
