@@ -22,3 +22,11 @@ Feature: Dual-Track Decision Governance (adrlint MADR 4.0 and Fast Decision Regi
     Given a temporary MADR 4.0 workspace configured with adrlint
     When a proposed ADR is created with adrlint new and checked before and after acceptance
     Then bespoke adr.py is absent and strict check rejects proposed until accepted and locked
+
+  @red
+  Scenario: Decision registry and Milestone 3 roadmap define n8n off-chain boundaries and options
+    Given the repository root decision governance workspace
+    When the n8n workflow governance and Milestone 3 roadmap checks inspect decisions and ADR records
+    Then DEC-009 clarifies CrewAI/n8n while remaining locked to Mesa ABM
+    And DEC-016 and EXP-006 enforce an off-chain n8n boundary with permissive OSS roadmap options
+    And an accepted locked MADR record documents the external workflow automation scope
