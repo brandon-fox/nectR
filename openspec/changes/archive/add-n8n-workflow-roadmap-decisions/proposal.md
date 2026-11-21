@@ -2,7 +2,7 @@
 
 ## Why
 
-`DEC-009` (`docs/planning/decisions.yaml`) previously rejected `"CrewAI/k8n"` without clarifying `"k8n"` as **`n8n`** (node-based workflow/webhook automation) or detailing how `n8n` and permissive-OSS workflow orchestrators fit into Milestone 3 experimentation while preserving `DEC-009` (deterministic Mesa ABM + ML/RL) and `DEC-007` (MIT-compatible dependency hygiene), complementing [ADR-0013](../../../docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md) (`DEC-010`, CrewAI isolation).
+`DEC-009` (`docs/planning/decisions.yaml`) previously rejected `"CrewAI/k8n"` without clarifying `"k8n"` as **`n8n`** (node-based workflow/webhook automation) or detailing how `n8n` and permissive-OSS workflow orchestrators fit into Milestone 3 experimentation while preserving `DEC-009` (deterministic Mesa ABM + ML/RL) and `DEC-007` (MIT-compatible dependency hygiene), complementing [ADR-0013](../../../../docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md) (`DEC-010`, CrewAI isolation).
 
 ## Affected Bounded Contexts
 
@@ -17,7 +17,7 @@
 | `Activepieces` | `MIT` (Community core) | **Approved** | Optional visual webhook orchestrator |
 | `Kestra` / `Prefect` | `Apache-2.0` (Core) | **Approved** | Optional batch experiment DAG runners |
 | `Temporal` | `MIT` | **Approved** | Optional durable multi-semester workflow engine |
-| `CrewAI` | `MIT` | **Approved (isolated)** | Optional off-chain peripheral ([ADR-0013](../../../docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md)) |
+| `CrewAI` | `MIT` | **Approved (isolated)** | Optional off-chain peripheral ([ADR-0013](../../../../docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md)) |
 
 ## Acceptance Criteria
 
