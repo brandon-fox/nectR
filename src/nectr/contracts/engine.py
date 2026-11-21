@@ -226,7 +226,10 @@ class HiveContractEngine:
             )
 
         if token_state == TokenState.RAW_POLLEN:
-            if tutor.role != BeeRole.CERTIFIED_WORKER_BEE or subject_id not in tutor.certified_subjects:
+            if (
+                tutor.role != BeeRole.CERTIFIED_WORKER_BEE
+                or subject_id not in tutor.certified_subjects
+            ):
                 raise ContractViolationError(
                     "RAW_POLLEN can only be spent with a Queen-Certified Worker Bee in their certified subject."
                 )
@@ -290,7 +293,9 @@ class HiveContractEngine:
 
         # Record directional knowledge edge & credit upstream tutors for effective downstream teaching
         if prior_pair_txs == 0 and learner_attestation_score >= 0.6:
-            self.subject_lineage.setdefault((learner.bee_id, session.subject_id), []).append(tutor.bee_id)
+            self.subject_lineage.setdefault((learner.bee_id, session.subject_id), []).append(
+                tutor.bee_id
+            )
             tutor.distinct_peers_tutored_in_hive.add(learner.bee_id)
             for upstream_id in upstream_tutors:
                 self.tutor_effectiveness[upstream_id] = (
@@ -382,7 +387,9 @@ class HiveContractEngine:
         """Bridge LIQUID_NECTR from home Hive to target Hive ONLY after earning Accepted Status in target Hive."""
         source_acct = self._get_account(bee_id)
         if source_acct.role == BeeRole.QUEEN:
-            raise ContractViolationError("Queens are bound to their Hive and cannot bridge tutoring currency.")
+            raise ContractViolationError(
+                "Queens are bound to their Hive and cannot bridge tutoring currency."
+            )
         if amount <= 0 or source_acct.liquid_nectr_balance < amount:
             raise ContractViolationError("Insufficient LIQUID_NECTR in origin Hive to bridge.")
 
@@ -445,7 +452,9 @@ class HiveContractEngine:
 
     def _get_account(self, bee_id: str) -> BeeAccount:
         if bee_id not in self.accounts:
-            raise ContractViolationError(f"Bee '{bee_id}' is not registered in Hive '{self.hive_id}'.")
+            raise ContractViolationError(
+                f"Bee '{bee_id}' is not registered in Hive '{self.hive_id}'."
+            )
         return self.accounts[bee_id]
 
     def _get_session(self, session_id: str) -> ServiceBarterSession:
