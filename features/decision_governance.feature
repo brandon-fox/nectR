@@ -17,3 +17,8 @@ Feature: Dual-Track Decision Governance (pyadr MADR and Fast Decision Registry)
     Given a temporary copy of the fast decision registry and rendered decision log
     When manual text drift is injected into the rendered decision_log.md
     Then governance validation fails with "out of sync with decisions.yaml"
+
+  Scenario: Proposed ADR is permitted only when allow-proposed flag is active
+    Given a temporary copy of the repository ADR workspace with a proposed ADR
+    When the ADR validator inspects the workspace with allow-proposed disabled and enabled
+    Then strict check fails on proposed status while allow-proposed check succeeds

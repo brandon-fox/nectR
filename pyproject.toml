@@ -20,31 +20,44 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
+test = [
     "pytest>=8.2.0",
     "pytest-asyncio>=0.23.7",
     "pytest-cov>=5.0.0",
     "behave>=1.2.6",
+]
+lint = [
+    "ruff>=0.4.8",
+    "mypy>=1.10.0",
+    "types-PyYAML>=6.0.12",
+    "types-networkx>=3.6.1",
+    "pymarkdownlnt>=0.9.42",
     "pre-commit>=3.7.0",
     "commitizen>=4.0.0",
+]
+security = [
     "detect-secrets>=1.5.0",
     "pip-licenses>=5.0.0",
     "pip-audit>=2.7.0",
+]
+docs = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.0",
-    "ruff>=0.4.8",
-    # Approved dev-only CLI waiver: cleo 0.8.1 local PYSEC-2022-43178 & text-unidecode Artistic-1.0 election
-    "pyadr>=0.19.0",
-    "mypy>=2.4.1",
 ]
 research = [
     "matplotlib>=3.9.0",
     "scipy>=1.13.0",
     "pandas>=2.2.2",
 ]
+dev = [
+    "nectr[test,lint,security,docs]",
+]
 
 [project.scripts]
+pyadr = "nectr.devtools.adr:main"
 nectr-decisions = "nectr.devtools.decisions:main"
+nectr-citations = "nectr.devtools.citations:main"
+nectr-docs = "nectr.devtools.docs_sync:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -55,11 +68,19 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-ra -q --strict-markers"
 xfail_strict = true
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
+
+[tool.pymarkdown]
+extensions.front-matter.enabled = true
+plugins.md013.enabled = false
+plugins.md033.enabled = false
+plugins.md036.enabled = false
+plugins.md041.enabled = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -72,7 +93,3 @@ mypy_path = "src"
 strict = true
 warn_unused_configs = true
 explicit_package_bases = true
-
-[[tool.mypy.overrides]]
-module = ["yaml", "pyadr.*"]
-ignore_missing_imports = true
