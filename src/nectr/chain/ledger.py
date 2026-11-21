@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import asdict, dataclass, field
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 def compute_sha256(payload: str) -> str:
@@ -32,9 +33,10 @@ def compute_merkle_root(transactions: list[dict[str, Any]]) -> str:
     return layer[0]
 
 
-@dataclass(frozen=True)
-class UsefulComputeProof:
+class UsefulComputeProof(BaseModel):
     """Proof-of-Useful-Work (PoUW) committing the trailing epoch's Knowledge Graph & Collusion Matrix."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     epoch: int
     active_bees: int
@@ -44,13 +46,14 @@ class UsefulComputeProof:
     graph_state_hash: str
 
     def to_commitment_hash(self) -> str:
-        payload = json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
+        payload = json.dumps(self.model_dump(), sort_keys=True, separators=(",", ":"))
         return compute_sha256(payload)
 
 
-@dataclass(frozen=True)
-class BlockHeader:
+class BlockHeader(BaseModel):
     """Block header committing both cryptographic PoW and Useful Compute (Knowledge Graph root)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     hive_id: str
     height: int
@@ -62,17 +65,18 @@ class BlockHeader:
     timestamp: float
 
     def block_hash(self) -> str:
-        payload = json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
+        payload = json.dumps(self.model_dump(), sort_keys=True, separators=(",", ":"))
         return compute_sha256(payload)
 
 
-@dataclass
-class Block:
+class Block(BaseModel):
     """Immutable Hive block containing directional service-barter & governance transactions."""
+
+    model_config = ConfigDict(extra="forbid")
 
     header: BlockHeader
     useful_compute_proof: UsefulComputeProof
-    transactions: list[dict[str, Any]] = field(default_factory=list)
+    transactions: list[dict[str, Any]] = Field(default_factory=list)
 
     @property
     def block_hash(self) -> str:
