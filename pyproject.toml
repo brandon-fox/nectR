@@ -35,6 +35,7 @@ dev = [
     "ruff>=0.4.8",
     # Approved dev-only CLI waiver: cleo 0.8.1 local PYSEC-2022-43178 & text-unidecode Artistic-1.0 election
     "pyadr>=0.19.0",
+    "mypy>=2.4.1",
 ]
 research = [
     "matplotlib>=3.9.0",
@@ -64,3 +65,14 @@ src = ["src", "tests"]
 name = "cz_conventional_commits"
 version_provider = "pep621"
 update_changelog_on_bump = true
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+strict = true
+warn_unused_configs = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["yaml", "pyadr.*"]
+ignore_missing_imports = true
