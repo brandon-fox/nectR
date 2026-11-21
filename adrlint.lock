@@ -80,3 +80,13 @@ blake3 = "3eb0d78bbea9ea406fe3fd851921f008a835c761328020471f8bcae183c3009d"
 number = 15
 status = "accepted"
 blake3 = "737c350829758ad51adcb8ff86c4503183bb595b417cc34c81da4f7556f58a8f"
+
+[adrs."docs/adr/0016-isolate-concurrent-work-in-ephemeral-worktrunk-git-worktrees.md"]
+number = 16
+status = "accepted"
+blake3 = "f61fee8c023ee5ff062d9204e3db39aaa4d8cc195a7dd86acf75bf58a559597e"
+
+[adrs."docs/adr/0017-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md"]
+number = 17
+status = "accepted"
+blake3 = "7316a8c0822808629681a4ba35eaec4e70fcc01fd5153d0bbfbe4cab2ad7550f"

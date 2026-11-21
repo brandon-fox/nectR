@@ -23,6 +23,8 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0013` | [Restrict CrewAI to Isolated Off-Chain Peripherals](0013-restrict-crewai-to-isolated-off-chain-peripherals.md) | `accepted` |
 | `ADR-0014` | [Adopt NATS Leaf Nodes JetStream and CQRS Graph Isolation](0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md) | `accepted` |
 | `ADR-0015` | [Enforce Zero-PII FERPA GDPR and Title IV Campus Compliance](0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md) | `accepted` |
+| `ADR-0016` | [Isolate Concurrent Work in Ephemeral Worktrunk Git Worktrees](0016-isolate-concurrent-work-in-ephemeral-worktrunk-git-worktrees.md) | `accepted` |
+| `ADR-0017` | [Enforce Incremental Mutation Testing with Poodle Ratchet Floors](0017-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md) | `accepted` |
 <!-- END AUTO-ADR-INDEX -->
 
 ## `adrlint` Workflow & Configuration

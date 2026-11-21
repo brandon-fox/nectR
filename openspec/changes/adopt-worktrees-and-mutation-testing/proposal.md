@@ -23,6 +23,6 @@ Embedding ephemeral Git worktrees (via Worktrunk `git-wt`) and tiered, diff-scop
 ## Acceptance Criteria
 
 1. `.worktrees/` is gitignored and excluded from `ruff`, `pytest`, and `detect-secrets` scans; `.config/wt.toml` provisions isolated per-worktree `uv` environments and enforces pre-merge verification gates.
-2. A 3-worktree empirical spike benchmarks `poodle`, `cosmic-ray`, and `mutmut` against `src/nectr/contracts/engine.py` and `src/nectr/chain/ledger.py`, documented in `docs/experiments/mutation_engine_spike.md` and two `pyadr` MADR ADRs (`<= 70` lines, `<= 380` words).
+2. A 3-worktree empirical spike benchmarks `poodle`, `cosmic-ray`, and `mutmut` against `src/nectr/contracts/engine.py` and `src/nectr/chain/ledger.py`, documented in `docs/experiments/mutation_engine_spike.md` and two `adrlint` MADR 4.0 ADRs (`ADR-0016`, `ADR-0017`; `<= 70` lines, `<= 380` words).
 3. `nectr.devtools.mutation_gate` enforces tiered kill-score thresholds (`>= 85%` for `contracts/` and `chain/`; `>= 75%` for `services/` and `devtools/`; excluding `personas/`, `ui/`, and `experiments/`) in diff-scoped `REFACTOR`, Worktrunk `pre-merge`, `pre-push`, and `.github/workflows/mutation-testing.yml`, while rejecting inline suppression pragmas in `pre-commit`.
 4. All surviving Tier-1/Tier-2 mutants revealed by the initial full sweep are killed via behavioral boundary tests without weakening thresholds or adding pragmas.

@@ -1,6 +1,6 @@
 # Tasks: `adopt-worktrees-and-mutation-testing`
 
-1. **Mutation Engine Spike & Governance ADRs:** Benchmark `poodle`, `cosmic-ray`, and `mutmut` in three throwaway worktrees; publish `docs/experiments/mutation_engine_spike.md` and two accepted `pyadr` MADR ADRs; sync `docs/adr/index.md` and `mkdocs.yml`.
+1. **Mutation Engine Spike & Governance ADRs:** Benchmark `poodle`, `cosmic-ray`, and `mutmut` in three throwaway worktrees; publish `docs/experiments/mutation_engine_spike.md` and two accepted `adrlint` MADR 4.0 ADRs (`ADR-0016`, `ADR-0017`); sync `docs/adr/index.md`, `adrlint.lock`, and `mkdocs.yml`.
 2. **Phase 1 — RED Tests & Spec Delta:** Author `features/dev_workflow.feature`, `features/steps/dev_workflow_steps.py`, and `@pytest.mark.xfail(strict=True)` tests in `tests/test_dev_workflow.py`; add linked `specs/dev-workflow/spec.md`. Commit `test(dev-workflow): ...` and `docs(spec): ...`.
 3. **Phase 2a — GREEN (Worktree Isolation):** Update `.gitignore`, `pyproject.toml`, `.agents/lib/skill_common.py`, and `.config/wt.toml`; observe `XPASS`, remove corresponding `xfail`/`@red`, verify all gates, and commit `feat(devtools): ...`.
 4. **Phase 2b — GREEN (Mutation Gate):** Add winning mutation engine via `uv add --optional test`, verify `pip-licenses` and `pip-audit`, implement `src/nectr/devtools/mutation_gate.py`, update hooks and `.github/workflows/mutation-testing.yml`; observe `XPASS`, remove remaining `xfail`/`@red`, and verify full `pytest` and `behave`.
