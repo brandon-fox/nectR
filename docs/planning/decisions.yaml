@@ -53,10 +53,25 @@ decisions:
   - id: DEC-007
     category: security-oss
     status: locked
-    title: Permissive OSS Runtime & Approved pyadr Dev Waiver
-    decision: Enforce MIT-compatible runtime deps and detect-secrets hooks; waive local dev-only pyadr cleo PYSEC-2022-43178 and elect Artistic-1.0 on text-unidecode.
+    title: Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy
+    decision: Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; ship zero-CVE MIT pyadr CLI in devtools with no waivers.
     owner_agent: meta-orchestrator
     related_adr: docs/adr/0000-use-markdown-architectural-decision-records.md
+
+  - id: DEC-008
+    category: workflow-policy
+    status: locked
+    title: IDE-Agnostic Docs, Defined Terms & Living Trees
+    decision: Never assume IDE/skill access in public docs; define all acronyms (MV=PQ, PoUW-PoW) in glossary, and auto-generate or CI-check directory trees and nav.
+    owner_agent: meta-orchestrator
+
+  - id: DEC-009
+    category: parameter-default
+    status: locked
+    title: Mesa ABM + ML/RL Over LLM Frameworks (CrewAI/k8n)
+    decision: Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations rather than LLM orchestration frameworks (CrewAI/k8n).
+    owner_agent: ux-behavior-agent
+    related_adr: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
 
 experiments:
   - id: EXP-001

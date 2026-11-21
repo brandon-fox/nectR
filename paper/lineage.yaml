@@ -1,0 +1,153 @@
+schema_version: 1
+nodes:
+  - id: source:sweeney_1977
+    kind: source
+    label: Sweeney & Sweeney (1977) Babysitting Co-op
+    path: paper/references.yaml
+  - id: source:mattsson_2023
+    kind: source
+    label: Mattsson et al. (2023) Sarafu Demurrage
+    path: paper/references.yaml
+  - id: source:iosifidis_2018
+    kind: source
+    label: Iosifidis et al. (2018) Sardex Cycles
+    path: paper/references.yaml
+  - id: source:kofman_lawarree_1993
+    kind: source
+    label: Kofman & Lawarree (1993) Auditing
+    path: paper/references.yaml
+  - id: source:buterin_2019
+    kind: source
+    label: Buterin (2019) Pairwise Discoordination
+    path: paper/references.yaml
+  - id: source:spence_1973
+    kind: source
+    label: Spence (1973) Signalling Theory
+    path: paper/references.yaml
+  - id: source:downs_ratnieks_2000
+    kind: source
+    label: Downs & Ratnieks (2000) Guard Bees
+    path: paper/references.yaml
+  - id: source:reina_2017
+    kind: source
+    label: Reina et al. (2017) Swarm Quorum
+    path: paper/references.yaml
+  - id: source:nectr_sim_baseline_2026
+    kind: source
+    label: nectR Baseline Multi-Hive Simulation
+    path: paper/references.yaml
+
+  - id: theory:supply_conservation
+    kind: theory
+    label: Closed-Loop Supply Conservation (MV=PQ)
+    path: docs/theory/tokenomics_game_theory.md
+  - id: theory:pairwise_decay
+    kind: theory
+    label: Pairwise Anti-Collusion Decay & Lineage
+    path: docs/theory/tokenomics_game_theory.md
+  - id: theory:queen_payoff
+    kind: theory
+    label: Non-Tutoring Queen Royal Jelly Payoff
+    path: docs/theory/tokenomics_game_theory.md
+  - id: theory:biomimetic_guards
+    kind: theory
+    label: Guard Bee Acceptance & Swarming
+    path: docs/theory/biomimicry_model.md
+
+  - id: decision:ADR-0002
+    kind: decision
+    label: ADR-0002 Directional Service Barter
+    path: docs/adr/0002-enforce-directional-service-barter-state-transitions.md
+  - id: decision:ADR-0003
+    kind: decision
+    label: ADR-0003 Beekeeper & Queen Governance
+    path: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
+  - id: decision:ADR-0004
+    kind: decision
+    label: ADR-0004 Fee-to-Comb & Royal Jelly
+    path: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+  - id: decision:ADR-0005
+    kind: decision
+    label: ADR-0005 Guard Bee & Epoch FX Bridge
+    path: docs/adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md
+  - id: decision:ADR-0006
+    kind: decision
+    label: ADR-0006 Two-Phase Genesis & Swarming
+    path: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+
+  - id: code:contracts_engine
+    kind: code
+    label: HiveContractEngine
+    path: src/nectr/contracts/engine.py
+    test_path: tests/test_invariants.py
+  - id: code:hive_service
+    kind: code
+    label: HiveServiceLayer
+    path: src/nectr/services/hive_service.py
+    test_path: tests/test_invariants.py
+  - id: code:persona_simulator
+    kind: code
+    label: Multi-Hive Persona Simulator
+    path: src/nectr/personas/simulator.py
+    test_path: tests/test_invariants.py
+
+edges:
+  - source: source:sweeney_1977
+    target: theory:supply_conservation
+    intent: motivates liquidity & hoarding bounds
+  - source: source:mattsson_2023
+    target: theory:supply_conservation
+    intent: empirical demurrage & velocity evidence
+  - source: source:iosifidis_2018
+    target: theory:pairwise_decay
+    intent: cyclic vs bilateral motif metrics
+  - source: source:buterin_2019
+    target: theory:pairwise_decay
+    intent: mathematical pairwise discoordination bound
+  - source: source:spence_1973
+    target: theory:pairwise_decay
+    intent: single-crossing downstream mastery signal
+  - source: source:kofman_lawarree_1993
+    target: theory:queen_payoff
+    intent: delegated auditing collusion deterrence
+  - source: source:downs_ratnieks_2000
+    target: theory:biomimetic_guards
+    intent: adaptive guard acceptance threshold
+  - source: source:reina_2017
+    target: theory:biomimetic_guards
+    intent: swarm quorum cross-inhibition dynamics
+  - source: source:nectr_sim_baseline_2026
+    target: theory:pairwise_decay
+    intent: empirical collusion attenuation telemetry
+
+  - source: theory:supply_conservation
+    target: decision:ADR-0002
+    intent: requires verified directional barter
+  - source: theory:supply_conservation
+    target: decision:ADR-0006
+    intent: requires Seed Comb & Senior exit sinks
+  - source: theory:queen_payoff
+    target: decision:ADR-0003
+    intent: enforces Queen separation & Beekeeper audit
+  - source: theory:queen_payoff
+    target: decision:ADR-0004
+    intent: routes governance fees 100% to Comb
+  - source: theory:biomimetic_guards
+    target: decision:ADR-0005
+    intent: requires Accepted Status & epoch FX bounds
+
+  - source: decision:ADR-0002
+    target: code:contracts_engine
+    intent: enforces escrow & settlement invariants
+  - source: decision:ADR-0003
+    target: code:contracts_engine
+    intent: enforces QUEEN_ROLE tutoring ban
+  - source: decision:ADR-0004
+    target: code:hive_service
+    intent: computes Royal Jelly epoch health score
+  - source: decision:ADR-0005
+    target: code:contracts_engine
+    intent: enforces bridge Accepted Status & FX clamp
+  - source: decision:ADR-0006
+    target: code:persona_simulator
+    intent: validates multi-hive genesis & bridging
