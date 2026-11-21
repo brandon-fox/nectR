@@ -1,5 +1,12 @@
 # Project Roadmap & Autonomous Development Milestones
 
+## Milestone 0: Open-Source Hygiene, Governance & Automated Remediation
+- [x] **Security, Secret & Local-Path Hygiene:** Configured `detect-secrets` (`.secrets.baseline`), `pygrep`/hook local-path guards, `.githooks/` (`pre-commit`, `commit-msg`, `pre-push`), and `.pre-commit-config.yaml`.
+- [x] **Open-Source-First & Transitive License Audit:** Enforced permissive-license-only rule and scheduled `pip-licenses` + `pip-audit` + CycloneDX SBOM (`.github/workflows/license-and-security-scan.yml`) + Dependabot (`.github/dependabot.yml`).
+- [x] **OpenSpec + Behave BDD + Strict TDD (`xfail_strict`) + `pyadr` Governance:** Enforced `nectr.devtools.decisions check` (`pyadr` MADR + `decisions.yaml`), `nectr.devtools.spec_links` (no hardcoded scenarios in `spec.md`), `commitizen` (`cz check` / `cz changelog`), and `.github/workflows/roadmap-and-changelog.yml`.
+- [ ] **Phase 2 (Automated Issue Creation on License Drift/Flag):** Open/deduplicate labeled GitHub Issues (`license-violation`, `cve-alert`) via `actions/github-script` when scheduled scans fail.
+- [ ] **Phase 3 (Downstream Agent Auto-Remediation):** Trigger downstream agent PR workflow on `license-violation` issues under strict OpenSpec → BDD → TDD gates.
+
 ## Milestone 1: Theoretical Foundation & `/grill-me` Specification
 - [x] Run the 3 Gemini Deep Research prompts (`docs/planning/deep_research_prompts.md`) and archive the reports in [`docs/theory/research/`](../theory/research/federated_barter_tokenomics.md).
 - [ ] Complete the interactive `/grill-me` session to lock down open equations in `docs/planning/decision_log.md`.
