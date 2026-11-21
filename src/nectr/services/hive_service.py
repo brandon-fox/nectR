@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -12,6 +13,7 @@ from nectr.chain.ledger import Block, HiveBlockchain, UsefulComputeProof, comput
 from nectr.contracts.engine import (
     BeeAccount,
     BeeRole,
+    ContractViolationError,
     HiveContractEngine,
     ServiceBarterSession,
     TokenState,
@@ -118,18 +120,16 @@ class HiveServiceLayer:
         chain_len = len(self.blockchain.chain)
         mempool_backup = copy.deepcopy(self.blockchain.mempool)
 
-        with (
-            self.telemetry.span(
-                op_name,
-                hive_id=self.hive_id,
-                epoch=self.current_epoch,
-                tx_id=tx_id,
-            ),
-            self.repository.transaction(),
+        with self.telemetry.span(
+            op_name,
+            hive_id=self.hive_id,
+            epoch=self.current_epoch,
+            tx_id=tx_id,
         ):
             try:
-                yield
-                self.repository.save_hive_snapshot(self._build_snapshot())
+                with self.repository.transaction():
+                    yield
+                    self.repository.save_hive_snapshot(self._build_snapshot())
             except BaseException as exc:
                 self.contracts = HiveContractEngine.from_snapshot(
                     contract_backup,
@@ -359,6 +359,10 @@ class HiveServiceLayer:
 
     def mine_epoch_block(self, queen_dividend_beta: float = 0.05) -> Block:
         """Mine a PoUW-PoW block and persist Queen Royal Jelly governance health credits."""
+        if not math.isfinite(queen_dividend_beta) or queen_dividend_beta < 0.0:
+            raise ContractViolationError(
+                "queen_dividend_beta must be a finite non-negative number."
+            )
         with self._atomic_mutation("mine_epoch_block"):
             self.current_epoch += 1
             proof = self.compute_useful_work_proof()

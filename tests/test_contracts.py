@@ -670,11 +670,10 @@ def test_contract_engine_from_snapshot_rejects_corrupted_supply_and_bad_pairs() 
 
 
 # ---------------------------------------------------------------------------
-# Iteration 2 RED Regression Tests: Contract Validation Hardening
+# Iteration 2 Regression Tests: Contract Validation Hardening
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="RED: BUG-1 duplicate session_id not yet rejected")
 def test_escrow_rejects_duplicate_session_id() -> None:
     engine = _setup_basic_hive()
     engine.create_service_barter_escrow(
@@ -699,7 +698,6 @@ def test_escrow_rejects_duplicate_session_id() -> None:
         )
 
 
-@pytest.mark.xfail(strict=True, reason="RED: BUG-2 service_fee_rate bounds not yet enforced")
 @pytest.mark.parametrize("bad_fee", [-0.1, 1.1, 2.0, float("nan"), float("inf")])
 def test_dispute_rejects_out_of_bounds_service_fee_rate(bad_fee: float) -> None:
     engine = _setup_basic_hive()
@@ -718,9 +716,6 @@ def test_dispute_rejects_out_of_bounds_service_fee_rate(bad_fee: float) -> None:
         )
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: BUG-3 duration_hours <= 0 / non-finite not yet rejected"
-)
 @pytest.mark.parametrize("bad_duration", [0.0, -1.0, float("nan"), float("inf")])
 def test_escrow_rejects_non_positive_duration_hours(bad_duration: float) -> None:
     engine = _setup_basic_hive()
@@ -736,7 +731,6 @@ def test_escrow_rejects_non_positive_duration_hours(bad_duration: float) -> None
         )
 
 
-@pytest.mark.xfail(strict=True, reason="RED: BUG-5 non-finite numeric inputs not yet rejected")
 def test_contract_methods_reject_non_finite_and_invalid_rates() -> None:
     engine = _setup_basic_hive()
     target = _setup_basic_hive(hive_id="HIVE_TARGET", accepted_threshold=1)
@@ -781,9 +775,6 @@ def test_contract_methods_reject_non_finite_and_invalid_rates() -> None:
             engine.bridge_nectr_to_target_hive("worker_1", target, 5.0, bridge_toll_rate=bad_toll)
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: BUG-5/C1 assert_supply_conservation ignores NaN/Inf/negatives"
-)
 def test_assert_supply_conservation_rejects_nan_inf_and_negative_balances() -> None:
     engine_nan = _setup_basic_hive(hive_id="HIVE_NAN")
     engine_nan.comb_reserve = float("nan")
@@ -804,9 +795,6 @@ def test_assert_supply_conservation_rejects_nan_inf_and_negative_balances() -> N
         engine_neg.assert_supply_conservation()
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: C1/R2 snapshot hydration lacks pairwise/non-neg/NaN/type checks"
-)
 def test_snapshot_hydration_rejects_corrupted_fields_and_bad_types() -> None:
     engine = _setup_basic_hive(hive_id="HIVE_SNAP_HARDEN")
     engine.create_service_barter_escrow(

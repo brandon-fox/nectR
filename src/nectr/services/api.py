@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
-from fastapi import APIRouter, FastAPI, HTTPException, status
+from fastapi import APIRouter, FastAPI, HTTPException, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from nectr.contracts.engine import BeeRole, ContractViolationError, TokenState
@@ -13,7 +17,7 @@ from nectr.services.telemetry import TelemetryAdapter
 
 
 class HealthResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     status: str
     hive_id: str
@@ -21,7 +25,7 @@ class HealthResponse(BaseModel):
 
 
 class HiveStateResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     hive_id: str
     comb_reserve: float
@@ -34,7 +38,7 @@ class HiveStateResponse(BaseModel):
 
 
 class BootstrapHiveRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     seed_comb_amount: float
     queen_ids: list[str] = Field(min_length=1)
@@ -42,7 +46,7 @@ class BootstrapHiveRequest(BaseModel):
 
 
 class RegisterBeeRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     bee_id: str
     role: BeeRole = BeeRole.LEARNER_BEE
@@ -50,7 +54,7 @@ class RegisterBeeRequest(BaseModel):
 
 
 class BeeAccountResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     bee_id: str
     home_hive_id: str
@@ -64,7 +68,7 @@ class BeeAccountResponse(BaseModel):
 
 
 class AllocatePollenRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     queen_id: str
     learner_id: str
@@ -72,7 +76,7 @@ class AllocatePollenRequest(BaseModel):
 
 
 class CertifyWorkerRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     queen_id: str
     worker_id: str
@@ -81,13 +85,13 @@ class CertifyWorkerRequest(BaseModel):
 
 
 class TutoringHandshakeRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     session_id: str
     tutor_id: str
     learner_id: str
     subject_id: str
-    duration_hours: float
+    duration_hours: float = Field(gt=0.0)
     amount: float
     token_state: TokenState = TokenState.LIQUID_NECTR
     learner_attestation_score: float = 0.95
@@ -95,35 +99,35 @@ class TutoringHandshakeRequest(BaseModel):
 
 
 class CreateEscrowRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     session_id: str
     tutor_id: str
     learner_id: str
     subject_id: str
-    duration_hours: float
+    duration_hours: float = Field(gt=0.0)
     amount: float
     token_state: TokenState = TokenState.LIQUID_NECTR
     reciprocal_subject_id: str | None = None
 
 
 class SettleSessionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     learner_attestation_score: float
     tutor_comprehension_hash: str
 
 
 class DisputeSessionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     queen_id: str
     tutor_share_ratio: float
-    service_fee_rate: float = 0.10
+    service_fee_rate: float = Field(default=0.10, ge=0.0, le=1.0)
 
 
 class SessionResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     session_id: str
     hive_id: str
@@ -141,13 +145,13 @@ class SessionResponse(BaseModel):
 
 
 class MineEpochRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
-    queen_dividend_beta: float = 0.05
+    queen_dividend_beta: float = Field(default=0.05, ge=0.0)
 
 
 class MineEpochResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     height: int
     block_hash: str
@@ -157,7 +161,7 @@ class MineEpochResponse(BaseModel):
 
 
 class TelemetrySummaryResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     hive_id: str
     epoch: int
@@ -357,8 +361,26 @@ class FastAPIHiveRouter:
         self.router = create_hive_router(service)
 
 
+def _json_safe_value(value: Any) -> Any:
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(k): _json_safe_value(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe_value(item) for item in value]
+    return value
+
+
 def create_app(service: HiveServiceLayer) -> FastAPI:
     """Create a FastAPI application wired to a HiveServiceLayer instance."""
     app = FastAPI(title=f"nectR Hive API ({service.hive_id})", version="0.1.0")
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_exception_handler(
+        _request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        safe_errors = jsonable_encoder(_json_safe_value(exc.errors()))
+        return JSONResponse(status_code=422, content={"detail": safe_errors})
+
     app.include_router(FastAPIHiveRouter(service).router)
     return app
