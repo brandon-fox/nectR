@@ -4,7 +4,7 @@ trigger: always_on
 
 # nectR Workspace Rules & Multi-Agent Operating Charter
 
-You are operating inside the **nectR** monorepo (`C:\Users\bfoxt\Github\nectR`).
+You are operating inside the **nectR** monorepo (repository root).
 
 ## 1. Deliverable Priority Order (Never Violate)
 1. **Priority 1 — Published Academic Paper & Theory** (`paper/`, `docs/theory/`): Every mechanism in code must map directly to a formal mathematical equation or honeybee (*Apis mellifera*) biomimetic dynamic documented in `docs/theory/` and `paper/`.
@@ -26,3 +26,10 @@ You are operating inside the **nectR** monorepo (`C:\Users\bfoxt\Github\nectR`).
 - **Atomic File Ownership:** When running as a specialized domain agent or subagent, only stage (`git add <explicit-file>`) the exact files within your domain scope. Never run `git add .` or `git commit -a`.
 - **Documentation Verification:** Whenever updating or moving files in `docs/` or `mkdocs.yml`, run `uv run mkdocs build --strict`.
 - **Testing Verification:** Keep `pythonpath = ["src"]` in `pyproject.toml` and verify contract invariants with `uv run pytest`.
+
+## 4. Open-Source Security, OpenSpec, BDD, Strict TDD & DDD (No Exceptions)
+- **Open-Source-First & Transitive License Audit:** Never rebuild or write custom code when a secure, well-respected, permissively licensed OSS solution exists. Before adding any dependency, research existing OSS libraries/services and scan all direct and chained sub-dependencies for free, MIT-compatible licenses (`MIT`, `Apache-2.0`, `BSD-*`, `ISC`, `PSF-2.0`).
+- **Pre-Read / Pre-Commit / Pre-Push Security Gate:** Run `python scripts/security_scan.py --all` (or `--path <file>` before reading new files). Never commit secrets, private references, or local hardcoded paths. Git hooks in `.githooks/` (`core.hooksPath = .githooks`) and `.pre-commit-config.yaml` enforce this automatically; `--no-verify` is strictly forbidden.
+- **OpenSpec (`openspec/`):** Every behavioral change requires an OpenSpec spec/change proposal (`openspec/changes/<change-id>/`) before implementation.
+- **BDD (`features/`):** Every OpenSpec scenario must be defined in Gherkin (`features/*.feature`) and verified with `python -m behave`.
+- **Strict TDD (Red-Green-Refactor) & DDD:** Follow Red-Green-Refactor (`python -m pytest`) and respect DDD Bounded Contexts defined in `openspec/project.md` before, during, and after every action.
