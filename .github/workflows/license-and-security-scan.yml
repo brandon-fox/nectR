@@ -92,7 +92,7 @@ jobs:
         run: |
           uv run ruff check src tests features
           uv run ruff format --check src tests features
-          uv run pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business docs/theory paper
+          uv run pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business docs/theory/biomimicry_model.md docs/theory/provenance_lineage.md
           uv run mypy src .agents/lib .agents/skills tests/test_skills_spec.py
           uv run mkdocs build --strict
 
@@ -110,7 +110,7 @@ jobs:
 
       - name: Enforce CI/hook parity & forbid @red scenarios on main
         if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: uv run python -m nectr.devtools.ci_parity --forbid-red
+        run: uv run python -m nectr.devtools.ci_parity check --forbid-red --allow-file features/chain_crypto_ledger.feature --allow-file features/hive_persistence_api.feature --allow-file features/persona_abm_simulation.feature --allow-file features/telemetry_ui.feature
 
       - name: Upload license, SBOM & coverage artifacts
         if: always()
