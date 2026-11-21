@@ -53,10 +53,6 @@ def test_worktrunk_project_config_hooks() -> None:
     assert "verify_orchestration_gate.py" in pre_merge_cmds
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_load_mutation_policy_tiers_and_baseline() -> None:
     from nectr.devtools.mutation_gate import load_mutation_policy
 
@@ -72,10 +68,6 @@ def test_load_mutation_policy_tiers_and_baseline() -> None:
     assert set(policy.baseline.keys()) == set(policy.tiers.keys())
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_classify_and_select_targets() -> None:
     from nectr.devtools.mutation_gate import MutationPolicy, classify, select_targets
 
@@ -113,10 +105,6 @@ def test_classify_and_select_targets() -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_parse_changed_line_ranges_hunk_headers() -> None:
     from nectr.devtools.mutation_gate import parse_changed_line_ranges
 
@@ -134,10 +122,6 @@ def test_parse_changed_line_ranges_hunk_headers() -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_filter_trials_to_changed_lines() -> None:
     from nectr.devtools.mutation_gate import filter_trials_to_changed_lines
 
@@ -163,10 +147,6 @@ def test_filter_trials_to_changed_lines() -> None:
     assert len(kept) == 2
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_score_trials_counts_timeouts_as_killed() -> None:
     from nectr.devtools.mutation_gate import score_trials
 
@@ -184,10 +164,6 @@ def test_score_trials_counts_timeouts_as_killed() -> None:
     assert score.effective_score_pct == pytest.approx(75.0)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_evaluate_targets_and_total_zero_passes() -> None:
     from nectr.devtools.mutation_gate import MutationPolicy, MutationScore, evaluate_targets
 
@@ -215,10 +191,6 @@ def test_evaluate_targets_and_total_zero_passes() -> None:
     assert fail_res.passed is False
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_evaluate_floors_ratchet_check() -> None:
     from nectr.devtools.mutation_gate import MutationPolicy, MutationScore, evaluate_floors
 
@@ -242,10 +214,6 @@ def test_evaluate_floors_ratchet_check() -> None:
     assert fail_res.passed is False
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing mutation_gate not yet implemented",
-)
 def test_find_suppression_pragmas_detects_both_tokens(tmp_path: Path) -> None:
     from nectr.devtools.mutation_gate import find_suppression_pragmas
 
@@ -261,10 +229,6 @@ def test_find_suppression_pragmas_detects_both_tokens(tmp_path: Path) -> None:
     assert any("b.py:1" in h for h in hits)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing hooks/CI not yet wired",
-)
 def test_hooks_and_ci_workflow_wired() -> None:
     pre_commit = (REPO_ROOT / ".githooks" / "pre-commit").read_text(encoding="utf-8")
     pre_push = (REPO_ROOT / ".githooks" / "pre-push").read_text(encoding="utf-8")
