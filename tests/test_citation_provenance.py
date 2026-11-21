@@ -20,6 +20,16 @@ def test_repository_citations_and_provenance_pass_all_gates() -> None:
     assert summary["report_in_sync"] is True
 
 
+def test_six_track_references_and_lineage_expansion() -> None:
+    """Verify paper/references.yaml and lineage.yaml include all 6 research tracks (>=25 refs & edges)."""
+    from nectr.devtools.citations import check_all_citations
+
+    summary = check_all_citations(REPO_ROOT)
+    assert summary["external_reference_count"] >= 25
+    assert summary["lineage_edges"] >= 25
+    assert summary["peer_reviewed_ratio"] >= 0.75
+
+
 def test_citation_validator_blocks_banned_domains_low_ratio_and_missing_doi() -> None:
     """Quality floor rejects banned URLs, <70% peer-reviewed ratio, and missing DOI/URL."""
     from nectr.devtools.citations import (

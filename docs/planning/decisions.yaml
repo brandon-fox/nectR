@@ -81,6 +81,49 @@ decisions:
     owner_agent: meta-orchestrator
     related_adr: docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md
 
+  - id: DEC-011
+    category: parameter-default
+    status: locked
+    title: Minimum 25-Minute Structured Session & Pre-Booking Deposit
+    decision: Enforce a >=25-minute minimum structured tutoring block to prevent Gneezy-Rustichini micro-payment crowding out, paired with optional Weeks 1-4 commitment deposits.
+    owner_agent: ux-behavior-agent
+    related_adr: docs/adr/0002-enforce-directional-service-barter-state-transitions.md
+    openspec_ref: openspec/specs/protocol-invariants/spec.md
+
+  - id: DEC-012
+    category: parameter-default
+    status: locked
+    title: Swarming Honey-to-Wax Burn Ratio & 15-Scout Quorum
+    decision: Trigger SWARM_PREP at >=90% Comb congestion + QMP attenuation + tutor surplus; enforce 6.25x-8.0x Honey-to-Wax Comb burn and 15-scout (30%) quorum with 1h piping timelock.
+    owner_agent: product-lifecycle-agent
+    related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+    openspec_ref: openspec/specs/protocol-invariants/spec.md
+
+  - id: DEC-013
+    category: parameter-default
+    status: locked
+    title: Tremble Latency Ramp & Khoury Promotion Circuit Breaker
+    decision: Ramp Tremble fee reallocation linearly across 20s-80s queue latency and clamp Nurse-Tutor promotion to Scout when churn approaches Khoury critical mortality.
+    owner_agent: contracts-service-agent
+    related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+    openspec_ref: openspec/specs/protocol-invariants/spec.md
+
+  - id: DEC-014
+    category: security-oss
+    status: locked
+    title: Apache-2.0 Perses & Kurtosis Over BSL/Copyleft Testbeds
+    decision: Standardize multi-Hive observability on Apache-2.0 Perses + Prometheus OTLP (over Grafana) and chaos devnets on post-June-2024 Apache-2.0 Kurtosis + Pumba/Toxiproxy.
+    owner_agent: system-arch-agent
+    related_adr: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
+
+  - id: DEC-015
+    category: workflow-policy
+    status: locked
+    title: MIT + DCO 1.1 Inbound IP & Two-Stage Apereo Governance
+    decision: Require DCO 1.1 + SSH-signed commits (avoiding multi-university Corporate CLAs), transitioning from a Stage 1 Academic Consortium to Stage 2 Apereo Foundation incubation.
+    owner_agent: business-proposal-agent
+    related_adr: docs/adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md
+
 experiments:
   - id: EXP-001
     status: open-simulation
@@ -91,3 +134,43 @@ experiments:
       - ux-behavior-agent
       - sci-research-agent
     related_adr: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
+
+  - id: EXP-002
+    status: open-simulation
+    title: 15-Week Finals Crunch & Waggle 60% Co-Pay Fill Rate
+    hypothesis: Pairing ~2%/mo Weeks 1-13 demurrage with 60% Comb Waggle co-pay on 2.2x peak tutor payouts lifts 15-week semester fill rate from ~38% (fixed scrip) to >=65%.
+    risk_note: Over-aggressive demurrage or under-funded Comb buffers could deplete reserves before Finals Week 14 if midterm surges exceed 4.0x baseline.
+    owner_agents:
+      - ux-behavior-agent
+      - product-lifecycle-agent
+    related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+
+  - id: EXP-003
+    status: open-simulation
+    title: Pairwise Discoordination + COCM Dorm-Cluster Sybil Bound
+    hypothesis: Combining pairwise decay (alpha=1.5), EigenTrust anchors, and COCM Fiedler-vector dorm-SBT clustering caps m-node colluder rings below C(m,2)*k extraction.
+    risk_note: Over-penalizing shared dorm/major SBTs could unintentionally discount legitimate study groups in small upper-division departments.
+    owner_agents:
+      - sci-research-agent
+      - contracts-service-agent
+    related_adr: docs/adr/0002-enforce-directional-service-barter-state-transitions.md
+
+  - id: EXP-004
+    status: open-simulation
+    title: Khoury Mortality Bifurcation & EO Promotion Circuit Breaker
+    hypothesis: Clamping Nurse-Tutor outbound promotion when Scout attrition approaches mu_crit prevents precocious foraging collapse and preserves >=85% freshman retention.
+    risk_note: Hard promotion clamps during prolonged cross-Hive demand shocks may temporarily slow outbound cross-campus pollination.
+    owner_agents:
+      - sci-research-agent
+      - ux-behavior-agent
+    related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+
+  - id: EXP-005
+    status: open-simulation
+    title: Asymmetric Campus NAT Partition & NATS JetStream Recovery
+    hypothesis: Outbound NATS Leaf Node JetStream mirrors recover 100% of AcceptedStatusGranted proofs after 30-minute Pumba/Toxiproxy WAN partitions with zero double-minting.
+    risk_note: Long WAN partitions exceeding Prometheus 30m out-of-order windows require replay deduplication and epoch FX snapshot pinning.
+    owner_agents:
+      - system-arch-agent
+      - contracts-service-agent
+    related_adr: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md

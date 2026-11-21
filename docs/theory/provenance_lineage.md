@@ -8,33 +8,48 @@ This report links canonical primary literature through mathematical theory, arch
 
 | Metric | Observed Value | Required Threshold |
 | :--- | :---: | :---: |
-| External References | `21` | `>= 1` |
-| Peer-Reviewed Ratio | `85.7%` (`18/21`) | `>= 70.0%` |
+| External References | `27` | `>= 1` |
+| Peer-Reviewed Ratio | `88.9%` (`24/27`) | `>= 70.0%` |
 | Quarantined / Flagged Sources | `0` | `0` (strict mode) |
-| Lineage Edges Tracked | `19` | DAG verified |
+| Lineage Edges Tracked | `36` | DAG verified |
 
 ## Lineage Graph (Sources → Theory → Decisions → Code)
 
 ```mermaid
 flowchart LR
     source_sweeney_1977["Sweeney & Sweeney (1977) Babysitting Co-op"]
+    source_tirole_1986["Tirole (1986) Hierarchical Collusion"]
     source_mattsson_2023["Mattsson et al. (2023) Sarafu Demurrage"]
     source_iosifidis_2018["Iosifidis et al. (2018) Sardex Cycles"]
     source_kofman_lawarree_1993["Kofman & Lawarree (1993) Auditing"]
     source_buterin_2019["Buterin (2019) Pairwise Discoordination"]
     source_spence_1973["Spence (1973) Signalling Theory"]
     source_downs_ratnieks_2000["Downs & Ratnieks (2000) Guard Bees"]
-    source_reina_2017["Reina et al. (2017) Swarm Quorum"]
+    source_bonabeau_1996["Bonabeau et al. (1996) Response Thresholds"]
+    source_seeley_visscher_2004["Seeley & Visscher (2004) Swarm Quorum"]
+    source_reina_2017["Reina et al. (2017) Stop-Signal Cross-Inhibition"]
+    source_ball_2018["Ball et al. (2018) Proofs of Useful Work"]
+    source_kazil_2020["Kazil et al. (2020) Mesa ABM Framework"]
+    source_treinish_2022["Treinish et al. (2022) rustworkx Graph Engine"]
+    source_weyl_2022["Weyl et al. (2022) Soulbound Credentials"]
     source_nectr_sim_baseline_2026["nectR Baseline Multi-Hive Simulation"]
     theory_supply_conservation["Closed-Loop Supply Conservation (MV=PQ)"]
     theory_pairwise_decay["Pairwise Anti-Collusion Decay & Lineage"]
     theory_queen_payoff["Non-Tutoring Queen Royal Jelly Payoff"]
     theory_biomimetic_guards["Guard Bee Acceptance & Swarming"]
+    theory_duplex_pouw_security["Transcript-Oracle PoUW-PoW Duplex Security"]
+    theory_campus_zero_pii_compliance["Zero-PII FERPA/GDPR & Title IV Mandate Model"]
     decision_ADR_0002["ADR-0002 Directional Service Barter"]
     decision_ADR_0003["ADR-0003 Beekeeper & Queen Governance"]
     decision_ADR_0004["ADR-0004 Fee-to-Comb & Royal Jelly"]
     decision_ADR_0005["ADR-0005 Guard Bee & Epoch FX Bridge"]
     decision_ADR_0006["ADR-0006 Two-Phase Genesis & Swarming"]
+    decision_ADR_0007["ADR-0007 PoUW-PoW Capped Comb Compute Jar"]
+    decision_ADR_0008["ADR-0008 Ed25519 CanonicalJSON & Merklelib"]
+    decision_ADR_0010["ADR-0010 Mesa ABM & Hypothesis Testing"]
+    decision_ADR_0014["ADR-0014 NATS Leaf Nodes & CQRS Graph Isolation"]
+    decision_ADR_0015["ADR-0015 Zero-PII FERPA/GDPR & Title IV Firewall"]
+    code_chain_ledger["HiveBlockchain & UsefulComputeProof"]
     code_contracts_engine["HiveContractEngine"]
     code_hive_service["HiveServiceLayer"]
     code_persona_simulator["Multi-Hive Persona Simulator"]
@@ -43,20 +58,37 @@ flowchart LR
     source_iosifidis_2018 -->|"cyclic vs bilateral motif metrics"| theory_pairwise_decay
     source_buterin_2019 -->|"mathematical pairwise discoordination bound"| theory_pairwise_decay
     source_spence_1973 -->|"single-crossing downstream mastery signal"| theory_pairwise_decay
+    source_tirole_1986 -->|"three-tier hierarchical collusion model"| theory_queen_payoff
     source_kofman_lawarree_1993 -->|"delegated auditing collusion deterrence"| theory_queen_payoff
     source_downs_ratnieks_2000 -->|"adaptive guard acceptance threshold"| theory_biomimetic_guards
+    source_bonabeau_1996 -->|"response-threshold division of labor"| theory_biomimetic_guards
+    source_seeley_visscher_2004 -->|"15-scout quorum sensing & piping timelock"| theory_biomimetic_guards
     source_reina_2017 -->|"swarm quorum cross-inhibition dynamics"| theory_biomimetic_guards
+    source_ball_2018 -->|"fine-grained worst-case PoUW complexity"| theory_duplex_pouw_security
+    source_treinish_2022 -->|"high-performance off-chain graph projection"| theory_duplex_pouw_security
+    source_kazil_2020 -->|"reproducible Mesa ABM scheduling & telemetry"| theory_pairwise_decay
+    source_weyl_2022 -->|"non-transferable institutional credential commitments"| theory_campus_zero_pii_compliance
     source_nectr_sim_baseline_2026 -->|"empirical collusion attenuation telemetry"| theory_pairwise_decay
     theory_supply_conservation -->|"requires verified directional barter"| decision_ADR_0002
     theory_supply_conservation -->|"requires Seed Comb & Senior exit sinks"| decision_ADR_0006
     theory_queen_payoff -->|"enforces Queen separation & Beekeeper audit"| decision_ADR_0003
     theory_queen_payoff -->|"routes governance fees 100% to Comb"| decision_ADR_0004
     theory_biomimetic_guards -->|"requires Accepted Status & epoch FX bounds"| decision_ADR_0005
+    theory_duplex_pouw_security -->|"couples PoUW-PoW to capped Comb Compute Jar"| decision_ADR_0007
+    theory_duplex_pouw_security -->|"enforces Ed25519, canonical JSON & Merkle proofs"| decision_ADR_0008
+    theory_duplex_pouw_security -->|"isolates CQRS graph analytics & NATS Leaf Node relay"| decision_ADR_0014
+    theory_pairwise_decay -->|"validates invariants via Mesa ABM & Hypothesis"| decision_ADR_0010
+    theory_campus_zero_pii_compliance -->|"enforces zero-PII FERPA/GDPR & Title IV firewall"| decision_ADR_0015
     decision_ADR_0002 -->|"enforces escrow & settlement invariants"| code_contracts_engine
     decision_ADR_0003 -->|"enforces QUEEN_ROLE tutoring ban"| code_contracts_engine
     decision_ADR_0004 -->|"computes Royal Jelly epoch health score"| code_hive_service
     decision_ADR_0005 -->|"enforces bridge Accepted Status & FX clamp"| code_contracts_engine
     decision_ADR_0006 -->|"validates multi-hive genesis & bridging"| code_persona_simulator
+    decision_ADR_0007 -->|"commits UsefulComputeProof in BlockHeader"| code_chain_ledger
+    decision_ADR_0008 -->|"verifies deterministic SHA-256 & Merkle roots"| code_chain_ledger
+    decision_ADR_0010 -->|"orchestrates 6 persona sub-agent epochs"| code_persona_simulator
+    decision_ADR_0014 -->|"decouples CQRS graph telemetry & NATS bridge"| code_hive_service
+    decision_ADR_0015 -->|"guards off-chain PII & LTI 1.3 service ports"| code_hive_service
 ```
 
 ## Downstream Quarantine & Rebuild Alerts
@@ -68,6 +100,7 @@ All canonical references passed plagiarism screening (`clean`) and custody check
 | ID | Year | Type | Custody Agent | Plagiarism Screen | Identifier |
 | :--- | :---: | :--- | :--- | :---: | :--- |
 | `sweeney_1977` | 1977 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.2307/1991998` |
+| `tirole_1986` | 1986 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1093/oxfordjournals.jleo.a036907` |
 | `kofman_lawarree_1993` | 1993 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.2307/2951721` |
 | `spence_1973` | 1973 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.2307/1882010` |
 | `filippas_2020` | 2022 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1287/mksc.2022.1350` |
@@ -76,15 +109,20 @@ All canonical references passed plagiarism screening (`clean`) and custody check
 | `gneezy_rustichini_2000` | 2000 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1162/003355300554917` |
 | `seeley_tovey_1994` | 1994 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1006/anbe.1994.1044` |
 | `camazine_sneyd_1991` | 1991 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1016/S0022-5193(05)80098-0` |
+| `bonabeau_1996` | 1996 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1098/rspb.1996.0229` |
 | `ratnieks_1988` | 1988 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1086/284846` |
 | `wenseleers_ratnieks_2006` | 2006 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1086/508619` |
 | `downs_ratnieks_2000` | 2000 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1093/beheco/11.3.326` |
 | `leoncini_2004` | 2004 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1073/pnas.0407652101` |
 | `khoury_2011` | 2011 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1371/journal.pone.0018491` |
+| `seeley_visscher_2004` | 2004 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1051/apido:2004004` |
 | `reina_2017` | 2017 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1103/PhysRevE.95.052411` |
 | `kamvar_2003` | 2003 | `conference-proceedings` | `sci-research-agent` | `clean` | `10.1145/775152.775242` |
 | `mattsson_2023` | 2023 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1038/s41598-023-33184-1` |
 | `iosifidis_2018` | 2018 | `peer-reviewed-journal` | `sci-research-agent` | `clean` | `10.1038/s41562-018-0450-0` |
+| `ball_2018` | 2018 | `conference-proceedings` | `pow-compute-agent` | `clean` | `10.1007/978-3-319-96884-1_26` |
+| `kazil_2020` | 2020 | `conference-proceedings` | `ux-behavior-agent` | `clean` | `10.1007/978-3-030-61255-9_30` |
+| `treinish_2022` | 2022 | `peer-reviewed-journal` | `system-arch-agent` | `clean` | `10.21105/joss.03968` |
 | `buterin_2019` | 2019 | `technical-spec` | `sci-research-agent` | `clean` | `https://ethresear.ch/t/pairwise-coordination-subsidies-a-new-quadratic-funding-design/5553` |
 | `saltini_2019` | 2019 | `preprint` | `system-arch-agent` | `clean` | `https://arxiv.org/abs/1909.10194` |
 | `weyl_2022` | 2022 | `preprint` | `system-arch-agent` | `clean` | `10.2139/ssrn.4105763` |
