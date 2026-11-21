@@ -229,3 +229,84 @@ sequenceDiagram
 ```
 
 See [Smart Contracts Specification](smart_contracts.md) for full state machine diagrams, mathematical invariants, and the reconciliation mapping of all five logical service interfaces.
+
+---
+
+## Long-Term Six-Plane Federated Architecture (Planned Extensions)
+
+This architecture serves as the **System Design Portfolio Highlight** for **nectR**, partitioning a federated multi-campus deployment (`HIVE_ALPHA`, `HIVE_BETA`, and autonomous daughter Hives) into **six strictly decoupled planes** behind hexagonal ports and adapters.
+
+```mermaid
+flowchart TB
+    subgraph CampusPlane["1. Campus Clients, LMS & Persona Swarm"]
+        LMS["Canvas / Moodle LTI 1.3 (NRPS) + Shibboleth SAML 2.0"]
+        WebUI["Read-Only Streamlit Explorer & Perses OTLP Dashboards"]
+        Personas["6 Behavioral Persona Sub-Agents (Mesa ABM + ML/RL)"]
+    end
+
+    subgraph ServicePlane["2. Hexagonal Hive Service Layer (src/nectr/services/)"]
+        ComplianceGuard["Zero-PII FERPA/GDPR Guard & Title IV Service-Credit Firewall"]
+        EscrowSvc["Barter Escrow & Co-Signed Handshake Service"]
+        QueenSvc["Queen Governance, Certification & Arbitration Service"]
+        RepoPort["SQLModel + Alembic / Strict WAL Snapshot Repository Port"]
+    end
+
+    subgraph FederationPlane["3. Cross-Hive Federation Bus (ADR-0014)"]
+        NatsLeaf["Outbound NATS Leaf Node (TLS Port 7422) + JetStream Domain"]
+        BridgeSvc["Guard Bee Accepted Status & Clamped Epoch FX Bridge Adapter"]
+    end
+
+    subgraph CQRSPlane["4. Off-Chain CQRS Knowledge Graph Read Model (ADR-0014)"]
+        EventBus["Post-Commit Domain Event Consumer"]
+        GraphEngine["GraphTelemetryPort (networkx / NetworKit / rustworkx)"]
+    end
+
+    subgraph ContractPlane["5. Deterministic Smart Contracts (src/nectr/contracts/)"]
+        C1["1. TokenStateAndCombContract (Demurrage + BME + Senior Sinks)"]
+        C2["2. DirectionalServiceBarterContract (0% P2P + Waggle/Tremble)"]
+        C3["3. QueenGovernanceContract (Separation + QMP/Supersedure)"]
+        C4["4. KnowledgeGraphAndPolicingContract (Pairwise Decay + Oophagy)"]
+        C5["5. GuardBeeCrossHiveBridgeContract (Accepted Status + Swarming)"]
+    end
+
+    subgraph ChainPlane["6. Private PoUW-PoW Blockchain Core (src/nectr/chain/)"]
+        Signer["SignerPort (PyNaCl / cryptography Ed25519) + CanonicalCodecPort (rfc8785 / canonicaljson)"]
+        Merkle["MerkleAccumulatorPort (merklelib / remerkleable + 0x00/0x01 Sparse Merkle Tree)"]
+        PoUW["Transcript-Oracle PoUW-PoW Miner (Capped Comb Compute Jar)"]
+        Ledger["Immutable Block Ledger (32-Byte kg_root Commitment)"]
+    end
+
+    CampusPlane <--> ServicePlane
+    ServicePlane <--> ContractPlane
+    ServicePlane <--> FederationPlane
+    ContractPlane <--> ChainPlane
+    ChainPlane -->|"Post-Commit Block Events"| CQRSPlane
+    CQRSPlane -->|"Read-Only Snapshots"| WebUI
+    CQRSPlane -->|"Epoch kg_root & Velocity"| PoUW
+```
+
+---
+
+## Six Architectural Planes & Permissive OSS Stack
+
+| Architectural Plane | Core Responsibility | Permissive OSS Stack (`MIT` / `Apache-2.0` / `BSD`) | Key Invariant / Design Boundary |
+| :--- | :--- | :--- | :--- |
+| **1. Consensus & Cryptographic State (`src/nectr/chain/`)** | Block headers, Ed25519 signatures, canonical serialization, domain-separated Merkle roots, and Transcript-Oracle `PoUW-PoW`. | `PyNaCl` / `cryptography` (`Apache-2.0`/`BSD`), `rfc8785` / `canonicaljson` (`Apache-2.0`), `remerkleable` / `merklelib` (`MIT`). | Zero tutoring business logic; `0x00` leaf / `0x01` node domain separation blocks odd-leaf duplication; `pymerkle` (`GPLv3+`) is strictly banned (`ADR-0008`). |
+| **2. Deterministic Smart Contracts (`src/nectr/contracts/`)** | Pure finite-state machines executing token refinement, barter escrow, Queen governance, pairwise decay, and Guard Bee bridging. | Pure Python stdlib + `icontract` (`MIT`) Design-by-Contract + `Hypothesis` (`MPL-2.0`) + **Quint / TLA+** (`Apache-2.0`) formal verification. | Pure functions of `(current_state, signed_tx, block_context)`; enforces invariants `D-01` through `D-08` and strict supply conservation. |
+| **3. Hexagonal Hive Service Layer (`src/nectr/services/`)** | Durable persistence, schema migrations, REST APIs, Zero-PII FERPA/GDPR hashing, and structured tracing. | `FastAPI` (`MIT`), `SQLModel` (`MIT`), `Alembic` (`MIT`), `RocksDict` / `aiosqlite` (`MIT` strict WAL snapshot mode), `structlog`, `opentelemetry-sdk`. | Single-writer sequential block application; bans SQL `now()`/`random()` so block replay yields bit-identical state roots across VMs (`ADR-0009`). |
+| **4. Cross-Hive Federation Bus (`ADR-0014`)** | Relays `AcceptedStatusGranted` and Comb-to-Comb bridge proofs across asymmetric university NATs and firewalls. | `nats-server` + `nats-py` (`Apache-2.0`, CNCF/Synadia May 2025 settlement) using **Leaf Nodes (port `7422`)** & **JetStream Domains**. | Outbound-only TLS connections require zero inbound campus firewall rules and avoid `py-libp2p` v0.8.0's `trio`-only event-loop incompatibility. |
+| **5. Off-Chain CQRS Knowledge Graph Read Model (`ADR-0014`)** | Materializes `EigenTrust`, Personalized PageRank, Circle `Anduin` max-flow, and `COCM` Fiedler-vector clustering asynchronously. | `networkx` (`BSD-3-Clause`), `NetworKit` (`MIT`, C++/OpenMP for Python 3.11+), `rustworkx` (`Apache-2.0`, Rust/rayon) behind `GraphTelemetryPort`. | On-chain consensus stores only a 32-byte `knowledge_graph_root` (`kg_root`); floating-point graph math never runs inside block validation. |
+| **6. Chaos Testbed, Compliance & Telemetry UI (`src/nectr/ui/`)** | Reproducible multi-Hive fault injection, OTLP metrics, read-only visual explorer, and LMS/SSO campus integration. | Post-June-2024 **Kurtosis** (`Apache-2.0`) + **Pumba** / **Toxiproxy** (`Apache-2.0`), **Prometheus OTLP + Perses** (`Apache-2.0`), `Streamlit` (`Apache-2.0`). | `Perses` replaces Grafana for strict `Apache-2.0` compliance (`DEC-014`); `src/nectr/ui/` is strictly read-only (`ADR-0011`); LTI 1.3 + Shibboleth abstract keys (`ADR-0015`). |
+
+---
+
+## Key System Design Highlights
+
+1. **Transcript-Oracle Proof-of-Useful-Work (`PoUW-PoW`) & Capped Comb Compute Jar (`ADR-0007`):**
+   Instead of burning electricity on uncoupled hashes, mining nodes evaluate a deterministic intermediate transcript $\pi_{\text{pouw}}$ verifying the epoch's directional Knowledge Flow Matrix and Pairwise Collusion Decay root (`ball_2018`, $\Delta_{\text{sec}} > 0$). Task dimension $N$ and oracle difficulty $p$ tune orthogonally so standard university VMs mine without GPUs, while compute rebates draw strictly from the capped **Comb Compute Jar** (pausing automatically if reserves dip, guaranteeing zero systemic inflation).
+2. **Event-Sourced CQRS Isolation Against Floating-Point Consensus Forks (`ADR-0014`):**
+   Embedding multi-hop graph solvers directly inside block validation risks state-root divergence across CPU architectures. In **nectR**, `HiveContractEngine` commits deterministic rational/fixed-point pairwise weights and a 32-byte `kg_root` on-chain while emitting post-commit domain events (`SessionSettled`, `AcceptedStatusGranted`) to the off-chain `CQRSGraphProjector`.
+3. **Asymmetric Campus Firewall Traversal via NATS Leaf Nodes (`ADR-0014`):**
+   Each university Hive runs an embedded `nats-server` configured with its own named JetStream domain (`nectr-hive-alpha`, `nectr-hive-beta`) that dials outbound TLS on port `7422` to a lightweight relay hub. When `HIVE_BETA` grants **Accepted Status** to a visiting Pollinator, JetStream mirrors the signed proof envelope to `HIVE_ALPHA` with idempotent sequence deduplication.
+4. **Zero-PII FERPA/GDPR & Title IV Compliance Perimeter (`ADR-0015`):**
+   Student identities, course rosters (synced via **1EdTech LTI 1.3 `NRPS`** and **InCommon Shibboleth SAML 2.0**), and diagnostic feedback live exclusively in campus-controlled off-chain storage supporting GDPR erasure, while on-chain transactions anchor only salted commitments $H(\text{salt} \parallel \text{record\_id})$ or **BBS+ Zero-Knowledge membership proofs**.

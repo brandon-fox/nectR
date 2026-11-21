@@ -29,3 +29,17 @@ Feature: Core nectR Protocol Invariants
     Then the Hive comb reserve is 182.0
     And "worker_1" has 9.0 LIQUID_NECTR
     And "learner_1" has 9.0 RAW_POLLEN
+
+  Scenario: Zero-nectR session without reciprocal subject is rejected while reciprocal skill barter succeeds
+    Given a Hive "HIVE_BARTER" with seed comb 100.0 and registered Learners "bee_a" and "bee_b"
+    When "bee_a" attempts a 0.0 LIQUID_NECTR escrow with "bee_b" for "CS-101" without a reciprocal subject
+    Then the contract raises a violation matching "Zero-nectR sessions must specify a reciprocal_subject_id"
+    When "bee_a" escrows and settles a 0.0 LIQUID_NECTR reciprocal barter with "bee_b" for "CS-101" in exchange for "SPAN-101"
+    Then "bee_b" has tutored 1 distinct peer in the Hive
+
+  Scenario: Guard Bee blocks unaccepted Pollinator bridge and permits Accepted Status bridge with Comb toll
+    Given a source Hive "HIVE_A" and target Hive "HIVE_B" with threshold 2 and Pollinator "pollinator_1" holding 20.0 LIQUID_NECTR in "HIVE_A"
+    When "pollinator_1" attempts to bridge 10.0 LIQUID_NECTR from "HIVE_A" to "HIVE_B" before earning Accepted Status
+    Then the contract raises a violation matching "Guard Bee Rejection"
+    When "pollinator_1" tutors 2 distinct peers in "HIVE_B" and bridges 10.0 LIQUID_NECTR from "HIVE_A" to "HIVE_B"
+    Then "pollinator_1" has 10.0 LIQUID_NECTR in "HIVE_A" and 9.5 LIQUID_NECTR in "HIVE_B"

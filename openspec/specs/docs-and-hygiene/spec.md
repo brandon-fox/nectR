@@ -11,7 +11,7 @@ Public onboarding documentation (`README.md`) SHALL define or link all domain ac
 - **Linked Scenario:** `Repository glossary and README define core terms without IDE lock-in` in [docs_and_hygiene.feature](../../../features/docs_and_hygiene.feature#L6-L9)
 
 ### Requirement: Living Directory Spaces, Dynamic `mkdocs.yml` Nav & Zero Orphan Pages (`#9`)
-Workspace documentation SHALL replace hardcoded ASCII directory trees with an auto-synced bounded-context index (`nectr-docs`), synchronize `mkdocs.yml` ADR navigation entries, and reject orphaned Markdown files under `docs/`.
+Workspace documentation SHALL replace hardcoded ASCII directory trees with an auto-synced bounded-context index (`nectr-docs`), synchronize `mkdocs.yml` ADR navigation entries, index all six foundational Deep Research reports in `docs/theory/research/`, and reject orphaned Markdown files under `docs/`.
 - **Linked Scenario:** `Docs synchronization passes with zero orphaned docs pages and synced README spaces` in [docs_and_hygiene.feature](../../../features/docs_and_hygiene.feature#L11-L14)
 
 ### Requirement: Git Ignore Hygiene, LF Normalization & Persona Dependency Split (`#5`, `#8`, `#10`)

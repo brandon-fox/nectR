@@ -70,3 +70,13 @@ blake3 = "56f3c50dc3d0cab1e34478cf771c3dee4dfc26a8bd20830b6517deaf2df54df9"
 number = 13
 status = "accepted"
 blake3 = "d8cae7ad8517949e78cddfbaaac91df7b3858d2147d1161c84b7ff7e8171272a"
+
+[adrs."docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md"]
+number = 14
+status = "accepted"
+blake3 = "3eb0d78bbea9ea406fe3fd851921f008a835c761328020471f8bcae183c3009d"
+
+[adrs."docs/adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md"]
+number = 15
+status = "accepted"
+blake3 = "737c350829758ad51adcb8ff86c4503183bb595b417cc34c81da4f7556f58a8f"
