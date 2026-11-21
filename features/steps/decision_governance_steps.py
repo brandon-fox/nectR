@@ -28,7 +28,9 @@ def step_when_full_check_runs(context) -> None:
         context.gov_error = exc
 
 
-@then("validation succeeds with at least {min_adrs:d} accepted MADR records and an in-sync ADR index")
+@then(
+    "validation succeeds with at least {min_adrs:d} accepted MADR records and an in-sync ADR index"
+)
 def step_then_validation_succeeds(context, min_adrs: int) -> None:
     assert context.gov_error is None, f"Unexpected governance error: {context.gov_error}"
     assert context.gov_summary is not None
@@ -107,7 +109,10 @@ def step_when_drift_injected(context) -> None:
     from nectr.devtools.decisions import DecisionGovernanceError, check_all_governance
 
     log_path = context.temp_dir / "docs" / "planning" / "decision_log.md"
-    log_path.write_text(log_path.read_text(encoding="utf-8") + "\n<!-- unapproved manual edit -->\n", encoding="utf-8")
+    log_path.write_text(
+        log_path.read_text(encoding="utf-8") + "\n<!-- unapproved manual edit -->\n",
+        encoding="utf-8",
+    )
     try:
         check_all_governance(context.temp_dir)
     except DecisionGovernanceError as exc:
@@ -118,7 +123,49 @@ def step_when_drift_injected(context) -> None:
 
 @then('governance validation fails with "{expected_substring}"')
 def step_then_governance_fails(context, expected_substring: str) -> None:
-    assert context.gov_error is not None, "Expected DecisionGovernanceError, but validation succeeded"
+    assert context.gov_error is not None, (
+        "Expected DecisionGovernanceError, but validation succeeded"
+    )
     assert expected_substring in str(context.gov_error), (
         f"Expected '{expected_substring}' in '{context.gov_error}'"
     )
+
+
+@given("a temporary copy of the repository ADR workspace with a proposed ADR")
+def step_given_temp_proposed_adr(context) -> None:
+    from nectr.devtools.adr import AdrCore
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="nectr_prop_adr_"))
+    shutil.copytree(REPO_ROOT / "docs" / "adr", tmp_dir / "docs" / "adr")
+    shutil.copy2(REPO_ROOT / ".adr", tmp_dir / ".adr")
+    core = AdrCore(tmp_dir)
+    core.new_adr("Evaluate Optional Caching Adapter")
+    context.temp_dir = tmp_dir
+    context.strict_error = None
+    context.allow_proposed_ok = False
+
+
+@when("the ADR validator inspects the workspace with allow-proposed disabled and enabled")
+def step_when_inspect_proposed(context) -> None:
+    from nectr.devtools.decisions import DecisionGovernanceError, validate_pyadr_repo_and_toc
+
+    try:
+        validate_pyadr_repo_and_toc(context.temp_dir, allow_proposed=False)
+    except DecisionGovernanceError as exc:
+        context.strict_error = exc
+
+    try:
+        from nectr.devtools.adr import AdrCore
+
+        AdrCore(context.temp_dir).generate_toc()
+        _, ok = validate_pyadr_repo_and_toc(context.temp_dir, allow_proposed=True)
+        context.allow_proposed_ok = ok
+    finally:
+        shutil.rmtree(context.temp_dir, ignore_errors=True)
+
+
+@then("strict check fails on proposed status while allow-proposed check succeeds")
+def step_then_proposed_toggled(context) -> None:
+    assert context.strict_error is not None, "Expected strict ADR check to reject proposed ADR"
+    assert "proposed" in str(context.strict_error).lower()
+    assert context.allow_proposed_ok is True
