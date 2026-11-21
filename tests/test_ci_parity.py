@@ -5,7 +5,11 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-import pytest
+from nectr.devtools.ci_parity import (
+    check_no_red_scenarios,
+    check_pipeline_parity,
+    main,
+)
 
 
 def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> None:
@@ -139,10 +143,7 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
         )
 
 
-@pytest.mark.xfail(strict=True, reason="RED: add-github-actions-and-schema-hooks")
 def test_check_pipeline_parity_passes_on_complete_workspace(tmp_path: Path) -> None:
-    from nectr.devtools.ci_parity import check_pipeline_parity
-
     _write_synthetic_workspace(tmp_path, include_release=True)
     report = check_pipeline_parity(tmp_path)
 
@@ -152,10 +153,7 @@ def test_check_pipeline_parity_passes_on_complete_workspace(tmp_path: Path) -> N
     assert all(diag.passed for diag in report.diagnostics)
 
 
-@pytest.mark.xfail(strict=True, reason="RED: add-github-actions-and-schema-hooks")
 def test_check_pipeline_parity_reports_missing_gates_and_release_yml(tmp_path: Path) -> None:
-    from nectr.devtools.ci_parity import check_pipeline_parity
-
     _write_synthetic_workspace(tmp_path, include_release=False)
     ci_file = tmp_path / ".github" / "workflows" / "license-and-security-scan.yml"
     ci_text = ci_file.read_text(encoding="utf-8")
@@ -171,10 +169,7 @@ def test_check_pipeline_parity_reports_missing_gates_and_release_yml(tmp_path: P
     assert "release-workflow" in failed_gates
 
 
-@pytest.mark.xfail(strict=True, reason="RED: add-github-actions-and-schema-hooks")
 def test_check_no_red_scenarios_detects_red_tag_and_ignores_prose(tmp_path: Path) -> None:
-    from nectr.devtools.ci_parity import check_no_red_scenarios
-
     features = tmp_path / "features"
     features.mkdir(parents=True)
     (features / "clean.feature").write_text(
@@ -193,10 +188,7 @@ def test_check_no_red_scenarios_detects_red_tag_and_ignores_prose(tmp_path: Path
     assert filtered_hits == []
 
 
-@pytest.mark.xfail(strict=True, reason="RED: add-github-actions-and-schema-hooks")
 def test_cli_main_check_and_forbid_red(tmp_path: Path) -> None:
-    from nectr.devtools.ci_parity import main
-
     _write_synthetic_workspace(tmp_path, include_release=True)
     (tmp_path / "features" / "pending.feature").write_text(
         "Feature: Pending\n  @red\n  Scenario: Still red\n    Given x\n",
