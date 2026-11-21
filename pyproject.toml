@@ -25,6 +25,10 @@ dev = [
     "pytest-cov>=5.0.0",
     "behave>=1.2.6",
     "pre-commit>=3.7.0",
+    "commitizen>=4.0.0",
+    "detect-secrets>=1.5.0",
+    "pip-licenses>=5.0.0",
+    "pip-audit>=2.7.0",
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.0",
     "ruff>=0.4.8",
@@ -49,3 +53,7 @@ xfail_strict = true
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
