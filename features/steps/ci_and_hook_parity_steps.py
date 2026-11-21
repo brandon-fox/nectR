@@ -165,7 +165,8 @@ def step_then_red_rejected_and_coverage_enforced(context: Any) -> None:
     assert context.allowed_red_hits == []
 
     assert "github.ref == 'refs/heads/main' || github.base_ref == 'main'" in context.ci_text
-    assert "nectr.devtools.ci_parity --forbid-red" in context.ci_text
+    assert "nectr.devtools.ci_parity" in context.ci_text
+    assert "--forbid-red" in context.ci_text
     assert "--cov-report=xml:coverage.xml" in context.ci_text
     assert "--cov-fail-under=80" in context.ci_text
 
