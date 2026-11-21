@@ -8,8 +8,27 @@ import sys
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 RED_TAG_LINE_RE = re.compile(r"^\s*@(?:.*\s)?red(?:\s|$)")
+DEPRECATED_SETUP_UV_RE = re.compile(r"^astral-sh/setup-uv@v([1-6])(?:\.|$)")
+DEPRECATED_GH_RELEASE_RE = re.compile(r"^softprops/action-gh-release@v([12])(?:\.|$)")
+REQUIRED_PERMISSIVE_SPDX: tuple[str, ...] = (
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "PSF-2.0",
+    "Python-2.0",
+    "MPL-2.0",
+    "0BSD",
+    "Zlib",
+    "Unlicense",
+    "CC0-1.0",
+)
 
 REQUIRED_PIPELINE_FILES: tuple[str, ...] = (
     ".githooks/pre-commit",
@@ -314,6 +333,159 @@ def check_no_red_scenarios(
     return hits
 
 
+def _has_env_var(var_name: str, *containers: object) -> bool:
+    for container in containers:
+        if isinstance(container, dict):
+            env_map = container.get("env")
+            if isinstance(env_map, dict) and str(env_map.get(var_name, "")).strip():
+                return True
+    return False
+
+
+def _validate_setup_uv_step(
+    rel_path: str,
+    job_name: str,
+    step: dict[str, Any],
+    seen_suffixes: set[str],
+) -> list[str]:
+    errors: list[str] = []
+    uses = str(step.get("uses", "")).strip()
+    if DEPRECATED_SETUP_UV_RE.match(uses):
+        errors.append(
+            f"{rel_path} ({job_name}): '{uses}' targets deprecated Node.js 20; use v10.4.0+ (Node 24)."
+        )
+
+    step_with = step.get("with")
+    suffix = ""
+    if isinstance(step_with, dict):
+        suffix = str(step_with.get("cache-suffix", "")).strip()
+    if not suffix:
+        errors.append(
+            f"{rel_path} ({job_name}): astral-sh/setup-uv must set a non-empty 'cache-suffix'."
+        )
+    elif suffix in seen_suffixes:
+        errors.append(
+            f"{rel_path} ({job_name}): duplicate setup-uv cache-suffix '{suffix}' risks cache collisions."
+        )
+    else:
+        seen_suffixes.add(suffix)
+    return errors
+
+
+def _validate_dependency_review_step(
+    rel_path: str,
+    job_name: str,
+    step: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    step_with = step.get("with")
+    if not isinstance(step_with, dict):
+        return [f"{rel_path} ({job_name}): dependency-review-action missing 'with' configuration."]
+
+    if "deny-licenses" in step_with:
+        errors.append(
+            f"{rel_path} ({job_name}): deprecated 'deny-licenses' must be replaced with 'allow-licenses'."
+        )
+
+    allow_raw = str(step_with.get("allow-licenses", ""))
+    allow_tokens = {item.strip() for item in allow_raw.split(",") if item.strip()}
+    missing_spdx = [spdx for spdx in REQUIRED_PERMISSIVE_SPDX if spdx not in allow_tokens]
+    if missing_spdx:
+        errors.append(
+            f"{rel_path} ({job_name}): allow-licenses missing permissive SPDX IDs: {', '.join(missing_spdx)}."
+        )
+
+    exclusions_raw = str(step_with.get("allow-dependencies-licenses", ""))
+    if "pkg:githubactions/astral-sh/setup-uv" not in exclusions_raw:
+        errors.append(
+            f"{rel_path} ({job_name}): allow-dependencies-licenses should cover audited pkg:githubactions/astral-sh/setup-uv."
+        )
+    return errors
+
+
+def _validate_lychee_step(rel_path: str, job_name: str, step: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    step_with = step.get("with")
+    if not isinstance(step_with, dict):
+        return [f"{rel_path} ({job_name}): lychee-action missing 'with' configuration."]
+
+    args_str = str(step_with.get("args", ""))
+    if "openspec/changes/archive/" not in args_str:
+        errors.append(
+            f"{rel_path} ({job_name}): lychee args must exclude 'openspec/changes/archive/'."
+        )
+    if "docs/theory/research/" not in args_str:
+        errors.append(f"{rel_path} ({job_name}): lychee args must exclude 'docs/theory/research/'.")
+
+    output_path = str(step_with.get("output", ""))
+    if "runner.temp" not in output_path:
+        errors.append(
+            f"{rel_path} ({job_name}): lychee output must target '${{{{ runner.temp }}}}/...' to keep workspace clean."
+        )
+    return errors
+
+
+def _validate_workflow_file(wf_path: Path, repo_root: Path) -> list[str]:
+    rel_path = wf_path.relative_to(repo_root).as_posix()
+    data = yaml.safe_load(wf_path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        return [f"{rel_path}: workflow root must be a YAML mapping."]
+
+    jobs = data.get("jobs")
+    if not isinstance(jobs, dict):
+        return []
+
+    errors: list[str] = []
+    seen_suffixes: set[str] = set()
+    for job_name, job_body in jobs.items():
+        if not isinstance(job_body, dict):
+            continue
+        steps = job_body.get("steps")
+        if not isinstance(steps, list):
+            continue
+
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            uses = str(step.get("uses", "")).strip()
+            run_cmd = str(step.get("run", ""))
+
+            if uses.startswith("astral-sh/setup-uv@"):
+                errors.extend(_validate_setup_uv_step(rel_path, str(job_name), step, seen_suffixes))
+            elif DEPRECATED_GH_RELEASE_RE.match(uses):
+                errors.append(
+                    f"{rel_path} ({job_name}): '{uses}' targets deprecated Node.js 20; use v3+ (Node 24)."
+                )
+            elif uses.startswith("actions/dependency-review-action@"):
+                errors.extend(_validate_dependency_review_step(rel_path, str(job_name), step))
+            elif uses.startswith("lycheeverse/lychee-action@"):
+                errors.extend(_validate_lychee_step(rel_path, str(job_name), step))
+
+            if "mkdocs build --strict" in run_cmd and not _has_env_var(
+                "NO_MKDOCS_2_WARNING", step, job_body, data
+            ):
+                errors.append(
+                    f"{rel_path} ({job_name}): mkdocs build --strict should set NO_MKDOCS_2_WARNING='1'."
+                )
+    return errors
+
+
+def check_workflow_action_hygiene(repo_root: Path) -> list[str]:
+    """Validate Node 24 action runtimes, cache isolation, lychee output, and SPDX allow-list."""
+    workflows_dir = repo_root / ".github" / "workflows"
+    if not workflows_dir.is_dir():
+        return ["Missing .github/workflows directory."]
+
+    workflow_files = sorted(workflows_dir.glob("*.yml"))
+    if not workflow_files:
+        return ["No GitHub Actions workflow YAML files found under .github/workflows."]
+
+    errors: list[str] = []
+    for wf_path in workflow_files:
+        errors.extend(_validate_workflow_file(wf_path, repo_root))
+    return errors
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nectr-ci-parity",
@@ -348,19 +520,22 @@ def main(argv: list[str] | None = None) -> int:
     repo_root: Path = args.root.resolve()
 
     report = check_pipeline_parity(repo_root)
+    hygiene_errors = check_workflow_action_hygiene(repo_root)
     red_hits: list[str] = []
     if args.forbid_red:
         red_hits = check_no_red_scenarios(repo_root, allowed_files=args.allow_file)
 
-    if not report.passed or red_hits:
+    if not report.passed or hygiene_errors or red_hits:
         for err in report.errors:
             print(f"CI PARITY ERROR: {err}", file=sys.stderr)
+        for err in hygiene_errors:
+            print(f"CI WORKFLOW HYGIENE ERROR: {err}", file=sys.stderr)
         for hit in red_hits:
             print(f"FORBIDDEN @red SCENARIO: {hit}", file=sys.stderr)
         return 1
 
     print(
-        f"CI parity check passed ({len(report.diagnostics)} gate(s) verified"
+        f"CI parity check passed ({len(report.diagnostics)} gate(s) verified, workflow hygiene clean"
         + (", 0 @red tags" if args.forbid_red else "")
         + ")."
     )

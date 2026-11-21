@@ -16,6 +16,7 @@ from nectr.devtools.ci_parity import (
     REQUIRED_PIPELINE_FILES,
     check_no_red_scenarios,
     check_pipeline_parity,
+    check_workflow_action_hygiene,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -191,7 +192,7 @@ def step_when_scheduled_and_release_inspected(context: Any) -> None:
 
 
 @then(
-    "daily cron verifies secrets baseline drift, decisions.yaml schema, expanded SPDX deny-licenses, lychee links, and tagged release automation"
+    "daily cron verifies secrets baseline drift, decisions.yaml schema, permissive SPDX allow-licenses, lychee links, and tagged release automation"
 )
 def step_then_scheduled_and_release_verified(context: Any) -> None:
     diag_by_gate = {diag.gate: diag for diag in context.parity_report.diagnostics}
@@ -225,9 +226,11 @@ def step_then_scheduled_and_release_verified(context: Any) -> None:
         for step in dep_review_steps
         if str(step.get("uses", "")).startswith("actions/dependency-review-action")
     )
-    deny_licenses = str(dep_step.get("with", {}).get("deny-licenses", ""))
-    for spdx in ("GPL-2.0", "GPL-3.0", "AGPL-3.0", "LGPL-2.1", "LGPL-3.0", "SSPL-1.0"):
-        assert spdx in deny_licenses, f"Missing {spdx} in deny-licenses"
+    dep_with = dep_step.get("with", {})
+    assert "deny-licenses" not in dep_with, "Deprecated deny-licenses must not be used"
+    allow_licenses = str(dep_with.get("allow-licenses", ""))
+    for spdx in ("MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MPL-2.0"):
+        assert spdx in allow_licenses, f"Missing {spdx} in allow-licenses"
 
     release_on = context.release_workflow.get("on", context.release_workflow.get(True, {}))
     assert "v*" in release_on["push"]["tags"]
@@ -239,3 +242,23 @@ def step_then_scheduled_and_release_verified(context: Any) -> None:
         str(step.get("uses", "")).startswith("softprops/action-gh-release")
         for step in release_steps
     )
+
+
+@given("all GitHub Actions workflow definitions under .github/workflows")
+def step_given_all_workflow_defs(context: Any) -> None:
+    workflows_dir = REPO_ROOT / ".github" / "workflows"
+    assert workflows_dir.is_dir(), "Missing .github/workflows directory"
+    context.workflow_files = sorted(workflows_dir.glob("*.yml"))
+    assert len(context.workflow_files) >= 3
+
+
+@when("the CI workflow runtime and action hygiene validator inspects all workflow files")
+def step_when_workflow_hygiene_runs(context: Any) -> None:
+    context.hygiene_errors = check_workflow_action_hygiene(REPO_ROOT)
+
+
+@then(
+    "workflows require Node 24 action versions, isolated setup-uv cache suffixes, permissive SPDX allow-licenses with action license exclusions, clean lychee temp output, and quiet MkDocs logs"
+)
+def step_then_workflow_hygiene_verified(context: Any) -> None:
+    assert context.hygiene_errors == [], f"Workflow hygiene errors: {context.hygiene_errors}"
