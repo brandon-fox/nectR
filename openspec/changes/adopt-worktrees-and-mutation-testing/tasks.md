@@ -1,0 +1,9 @@
+# Tasks: `adopt-worktrees-and-mutation-testing`
+
+1. **Mutation Engine Spike & Governance ADRs:** Benchmark `poodle`, `cosmic-ray`, and `mutmut` in three throwaway worktrees; publish `docs/experiments/mutation_engine_spike.md` and two accepted `pyadr` MADR ADRs; sync `docs/adr/index.md` and `mkdocs.yml`.
+2. **Phase 1 — RED Tests & Spec Delta:** Author `features/dev_workflow.feature`, `features/steps/dev_workflow_steps.py`, and `@pytest.mark.xfail(strict=True)` tests in `tests/test_dev_workflow.py`; add linked `specs/dev-workflow/spec.md`. Commit `test(dev-workflow): ...` and `docs(spec): ...`.
+3. **Phase 2a — GREEN (Worktree Isolation):** Update `.gitignore`, `pyproject.toml`, `.agents/lib/skill_common.py`, and `.config/wt.toml`; observe `XPASS`, remove corresponding `xfail`/`@red`, verify all gates, and commit `feat(devtools): ...`.
+4. **Phase 2b — GREEN (Mutation Gate):** Add winning mutation engine via `uv add --optional dev`, verify `pip-licenses` and `pip-audit`, implement `src/nectr/devtools/mutation_gate.py`, update hooks and `.github/workflows/mutation-testing.yml`; observe `XPASS`, remove remaining `xfail`/`@red`, and verify full `pytest` and `behave`.
+5. **Phase 3 — REFACTOR & Survivor Hardening:** Run full bounded-context mutation sweep and kill surviving mutants using new `tests/test_mutation_hardening_*.py` suites; refactor cleanly while keeping all suites green.
+6. **Rules, Skills & Living Docs:** Update `AGENTS.md`, `.agents/rules/`, `.agents/skills/`, `docs/planning/`, `openspec/project.md`, and `docs/planning/decisions.yaml` + `decision_log.md`.
+7. **Archive, Rebase & Worktrunk Merge:** Merge spec into `openspec/specs/dev-workflow/spec.md`, archive change, rebase onto `main`, pass final read-only rule-adherence audits, and land via `git-wt merge --no-squash`.
