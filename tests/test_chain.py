@@ -6,11 +6,6 @@ import hashlib
 
 import pytest
 
-pytestmark = pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-ed25519-and-pymerkle not yet implemented",
-)
-
 
 def test_canonical_payload_determinism_and_non_finite_float_rejection() -> None:
     from nectr.chain import BlockHeader, CanonicalPayload, UsefulComputeProof, compute_sha256
@@ -370,3 +365,70 @@ def test_hive_blockchain_dict_and_signed_tx_and_verify_chain_tamper_branches() -
     chain.chain[2] = orig_b2
 
     assert chain.verify_chain() is True
+
+
+def test_chain_additional_edge_cases_and_json_roundtrip() -> None:
+    from nectr.chain import (
+        Block,
+        CanonicalPayload,
+        Ed25519Signer,
+        HiveBlockchain,
+        SignedTransaction,
+        UsefulComputeProof,
+        compute_sha256,
+    )
+
+    with pytest.raises(ValueError):
+        HiveBlockchain(hive_id="BAD_DIFF", difficulty=-1)
+
+    with pytest.raises(TypeError):
+        CanonicalPayload.encode(["not", "a", "mapping"])  # type: ignore[arg-type]
+
+    proposer = Ed25519Signer.from_seed(b"\x09" * 32)
+    chain = HiveBlockchain(hive_id="HIVE_ROUNDTRIP", difficulty=1)
+    tx = SignedTransaction.create({"k": "v"}, signer=proposer, signer_id="bee_rt")
+    chain.submit_signed_transaction(tx)
+    proof = UsefulComputeProof(
+        epoch=1,
+        active_bees=1,
+        total_directional_edges=1,
+        collusion_discounted_velocity=1.0,
+        gini_coefficient=0.0,
+        graph_state_hash=compute_sha256("rt"),
+    )
+    block = chain.mine_block(useful_compute_proof=proof, proposer_signer=proposer)
+
+    # Pydantic JSON roundtrip preserves SignedTransaction inside Block.transactions.
+    rehydrated = Block.model_validate_json(block.model_dump_json())
+    assert isinstance(rehydrated.transactions[0], SignedTransaction)
+    assert rehydrated.transactions[0].verify_signature() is True
+
+    with pytest.raises(IndexError):
+        chain.get_inclusion_proof(99, 0)
+
+    # Inclusion proof length mismatch & empty-block with non-empty proofs & bad proposer key hex.
+    orig_b1 = chain.chain[1]
+    chain.chain[1] = orig_b1.model_copy(update={"inclusion_proofs": []})
+    assert chain.verify_chain() is True  # merkle_root still checked
+    assert isinstance(chain.get_inclusion_proof(1, 0).branch, tuple)
+    chain.chain[1] = orig_b1.model_copy(
+        update={"inclusion_proofs": [orig_b1.inclusion_proofs[0]] * 2}
+    )
+    assert chain.verify_chain() is False
+    chain.chain[1] = orig_b1.model_copy(update={"proposer_public_key": "not-hex"})
+    assert chain.verify_chain() is False
+    chain.chain[1] = orig_b1
+
+    # Genesis block with corrupted prev_hash or spurious inclusion proof fails.
+    orig_b0 = chain.chain[0]
+    chain.chain[0] = orig_b0.model_copy(
+        update={"header": orig_b0.header.model_copy(update={"prev_hash": "11" * 32})}
+    )
+    assert chain.verify_chain() is False
+    chain.chain[0] = orig_b0.model_copy(update={"inclusion_proofs": [orig_b1.inclusion_proofs[0]]})
+    assert chain.verify_chain() is False
+    chain.chain[0] = orig_b0
+
+    empty_chain = HiveBlockchain(hive_id="HIVE_EMPTY", difficulty=1)
+    empty_chain.chain.clear()
+    assert empty_chain.verify_chain() is False
