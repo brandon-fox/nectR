@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 set -eu
 
-python scripts/validate_commit_msg.py "$1"
+cz check --commit-msg-file "$1"

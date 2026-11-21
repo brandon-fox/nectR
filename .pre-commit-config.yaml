@@ -1,12 +1,23 @@
 repos:
   - repo: local
     hooks:
-      - id: nectr-security-scan-staged
-        name: nectR Security, Secret & Local-Path Scan (pre-commit)
-        entry: python scripts/security_scan.py --staged
+      - id: detect-secrets
+        name: detect-secrets (OSS secret & entropy scan)
+        entry: detect-secrets-hook --baseline .secrets.baseline
         language: system
-        pass_filenames: false
         stages: [pre-commit]
+
+      - id: forbid-local-paths
+        name: Forbid hardcoded user/local/private paths
+        entry: '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/\s]+|\.gemini[/\\]|\.ollama[/\\])'
+        language: pygrep
+        stages: [pre-commit]
+
+      - id: commitizen
+        name: commitizen (Conventional Commits check)
+        entry: cz check --commit-msg-file
+        language: system
+        stages: [commit-msg]
 
       - id: nectr-tdd-unit-tests
         name: nectR Strict TDD Unit Test Suite (pre-commit)
@@ -22,15 +33,8 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: nectr-security-scan-push
-        name: nectR Security, Secret & Local-Path Audit (pre-push)
-        entry: python scripts/security_scan.py --push
-        language: system
-        pass_filenames: false
-        stages: [pre-push]
-
-      - id: nectr-bdd-behave-suite
-        name: nectR Behave BDD Acceptance Suite (pre-push)
+      - id: nectr-bdd-behave-push
+        name: nectR Full Behave BDD Acceptance Suite (pre-push)
         entry: python -m behave
         language: system
         pass_filenames: false
