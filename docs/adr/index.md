@@ -11,6 +11,10 @@
 * [0005 - Gate Cross-Hive Bridges with Guard Bee Status and Epoch FX](0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md)
 * [0006 - Adopt Two-Phase Hive Genesis and Autonomous Swarming](0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md)
 * [0007 - Couple Open Campus PoUW-PoW Mining to Capped Comb Compute Jar](0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md)
+* [0008 - Adopt Ed25519 CanonicalJSON and Merklelib](0008-adopt-ed25519-canonicaljson-and-merklelib.md)
+* [0009 - Adopt SQLModel Alembic Structlog and OpenTelemetry](0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md)
+* [0010 - Adopt Mesa ABM and Hypothesis Invariant Testing](0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md)
+* [0011 - Adopt Streamlit and NetworkX for Telemetry UI](0011-adopt-streamlit-and-networkx-for-telemetry-ui.md)
 
 ## Rejected Records
 

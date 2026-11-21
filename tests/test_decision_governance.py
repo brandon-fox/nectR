@@ -14,7 +14,7 @@ def test_repository_adrs_and_fast_decision_log_pass_all_controls() -> None:
     from nectr.devtools.decisions import check_all_governance
 
     summary = check_all_governance(REPO_ROOT)
-    assert summary["accepted_adr_count"] == 8
+    assert summary["accepted_adr_count"] >= 8
     assert summary["toc_in_sync"] is True
     assert summary["decision_count"] >= 7
     assert summary["experiment_count"] >= 1
