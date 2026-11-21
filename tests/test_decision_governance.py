@@ -154,3 +154,39 @@ def test_cli_add_decision_updates_yaml_and_renders_markdown_in_sync(tmp_path: Pa
     rendered_file = (planning / "decision_log.md").read_text(encoding="utf-8")
     assert rendered_file == render_decision_log(reg, tmp_path)
     assert "DEC-001" in rendered_file
+
+
+@pytest.mark.xfail(strict=True, reason="RED: remediate-review-issues-and-provenance")
+def test_mit_adr_engine_supports_proposed_lifecycle_and_zero_external_pyadr(tmp_path: Path) -> None:
+    """Zero-CVE nectr.devtools.adr replaces external pyadr and supports --allow-proposed."""
+    from nectr.devtools.adr import AdrCore, AdrError, slugify_title
+    from nectr.devtools.decisions import DecisionGovernanceError, main as decisions_main
+
+    assert slugify_title("Adopt Ed25519 CanonicalJSON and Merklelib") == (
+        "adopt-ed25519-canonicaljson-and-merklelib"
+    )
+    core = AdrCore(tmp_path)
+    core.init_adr_repo()
+    proposed = core.new_adr("Evaluate Cache Adapter")
+    assert proposed.name == "XXXX-evaluate-cache-adapter.md"
+    core.generate_toc()
+    toc_text = (tmp_path / "docs" / "adr" / "index.md").read_text(encoding="utf-8")
+    assert "Status `proposed`" in toc_text
+    assert "XXXX - Evaluate Cache Adapter" in toc_text
+
+    # Strict check fails on proposed ADR
+    with pytest.raises(AdrError, match="proposed"):
+        core.check_adr_repo(check_no_proposed=True)
+
+    # --allow-proposed passes via CLI
+    assert decisions_main(["--root", str(tmp_path), "check-adrs", "--allow-proposed"]) == 0
+
+    # Accepting assigns 0002 and passes strict check
+    accepted = core.accept_or_reject(proposed, "accepted", toc=True)
+    assert accepted.name == "0002-evaluate-cache-adapter.md"
+    core.check_adr_repo(check_no_proposed=True)
+
+    # Docs README exists in repo docs/adr
+    assert (REPO_ROOT / "docs" / "adr" / "README.md").exists()
+    with pytest.raises(DecisionGovernanceError):
+        raise DecisionGovernanceError("sanity check type")
