@@ -30,3 +30,19 @@ experiments/runs/tmp/
 # OS / Editor files
 .DS_Store
 Thumbs.db
+
+# Secrets, credentials & local environment overrides (NEVER commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.secret
+.ssh/
+secrets/
+
+# Agentic files and tool call traces
+HANDOFF.md
+

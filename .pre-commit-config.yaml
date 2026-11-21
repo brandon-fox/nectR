@@ -1,0 +1,37 @@
+repos:
+  - repo: local
+    hooks:
+      - id: nectr-security-scan-staged
+        name: nectR Security, Secret & Local-Path Scan (pre-commit)
+        entry: python scripts/security_scan.py --staged
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: nectr-tdd-unit-tests
+        name: nectR Strict TDD Unit Test Suite (pre-commit)
+        entry: python -m pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: nectr-bdd-behave-precommit
+        name: nectR Behave BDD Suite excluding @red (pre-commit)
+        entry: python -m behave --tags=-red
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: nectr-security-scan-push
+        name: nectR Security, Secret & Local-Path Audit (pre-push)
+        entry: python scripts/security_scan.py --push
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: nectr-bdd-behave-suite
+        name: nectR Behave BDD Acceptance Suite (pre-push)
+        entry: python -m behave
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

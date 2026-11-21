@@ -53,7 +53,7 @@ nectR/
 ## Quick Start
 
 1. **Open as Active Workspace in Antigravity:**
-   Set `C:\Users\bfoxt\Github\nectR` as your active workspace.
+   Set your cloned `nectR` repository root as your active workspace.
 2. **Environment Setup (`uv`):**
    ```powershell
    uv sync

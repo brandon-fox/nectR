@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+
+python scripts/security_scan.py --staged
+python -m pytest
+python -m behave --tags=-red
