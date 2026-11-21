@@ -316,11 +316,61 @@ def check_pipeline_parity(repo_root: Path) -> ParityReport:
             )
         )
 
+    unpinned_actions = check_workflow_sha_pinning(repo_root)
+    if unpinned_actions:
+        details = (
+            f"Unpinned GitHub Actions (require 40-char commit SHA): {', '.join(unpinned_actions)}"
+        )
+        errors.append(details)
+        diagnostics.append(
+            GateDiagnostic(
+                gate="github-actions-sha-pinning",
+                passed=False,
+                missing_in=tuple(unpinned_actions),
+                details=details,
+            )
+        )
+    else:
+        diagnostics.append(
+            GateDiagnostic(
+                gate="github-actions-sha-pinning",
+                passed=True,
+                missing_in=(),
+                details="All GitHub Actions pinned to 40-char commit SHAs.",
+            )
+        )
+
     return ParityReport(
         passed=len(errors) == 0,
         diagnostics=tuple(diagnostics),
         errors=tuple(errors),
     )
+
+
+_USES_LINE_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*['\"]?([^'\"#\s]+)['\"]?")
+_SHA_PINNED_RE = re.compile(r"^[^@]+@[0-9a-fA-F]{40}$")
+
+
+def check_workflow_sha_pinning(repo_root: Path) -> list[str]:
+    """Return ``path:line (uses_ref)`` for any GitHub Action not pinned to a 40-char SHA."""
+    workflows_dir = repo_root / ".github" / "workflows"
+    if not workflows_dir.is_dir():
+        return []
+
+    violations: list[str] = []
+    workflow_files = sorted(list(workflows_dir.glob("*.yml")) + list(workflows_dir.glob("*.yaml")))
+    for wf_path in workflow_files:
+        rel_posix = wf_path.relative_to(repo_root).as_posix()
+        for line_no, line in enumerate(wf_path.read_text(encoding="utf-8").splitlines(), start=1):
+            match = _USES_LINE_RE.match(line)
+            if not match:
+                continue
+            ref = match.group(1)
+            if ref.startswith(("./", "docker://")):
+                continue
+            if not _SHA_PINNED_RE.match(ref):
+                violations.append(f"{rel_posix}:{line_no} ({ref})")
+    return violations
 
 
 def check_no_red_scenarios(

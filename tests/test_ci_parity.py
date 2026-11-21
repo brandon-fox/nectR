@@ -118,7 +118,7 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                     os: [ubuntu-latest, windows-latest]
                     python-version: ['3.11', '3.12', '3.13']
                 steps:
-                  - uses: astral-sh/setup-uv@v10.4.0
+                  - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                     with:
                       python-version: '3.12'
                       enable-cache: true
@@ -132,7 +132,7 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                   - run: ruff check src tests features
                   - run: ruff format --check src tests features
                   - run: pymarkdown --config pyproject.toml scan README.md docs/theory paper
-                  - uses: lycheeverse/lychee-action@v2
+                  - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
                     with:
                       args: --exclude-path "openspec/changes/archive/" --exclude-path "docs/theory/research/" docs/ paper/ openspec/
                       output: ${{ runner.temp }}/lychee-out.md
@@ -144,16 +144,16 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                   - run: python -m behave
               pr-merge-safety:
                 steps:
-                  - uses: actions/checkout@v7
+                  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                     with:
                       ref: ${{ github.event.pull_request.head.sha }}
-                  - uses: astral-sh/setup-uv@v10.4.0
+                  - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                     with:
                       cache-suffix: merge-safety
                   - run: uv lock --check && python -m nectr.devtools.pr_lifecycle check-branch --base origin/main
               dependency-review:
                 steps:
-                  - uses: actions/dependency-review-action@v5
+                  - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
                     with:
                       fail-on-severity: high
                       allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, PSF-2.0, Python-2.0, MPL-2.0, 0BSD, Zlib, Unlicense, CC0-1.0
@@ -170,7 +170,7 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
             jobs:
               reconcile:
                 steps:
-                  - uses: astral-sh/setup-uv@v10.4.0
+                  - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                     with:
                       cache-suffix: pr-lifecycle
                   - env:
@@ -189,11 +189,11 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                 jobs:
                   release:
                     steps:
-                      - uses: astral-sh/setup-uv@v10.4.0
+                      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
                         with:
                           cache-suffix: release
                       - run: cz bump --check-consistency
-                      - uses: softprops/action-gh-release@v3
+                      - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
                 """
             ),
             encoding="utf-8",
@@ -408,3 +408,31 @@ def test_check_workflow_action_hygiene_flags_node20_and_deprecated_review(
     assert "duplicate setup-uv cache-suffix" in joined
     assert "lychee" in joined
     assert "NO_MKDOCS_2_WARNING" in joined
+
+
+def test_check_pipeline_parity_rejects_mutable_action_tags(tmp_path: Path) -> None:
+    _write_synthetic_workspace(tmp_path, include_release=True)
+    ci_file = tmp_path / ".github" / "workflows" / "license-and-security-scan.yml"
+    ci_file.write_text(
+        "steps:\n  - uses: actions/checkout@v7\n" + ci_file.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    report = check_pipeline_parity(tmp_path)
+    assert report.passed is False
+    assert any(
+        diag.gate == "github-actions-sha-pinning" and not diag.passed for diag in report.diagnostics
+    )
+
+
+def test_check_pipeline_parity_accepts_40_char_sha_pinned_actions(tmp_path: Path) -> None:
+    _write_synthetic_workspace(tmp_path, include_release=True)
+    ci_file = tmp_path / ".github" / "workflows" / "license-and-security-scan.yml"
+    ci_file.write_text(
+        "steps:\n  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n"
+        + ci_file.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    report = check_pipeline_parity(tmp_path)
+    assert report.passed is True
