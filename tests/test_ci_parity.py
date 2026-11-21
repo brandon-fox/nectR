@@ -5,6 +5,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from nectr.devtools.ci_parity import (
     check_no_red_scenarios,
     check_pipeline_parity,
@@ -210,3 +212,145 @@ def test_cli_main_check_and_forbid_red(tmp_path: Path) -> None:
         )
         == 0
     )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: harden-ci-action-runtimes-and-review not yet implemented",
+)
+def test_check_workflow_action_hygiene_accepts_hardened_workflows(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "license-and-security-scan.yml").write_text(
+        textwrap.dedent(
+            """\
+            name: License, Security & Quality Scan
+            jobs:
+              license-and-security-scan:
+                steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      python-version: "3.12"
+                      enable-cache: true
+                      cache-suffix: dev-research
+                  - env:
+                      NO_MKDOCS_2_WARNING: "1"
+                    run: uv run mkdocs build --strict
+                  - uses: lycheeverse/lychee-action@v2
+                    with:
+                      args: --exclude-path "openspec/changes/archive/" --exclude-path "docs/theory/research/" docs/ paper/ openspec/
+                      output: ${{ runner.temp }}/lychee-out.md
+              test-matrix:
+                steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      python-version: "3.12"
+                      enable-cache: true
+                      cache-suffix: dev
+              dependency-review:
+                steps:
+                  - uses: actions/dependency-review-action@v5
+                    with:
+                      fail-on-severity: high
+                      allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, PSF-2.0, Python-2.0, MPL-2.0, 0BSD, Zlib, Unlicense, CC0-1.0
+                      allow-dependencies-licenses: pkg:githubactions/astral-sh/setup-uv
+            """
+        ),
+        encoding="utf-8",
+    )
+    (workflows / "release.yml").write_text(
+        textwrap.dedent(
+            """\
+            name: Release
+            jobs:
+              release:
+                steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      python-version: "3.12"
+                      enable-cache: true
+                      cache-suffix: release
+                  - uses: softprops/action-gh-release@v3
+            """
+        ),
+        encoding="utf-8",
+    )
+    (workflows / "roadmap-and-changelog.yml").write_text(
+        textwrap.dedent(
+            """\
+            name: Automated Changelog & OpenSpec Roadmap
+            jobs:
+              changelog-and-openspec-summary:
+                steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      python-version: "3.12"
+                      enable-cache: true
+                      cache-suffix: lint
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    from nectr.devtools import ci_parity
+
+    violations = ci_parity.check_workflow_action_hygiene(tmp_path)  # type: ignore[attr-defined]
+    assert violations == []
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: harden-ci-action-runtimes-and-review not yet implemented",
+)
+def test_check_workflow_action_hygiene_flags_node20_and_deprecated_review(
+    tmp_path: Path,
+) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "license-and-security-scan.yml").write_text(
+        textwrap.dedent(
+            """\
+            name: License, Security & Quality Scan
+            jobs:
+              license-and-security-scan:
+                steps:
+                  - uses: astral-sh/setup-uv@v5
+                    with:
+                      python-version: "3.12"
+                  - run: uv run mkdocs build --strict
+                  - uses: lycheeverse/lychee-action@v2
+                    with:
+                      args: docs/ paper/ openspec/
+              dependency-review:
+                steps:
+                  - uses: actions/dependency-review-action@v5
+                    with:
+                      deny-licenses: GPL-3.0
+            """
+        ),
+        encoding="utf-8",
+    )
+    (workflows / "release.yml").write_text(
+        textwrap.dedent(
+            """\
+            name: Release
+            jobs:
+              release:
+                steps:
+                  - uses: astral-sh/setup-uv@v5
+                  - uses: softprops/action-gh-release@v2
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    from nectr.devtools import ci_parity
+
+    violations = ci_parity.check_workflow_action_hygiene(tmp_path)  # type: ignore[attr-defined]
+    joined = "\n".join(violations)
+    assert "setup-uv" in joined
+    assert "action-gh-release" in joined
+    assert "deny-licenses" in joined
+    assert "cache-suffix" in joined
+    assert "lychee" in joined
+    assert "NO_MKDOCS_2_WARNING" in joined

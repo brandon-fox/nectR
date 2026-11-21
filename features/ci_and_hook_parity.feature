@@ -22,3 +22,9 @@ Feature: End-to-End Hook, CI Pipeline, Scheduled Audit, and Release Parity
     Given the scheduled security scan, PR policy, and release workflow configurations
     When scheduled cron, JSON Schema, link-check, and Commitizen release steps are inspected
     Then daily cron verifies secrets baseline drift, decisions.yaml schema, expanded SPDX deny-licenses, lychee links, and tagged release automation
+
+  @red
+  Scenario: GitHub Actions workflows enforce Node 24 runtimes, isolated uv caches, clean lychee temp outputs, and SPDX allow-list review
+    Given all GitHub Actions workflow definitions under .github/workflows
+    When the CI workflow runtime and action hygiene validator inspects all workflow files
+    Then workflows require Node 24 action versions, isolated setup-uv cache suffixes, permissive SPDX allow-licenses with action license exclusions, clean lychee temp output, and quiet MkDocs logs
