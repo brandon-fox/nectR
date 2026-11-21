@@ -21,6 +21,8 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0011` | [Adopt Streamlit and NetworkX for Telemetry UI](0011-adopt-streamlit-and-networkx-for-telemetry-ui.md) | `accepted` |
 | `ADR-0012` | [Adopt adrlint for MADR Linting and Immutability](0012-adopt-adrlint-for-madr-linting-and-immutability.md) | `accepted` |
 | `ADR-0013` | [Restrict CrewAI to Isolated Off-Chain Peripherals](0013-restrict-crewai-to-isolated-off-chain-peripherals.md) | `accepted` |
+| `ADR-0014` | [Adopt NATS Leaf Nodes JetStream and CQRS Graph Isolation](0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md) | `accepted` |
+| `ADR-0015` | [Enforce Zero-PII FERPA GDPR and Title IV Campus Compliance](0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md) | `accepted` |
 <!-- END AUTO-ADR-INDEX -->
 
 ## `adrlint` Workflow & Configuration
