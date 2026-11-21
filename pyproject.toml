@@ -1,0 +1,48 @@
+[project]
+name = "nectr"
+version = "0.1.0"
+description = "nectR: Federated Biomimetic Campus Tutoring Private Blockchain, Smart Contracts, Service Layer & Agent-Based Behavioral Economy"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "nectR Research & Architecture" }
+]
+dependencies = [
+    "pydantic>=2.7.0",
+    "networkx>=3.3",
+    "numpy>=1.26.0",
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.0",
+    "httpx>=0.27.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.7",
+    "pytest-cov>=5.0.0",
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "ruff>=0.4.8",
+]
+research = [
+    "matplotlib>=3.9.0",
+    "scipy>=1.13.0",
+    "pandas>=2.2.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]

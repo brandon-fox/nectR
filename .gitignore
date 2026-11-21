@@ -1,0 +1,32 @@
+# Python byte-compiled / cache
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pycc
+
+# Virtual environments & uv
+.venv/
+venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# MkDocs build output
+site/
+
+# Test & coverage caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local experiment runtime artifacts (keep committed datasets in experiments/results/tracked/)
+experiments/runs/tmp/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
