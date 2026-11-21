@@ -13,6 +13,6 @@
 3. **Tier 2 Services (`services/hive_service.py` — `60` survivors):** Assert exact pass-through parameters, boundary fees, and error messages in `HiveServiceLayer` wrappers until full-module score reaches `>= 75.0%`.
 4. **Tier 2 Devtools (`decisions.py`, `citations.py`, `docs_sync.py`, `mutation_gate.py`, `spec_links.py`):** Prioritize `FuncCall`, `Compare`, `Return`, and `BinOp` mutants around subprocess error handling, exit-code checks, and filesystem boundary conditions. Many surviving `Keyword`/`FuncCall` mutations on logging or CLI help text remain benign until dead options are simplified.
 
-## Verification Scope Note
+## Specification Delta
 
-This proposal tracks technical-debt hardening across existing modules and intentionally introduces no new behavioral spec (`spec.md`); all behavioral mutation-gate requirements remain owned by the `dev-workflow` capability specification.
+Behavioral invariants for upward-only baseline ratcheting and zero-pragma survivor hardening are specified in [specs/dev-workflow/spec.md](specs/dev-workflow/spec.md), linked directly to the executable BDD specification under [features/dev_workflow.feature](../../../features/dev_workflow.feature) and [features/steps/dev_workflow_steps.py](../../../features/steps/dev_workflow_steps.py).
