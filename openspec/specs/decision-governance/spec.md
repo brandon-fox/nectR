@@ -7,11 +7,12 @@
 ## Requirements
 
 ### Requirement: MADR Architectural Decision Records Managed by `pyadr`
-All structural, cross-cutting architectural decisions SHALL be stored as individual Markdown Architectural Decision Records (MADR) in `docs/adr/NNNN-<slug>.md`, configured by `.adr` and validated by `pyadr` (`AdrCore.check_adr_repo`) with an auto-generated `docs/adr/index.md` table of contents (`pyadr toc`).
+All structural, cross-cutting architectural decisions SHALL be stored as individual Markdown Architectural Decision Records (MADR) in `docs/adr/NNNN-<slug>.md`, configured by `.adr` (`records-dir`) documented in `docs/adr/lifecycle_guide.md`, and managed/validated by the zero-CVE, pure-MIT `nectr.devtools.adr` engine (`pyadr` CLI entry point, with zero GPL/Artistic dependencies and `--allow-proposed` support for pre-merge branches), maintaining an auto-generated `docs/adr/index.md` table of contents (`pyadr toc`).
 - **Linked Scenario:** `Repository MADR records pass pyadr validation and verbosity limits` in [decision_governance.feature](../../../features/decision_governance.feature#L6-L9)
+- **Linked Scenario:** `Proposed ADR is permitted only when allow-proposed flag is active` in [decision_governance.feature](../../../features/decision_governance.feature#L21-L24)
 
 ### Requirement: Strict ADR Length and Verbosity Limits
-Every ADR in `docs/adr/` (excluding `template.md` and `index.md`) SHALL obey automated verbosity budgets: at most `70` lines, at most `380` words, an H1 title of at most `70` characters, and at most `6` bullet items per Markdown section.
+Every ADR in `docs/adr/` (excluding `template.md`, `index.md`, and `lifecycle_guide.md`) SHALL obey automated verbosity budgets: at most `70` lines, at most `380` words, an H1 title of at most `70` characters, and at most `6` bullet items per Markdown section.
 - **Linked Scenario:** `Verbose MADR record exceeding line or word limits is rejected` in [decision_governance.feature](../../../features/decision_governance.feature#L11-L14)
 
 ### Requirement: Tool-Managed Fast Non-Architectural Decision Log

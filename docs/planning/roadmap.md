@@ -7,15 +7,15 @@
 - [x] **OpenSpec + Behave BDD + Strict TDD (`xfail_strict`) + `pyadr` Governance:** Enforced `nectr.devtools.decisions check` (`pyadr` MADR + `decisions.yaml`), `nectr.devtools.spec_links` (no hardcoded scenarios in `spec.md`), `commitizen` (`cz check` / `cz changelog`), and `.github/workflows/roadmap-and-changelog.yml`.
 - [ ] **Phase 2 (Automated Issue Creation on License Drift/Flag):** Open/deduplicate labeled GitHub Issues (`license-violation`, `cve-alert`) via `actions/github-script` when scheduled scans fail.
 - [ ] **Phase 3 (Downstream Agent Auto-Remediation):** Trigger downstream agent PR workflow on `license-violation` issues under strict OpenSpec → BDD → TDD gates.
-- [ ] **Repo Normalization & `.gitattributes` ([#8](https://github.com/brandon-fox/nectR/issues/8)):** Enforce LF line endings, `ruff format --check`, and Markdown linting (`pymarkdownlnt`/`mdformat`) in pre-commit & CI before legacy diffs accumulate.
-- [ ] **`pyadr` Fork/Remediation & Persona Dependency Split ([#6](https://github.com/brandon-fox/nectR/issues/6), [#10](https://github.com/brandon-fox/nectR/issues/10)):** Fork/replace `pyadr` to drop `cleo 0.8.1` (`PYSEC-2022-43178`) and `text-unidecode`, and split `pyproject.toml` `dev` extras by user persona (`test`, `lint`, `docs`, `research`, `ui`).
-- [ ] **Git Tracking & `pyadr` Workflow Polish ([#5](https://github.com/brandon-fox/nectR/issues/5), [#11](https://github.com/brandon-fox/nectR/issues/11)):** Untrack `HANDOFF.md` (`git rm --cached`) so `.gitignore` applies, support `--allow-proposed` ADR checks on branches, and document `.adr` config & `proposed` status buckets.
+- [x] **Repo Normalization & `.gitattributes` ([#8](https://github.com/brandon-fox/nectR/issues/8)):** Enforce LF line endings, `ruff format --check`, and Markdown linting (`pymarkdownlnt`) in pre-commit & CI before legacy diffs accumulate.
+- [x] **`pyadr` Fork/Remediation & Persona Dependency Split ([#6](https://github.com/brandon-fox/nectR/issues/6), [#10](https://github.com/brandon-fox/nectR/issues/10)):** Built zero-CVE pure-MIT `nectr.devtools.adr` (`pyadr` CLI) dropping `cleo 0.8.1` (`PYSEC-2022-43178`) and `text-unidecode`, and split `pyproject.toml` `dev` extras by user persona (`test`, `lint`, `security`, `docs`, `research`, `dev`).
+- [x] **Git Tracking & `pyadr` Workflow Polish ([#5](https://github.com/brandon-fox/nectR/issues/5), [#11](https://github.com/brandon-fox/nectR/issues/11)):** Untracked `HANDOFF.md` (`git rm --cached`) so `.gitignore` applies, added `--allow-proposed` ADR checks for branches, and documented `.adr` config & `proposed` status buckets in `docs/adr/lifecycle_guide.md`.
 
 ## Milestone 1: Theoretical Foundation & `/grill-me` Specification
 
 - [x] Run the 3 Gemini Deep Research prompts (`docs/planning/deep_research_prompts.md`) and archive the reports in [`docs/theory/research/`](../theory/research/federated_barter_tokenomics.md).
 - [x] Complete the interactive `/grill-me` session to lock down open equations in `docs/planning/decision_log.md` and `docs/adr/`.
-- [ ] **Citation Validation & Provenance Chain-of-Custody ([#7](https://github.com/brandon-fox/nectR/issues/7)):** Build `paper/references.yaml` + automated link/DOI/source-tier floor checks (banning AI-wikis, Reddit, SEO blogs, plagiarism archives) and lineage tracking (Sources → Equations → ADRs → Code) with automated downstream regeneration.
+- [x] **Citation Validation & Provenance Chain-of-Custody ([#7](https://github.com/brandon-fox/nectR/issues/7)):** Built `paper/references.yaml` + automated link/DOI/source-tier floor checks (`>= 70%` peer-reviewed, banning AI-wikis, Reddit, SEO blogs, plagiarism archives) and `paper/lineage.yaml` tracking (`nectr-citations`) with automated downstream quarantine & rebuild flagging.
 - [ ] Finalize the mathematical model in `docs/theory/tokenomics_game_theory.md` and `docs/theory/biomimicry_model.md`.
 
 ## Milestone 2: Private `PoUW-PoW` Blockchain, Smart Contracts & Service Layer
@@ -36,5 +36,5 @@
 
 - [ ] Compile the publication-ready manuscript in `paper/nectR_whitepaper.md`.
 - [ ] Finalize the University Sponsorship & Swarming Business Proposal in `business/university_sponsorship_proposal.md`.
-- [ ] **Living Docs, Glossary & IDE-Agnostic Onboarding ([#9](https://github.com/brandon-fox/nectR/issues/9), [#12](https://github.com/brandon-fox/nectR/issues/12)):** Add `docs/glossary.md` defining `MV=PQ` & `PoUW-PoW`, make `README.md` IDE/skill-agnostic, and automate `README.md` tree & `mkdocs.yml` `nav:` generation/drift checks.
+- [x] **Living Docs, Glossary & IDE-Agnostic Onboarding ([#9](https://github.com/brandon-fox/nectR/issues/9), [#12](https://github.com/brandon-fox/nectR/issues/12)):** Added `docs/glossary.md` defining `MV=PQ` & `PoUW-PoW`, made `README.md` IDE/skill-agnostic, and automated `README.md` spaces & `mkdocs.yml` `nav:` generation/drift checks (`nectr-docs`).
 - [ ] Publish the System Design Portfolio architecture site via `uv run mkdocs build --strict`.
