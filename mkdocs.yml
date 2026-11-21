@@ -2,6 +2,8 @@ site_name: "nectR: Biomimetic Campus Blockchain & Closed Economy"
 site_description: "Published Theory, Agentic Behavioral Simulation, Business Proposals & Flagship Blockchain System Design"
 repo_name: "nectR"
 strict: true
+exclude_docs: |
+  adr/template.md
 
 theme:
   name: material
@@ -28,17 +30,38 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Domain Glossary: glossary.md
   - Planning & Autonomous Ops:
       - Roadmap & Milestones: planning/roadmap.md
       - Agent Orchestration Guide: planning/agent_orchestration.md
-      - Design Decision Log (/grill-me): planning/decision_log.md
+      - Fast Decision Log (DEC / EXP): planning/decision_log.md
       - Deep Research Prompts: planning/deep_research_prompts.md
+      - Architecture Decision Records (MADR):
+          - ADR Index: adr/index.md
+          - ADR Lifecycle Guide: adr/lifecycle_guide.md
+          - "0000: Use Markdown Architectural Decision Re...": adr/0000-use-markdown-architectural-decision-records.md
+          - "0001: Use Commitizen for Automated Changelog...": adr/0001-use-commitizen-for-automated-changelogs-and-releases.md
+          - "0002: Enforce Directional Service Barter Sta...": adr/0002-enforce-directional-service-barter-state-transitions.md
+          - "0003: Enforce Multi-Tier Beekeeper and Queen...": adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
+          - "0004: Route Governance Fees to Comb with Pha...": adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+          - "0005: Gate Cross-Hive Bridges with Guard Bee...": adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md
+          - "0006: Adopt Two-Phase Hive Genesis and Auton...": adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+          - "0007: Couple Open Campus PoUW-PoW Mining to...": adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md
+          - "0008: Adopt Ed25519 CanonicalJSON and Merkle...": adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md
+          - "0009: Adopt SQLModel Alembic Structlog and O...": adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md
+          - "0010: Adopt Mesa ABM and Hypothesis Invarian...": adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
+          - "0011: Adopt Streamlit and NetworkX for Telem...": adr/0011-adopt-streamlit-and-networkx-for-telemetry-ui.md
   - 1. Theory & Academic Paper:
       - Whitepaper Draft: theory/whitepaper_outline.md
       - Biomimetic Hive Mechanics: theory/biomimicry_model.md
       - Tokenomics & Game Theory: theory/tokenomics_game_theory.md
+      - Citation & Provenance Chain-of-Custody: theory/provenance_lineage.md
+      - Foundational Research Papers:
+          - Tokenomics & Anti-Collusion Design: theory/research/federated_barter_tokenomics.md
+          - Campus Barter Mechanism Design: theory/research/student_tutoring_mechanism_design.md
+          - Biomimetic Hive Economics: theory/research/biomimetic_hive_economics.md
   - 2. Behavioral Experimentation:
-      - Persona Swarm Specification: architecture/persona_swarm_spec.md
+      - Persona Swarm Specification: experiments/persona_swarm_spec.md
   - 3. Business & Campus Proposals:
       - Institutional Sponsorship Proposal: business/institutional_proposal.md
   - 4. System Design Portfolio:
