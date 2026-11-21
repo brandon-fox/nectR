@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import math
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -12,9 +14,12 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 PayloadInput = Mapping[str, Any] | BaseModel
+
+_HEX_32_RE = re.compile(r"[0-9a-f]{64}")
+_HEX_64_RE = re.compile(r"[0-9a-f]{128}")
 
 
 def compute_sha256(payload: str | bytes) -> str:
@@ -23,12 +28,39 @@ def compute_sha256(payload: str | bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _normalize_value(value: Any) -> Any:
+    if isinstance(value, BaseModel):
+        return _normalize_mapping(value.model_dump(mode="python"))
+    if isinstance(value, Mapping):
+        return _normalize_mapping(value)
+    if isinstance(value, (list, tuple)):
+        return [_normalize_value(item) for item in value]
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        raise TypeError("Payload cannot contain raw bytes values.")
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("Payload cannot contain non-finite float values (NaN or Inf).")
+        return value
+    if value is None or isinstance(value, (bool, int, str)):
+        return value
+    raise TypeError(f"Unsupported payload value type: {type(value).__name__}.")
+
+
+def _normalize_mapping(mapping: Mapping[Any, Any]) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    for key, val in mapping.items():
+        if not isinstance(key, str):
+            raise TypeError("Payload mapping keys must be strings.")
+        normalized[key] = _normalize_value(val)
+    return normalized
+
+
 def normalize_payload(data: PayloadInput) -> dict[str, Any]:
     """Normalize a Pydantic BaseModel or Mapping into a JSON-compatible dictionary."""
     if isinstance(data, BaseModel):
-        return data.model_dump(mode="json")
+        return _normalize_mapping(data.model_dump(mode="python"))
     if isinstance(data, Mapping):
-        return dict(data)
+        return _normalize_mapping(data)
     raise TypeError("Payload must be a Mapping or Pydantic BaseModel.")
 
 
@@ -86,12 +118,9 @@ class Ed25519Verifier:
                 raise ValueError("Ed25519 public key must be exactly 32 bytes.")
             self._public_key = Ed25519PublicKey.from_public_bytes(raw)
         elif isinstance(public_key, str):
-            try:
-                raw = bytes.fromhex(public_key)
-            except ValueError as exc:
-                raise ValueError("Ed25519 public key hex string is invalid.") from exc
-            if len(raw) != 32:
-                raise ValueError("Ed25519 public key must decode to exactly 32 bytes.")
+            if _HEX_32_RE.fullmatch(public_key) is None:
+                raise ValueError("Ed25519 public key must be 64 lowercase hexadecimal characters.")
+            raw = bytes.fromhex(public_key)
             self._public_key = Ed25519PublicKey.from_public_bytes(raw)
         else:
             raise TypeError("Unsupported Ed25519 public key type.")
@@ -118,16 +147,18 @@ class Ed25519Verifier:
 
     def verify(self, message: bytes | PayloadInput, signature: bytes | str) -> bool:
         """Verify an Ed25519 signature against raw bytes or a canonicalizable payload."""
-        msg_bytes = (
-            bytes(message)
-            if isinstance(message, (bytes, bytearray))
-            else CanonicalPayload.encode(message)
-        )
-        if isinstance(signature, str):
+        if isinstance(message, (bytes, bytearray)):
+            msg_bytes = bytes(message)
+        else:
             try:
-                sig_bytes = bytes.fromhex(signature)
-            except ValueError:
+                msg_bytes = CanonicalPayload.encode(message)
+            except (ValueError, TypeError):
                 return False
+
+        if isinstance(signature, str):
+            if _HEX_64_RE.fullmatch(signature) is None:
+                return False
+            sig_bytes = bytes.fromhex(signature)
         elif isinstance(signature, (bytes, bytearray)):
             sig_bytes = bytes(signature)
         else:
@@ -224,6 +255,28 @@ class SignedTransaction(BaseModel):
     signature: str
     signer_id: str | None = None
 
+    @field_validator("payload")
+    @classmethod
+    def _validate_payload(cls, value: dict[str, Any]) -> dict[str, Any]:
+        try:
+            return normalize_payload(value)
+        except TypeError as exc:
+            raise ValueError(str(exc)) from exc
+
+    @field_validator("signer_public_key")
+    @classmethod
+    def _validate_signer_public_key(cls, value: str) -> str:
+        if _HEX_32_RE.fullmatch(value) is None:
+            raise ValueError("signer_public_key must be 64 lowercase hexadecimal characters.")
+        return value
+
+    @field_validator("signature")
+    @classmethod
+    def _validate_signature(cls, value: str) -> str:
+        if _HEX_64_RE.fullmatch(value) is None:
+            raise ValueError("signature must be 128 lowercase hexadecimal characters.")
+        return value
+
     @classmethod
     def create(
         cls,
@@ -243,11 +296,18 @@ class SignedTransaction(BaseModel):
 
     def verify_signature(self) -> bool:
         """Verify the Ed25519 signature over the canonicalized transaction payload."""
+        if (
+            not isinstance(self.signer_public_key, str)
+            or _HEX_32_RE.fullmatch(self.signer_public_key) is None
+            or not isinstance(self.signature, str)
+            or _HEX_64_RE.fullmatch(self.signature) is None
+        ):
+            return False
         try:
             verifier = Ed25519Verifier.from_public_hex(self.signer_public_key)
+            return verifier.verify(self.payload, self.signature)
         except (ValueError, TypeError):
             return False
-        return verifier.verify(self.payload, self.signature)
 
     def canonical_bytes(self) -> bytes:
         """Return the canonical JSON byte encoding of the full SignedTransaction."""

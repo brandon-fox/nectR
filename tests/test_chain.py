@@ -434,7 +434,6 @@ def test_chain_additional_edge_cases_and_json_roundtrip() -> None:
     assert empty_chain.verify_chain() is False
 
 
-@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
 def test_verification_paths_reject_nan_inf_bytes_without_crashing() -> None:
     import json
 
@@ -517,7 +516,6 @@ def test_verification_paths_reject_nan_inf_bytes_without_crashing() -> None:
     assert chain.verify_chain() is False
 
 
-@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
 def test_merkle_proof_binds_leaf_count_and_rejects_zero_slot_forgery() -> None:
     from nectr.chain import MerkleInclusionProof, compute_merkle_root
 
@@ -549,7 +547,6 @@ def test_merkle_proof_binds_leaf_count_and_rejects_zero_slot_forgery() -> None:
     assert one_proof.model_copy(update={"leaf_hash": "00" * 32}).verify(one_root) is False
 
 
-@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
 def test_strict_canonical_lowercase_hex_rejects_uppercase_and_whitespace() -> None:
     from pydantic import ValidationError
 
@@ -642,7 +639,6 @@ def test_strict_canonical_lowercase_hex_rejects_uppercase_and_whitespace() -> No
     assert proof.model_copy(update={"branch": (proof.branch[0].upper(),)}).verify(root) is False
 
 
-@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
 def test_recursive_normalize_payload_for_nested_basemodel_in_mapping_and_sequence() -> None:
     from pydantic import BaseModel
 
@@ -670,7 +666,6 @@ def test_recursive_normalize_payload_for_nested_basemodel_in_mapping_and_sequenc
         CanonicalPayload.encode({"nested": [{"bad": float("nan")}]})
 
 
-@pytest.mark.xfail(strict=True, reason="RED: M1 challenger hardening not yet implemented")
 def test_verify_chain_rejects_duplicate_transaction_proof_swapping() -> None:
     from nectr.chain import (
         Ed25519Signer,
