@@ -12,19 +12,11 @@ PRAGMA_ONE = "# pra" + "gma: no mutate"
 PRAGMA_TWO = "# no" + "mut"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing worktree gitignore not yet added",
-)
 def test_worktrees_dir_is_gitignored() -> None:
     lines = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
     assert ".worktrees/" in lines
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing ruff/pytest excludes not yet added",
-)
 def test_ruff_and_pytest_exclude_worktrees() -> None:
     data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     ruff_excl = data.get("tool", {}).get("ruff", {}).get("extend-exclude", [])
@@ -35,10 +27,6 @@ def test_ruff_and_pytest_exclude_worktrees() -> None:
     assert ".worktrees" in pytest_excl
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing secret/tree excludes not yet added",
-)
 def test_detect_secrets_and_docs_sync_exclude_worktrees() -> None:
     from nectr.devtools import docs_sync
 
@@ -49,10 +37,6 @@ def test_detect_secrets_and_docs_sync_exclude_worktrees() -> None:
     assert ".worktrees" in docs_sync.EXCLUDED_TREE_DIRS
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: adopt-worktrees-and-mutation-testing .config/wt.toml not yet added",
-)
 def test_worktrunk_project_config_hooks() -> None:
     wt_path = REPO_ROOT / ".config" / "wt.toml"
     assert wt_path.is_file()

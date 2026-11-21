@@ -9,6 +9,7 @@
 .venv/
 venv/
 ENV/
+.worktrees/
 
 # Distribution / packaging
 build/

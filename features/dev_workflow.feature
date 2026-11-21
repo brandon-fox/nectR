@@ -3,13 +3,11 @@ Feature: Isolated Worktrees and Tiered Mutation Testing Gate
   I want ephemeral Git worktrees isolated from repo scans and an incremental tiered mutation gate
   So that parallel branches never collide and changed code meets strict invariant test strength
 
-  @red
   Scenario: Worktree directory is excluded from git, ruff, pytest, detect-secrets, and tree sync
     Given the repository root workspace
     When I inspect the worktree ignore and tool exclusion rules
     Then ".worktrees" is excluded across gitignore, ruff, pytest, detect-secrets, and docs tree rendering
 
-  @red
   Scenario: Worktrunk project config provisions isolated environments and enforces merge gates
     Given the Worktrunk project configuration in ".config/wt.toml"
     When I parse the Worktrunk lifecycle hooks

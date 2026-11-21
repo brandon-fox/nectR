@@ -1,0 +1,13 @@
+# Worktrunk project hooks (user config sets worktree-path and merge.squash = false)
+
+[[pre-start]]
+deps = "uv sync --frozen --extra dev"
+
+[[pre-start]]
+readiness = "uv run python .agents/skills/atomic-conventional-commits/scripts/verify_commit_readiness.py --skip-mypy"
+
+[[pre-merge]]
+mutation = "uv run python -m nectr.devtools.mutation_gate diff --base main"
+
+[[pre-merge]]
+orchestration = "uv run python .agents/skills/orchestrate-nectr/scripts/verify_orchestration_gate.py"

@@ -135,7 +135,7 @@ def run_detect_secrets(files: Sequence[str], cwd: Path) -> int:
       *resolve_tool_cmd("detect-secrets", "detect_secrets"),
       "scan",
       "--exclude-files",
-      r"(\.git|\.venv|\.pytest_cache|__pycache__|site)",
+      r"(\.git|\.venv|\.pytest_cache|__pycache__|site|\.worktrees)",
   ]
   return run_step("detect-secrets scan", cmd, cwd)
 
