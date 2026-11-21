@@ -169,3 +169,87 @@ def step_then_proposed_toggled(context) -> None:
     assert context.strict_error is not None, "Expected strict ADR check to reject proposed ADR"
     assert "proposed" in str(context.strict_error).lower()
     assert context.allow_proposed_ok is True
+
+
+@given("a temporary MADR 4.0 workspace configured with adrlint")
+def step_given_temp_adrlint_workspace(context) -> None:
+    import subprocess
+    import sys
+
+    adrlint_bin = shutil.which("adrlint") or str(
+        Path(sys.executable).resolve().parent
+        / ("adrlint.exe" if sys.platform == "win32" else "adrlint")
+    )
+    tmp_dir = Path(tempfile.mkdtemp(prefix="nectr_adrlint_bdd_"))
+    subprocess.run(
+        [adrlint_bin, "init", "--dir", "docs/adr", "--start", "0", "--force"],
+        cwd=tmp_dir,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        [adrlint_bin, "lock"],
+        cwd=tmp_dir,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    context.temp_dir = tmp_dir
+    context.adrlint_bin = adrlint_bin
+    context.adrlint_strict_error = None
+    context.adrlint_allow_ok = False
+    context.adrlint_locked_count = 0
+
+
+@when("a proposed ADR is created with adrlint new and checked before and after acceptance")
+def step_when_adrlint_proposed_and_locked(context) -> None:
+    import subprocess
+
+    from nectr.devtools.decisions import DecisionGovernanceError, validate_adrlint_repo
+
+    try:
+        subprocess.run(
+            [context.adrlint_bin, "new", "Evaluate Cache Adapter"],
+            cwd=context.temp_dir,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        try:
+            validate_adrlint_repo(context.temp_dir, allow_proposed=False)
+        except DecisionGovernanceError as exc:
+            context.adrlint_strict_error = exc
+
+        count_while_proposed = validate_adrlint_repo(context.temp_dir, allow_proposed=True)
+        context.adrlint_allow_ok = count_while_proposed == 1
+
+        proposed_file = context.temp_dir / "docs" / "adr" / "0001-evaluate-cache-adapter.md"
+        proposed_file.write_text(
+            proposed_file.read_text(encoding="utf-8").replace(
+                "status: proposed", "status: accepted", 1
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+        subprocess.run(
+            [context.adrlint_bin, "lock"],
+            cwd=context.temp_dir,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        context.adrlint_locked_count = validate_adrlint_repo(context.temp_dir, allow_proposed=False)
+    finally:
+        shutil.rmtree(context.temp_dir, ignore_errors=True)
+
+
+@then("bespoke adr.py is absent and strict check rejects proposed until accepted and locked")
+def step_then_adrlint_ok(context) -> None:
+    assert not (REPO_ROOT / "src" / "nectr" / "devtools" / "adr.py").exists()
+    assert (REPO_ROOT / ".adrlint.toml").exists()
+    assert (REPO_ROOT / "adrlint.lock").exists()
+    assert context.adrlint_strict_error is not None
+    assert "proposed" in str(context.adrlint_strict_error).lower()
+    assert context.adrlint_allow_ok is True
+    assert context.adrlint_locked_count == 2

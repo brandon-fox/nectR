@@ -194,3 +194,53 @@ def test_mit_adr_engine_supports_proposed_lifecycle_and_zero_external_pyadr(tmp_
     assert (REPO_ROOT / "docs" / "adr" / "lifecycle_guide.md").exists()
     with pytest.raises(DecisionGovernanceError):
         raise DecisionGovernanceError("sanity check type")
+
+
+@pytest.mark.xfail(strict=True, reason="RED: replace-custom-adr-with-adrlint not yet implemented")
+def test_oss_adrlint_replaces_bespoke_adr_module_and_locks_decisions(tmp_path: Path) -> None:
+    """Custom adr.py must not exist; OSS adrlint handles init, new, lint, format, and lock."""
+    import shutil
+    import subprocess
+    import sys
+
+    from nectr.devtools.decisions import DecisionGovernanceError, validate_adrlint_repo
+
+    assert not (REPO_ROOT / "src" / "nectr" / "devtools" / "adr.py").exists()
+    assert (REPO_ROOT / ".adrlint.toml").exists()
+    assert (REPO_ROOT / "adrlint.lock").exists()
+
+    adrlint_bin = shutil.which("adrlint") or str(
+        Path(sys.executable).resolve().parent
+        / ("adrlint.exe" if sys.platform == "win32" else "adrlint")
+    )
+    subprocess.run(
+        [adrlint_bin, "init", "--dir", "docs/adr", "--start", "0", "--force"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run([adrlint_bin, "lock"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    subprocess.run(
+        [adrlint_bin, "new", "Evaluate Cache Adapter"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    with pytest.raises(DecisionGovernanceError, match="proposed"):
+        validate_adrlint_repo(tmp_path, allow_proposed=False)
+
+    assert validate_adrlint_repo(tmp_path, allow_proposed=True) == 1
+
+    proposed_file = tmp_path / "docs" / "adr" / "0001-evaluate-cache-adapter.md"
+    proposed_file.write_text(
+        proposed_file.read_text(encoding="utf-8").replace(
+            "status: proposed", "status: accepted", 1
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+    subprocess.run([adrlint_bin, "lock"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    assert validate_adrlint_repo(tmp_path, allow_proposed=False) == 2

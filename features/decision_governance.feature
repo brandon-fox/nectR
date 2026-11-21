@@ -22,3 +22,9 @@ Feature: Dual-Track Decision Governance (pyadr MADR and Fast Decision Registry)
     Given a temporary copy of the repository ADR workspace with a proposed ADR
     When the ADR validator inspects the workspace with allow-proposed disabled and enabled
     Then strict check fails on proposed status while allow-proposed check succeeds
+
+  @red
+  Scenario: OSS adrlint replaces bespoke ADR module and enforces lock and proposed gating
+    Given a temporary MADR 4.0 workspace configured with adrlint
+    When a proposed ADR is created with adrlint new and checked before and after acceptance
+    Then bespoke adr.py is absent and strict check rejects proposed until accepted and locked
