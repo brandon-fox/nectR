@@ -33,12 +33,17 @@ nav:
       - Agent Orchestration Guide: planning/agent_orchestration.md
       - Design Decision Log (/grill-me): planning/decision_log.md
       - Deep Research Prompts: planning/deep_research_prompts.md
+      - "ADR-001: Changelog Tooling": adr/ADR-001-changelog-tooling.md
   - 1. Theory & Academic Paper:
       - Whitepaper Draft: theory/whitepaper_outline.md
       - Biomimetic Hive Mechanics: theory/biomimicry_model.md
       - Tokenomics & Game Theory: theory/tokenomics_game_theory.md
+      - Foundational Research Papers:
+          - Tokenomics & Anti-Collusion Design: theory/research/federated_barter_tokenomics.md
+          - Campus Barter Mechanism Design: theory/research/student_tutoring_mechanism_design.md
+          - Biomimetic Hive Economics: theory/research/biomimetic_hive_economics.md
   - 2. Behavioral Experimentation:
-      - Persona Swarm Specification: architecture/persona_swarm_spec.md
+      - Persona Swarm Specification: experiments/persona_swarm_spec.md
   - 3. Business & Campus Proposals:
       - Institutional Sponsorship Proposal: business/institutional_proposal.md
   - 4. System Design Portfolio:
