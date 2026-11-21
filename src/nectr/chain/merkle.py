@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from remerkleable.tree import (  # type: ignore[import-untyped]
     Node,
     Root,
@@ -23,15 +24,13 @@ from nectr.chain.crypto import CanonicalPayload, SignedTransaction, compute_sha2
 
 TransactionLike = SignedTransaction | Mapping[str, Any]
 
+_HEX_32_RE = re.compile(r"[0-9a-f]{64}")
+
 
 def _decode_hex_32(value: str) -> bytes | None:
-    try:
-        raw = bytes.fromhex(value)
-    except ValueError:
+    if not isinstance(value, str) or _HEX_32_RE.fullmatch(value) is None:
         return None
-    if len(raw) != 32:
-        return None
-    return raw
+    return bytes.fromhex(value)
 
 
 def compute_tx_leaf_hash(tx: TransactionLike) -> bytes:
@@ -47,7 +46,10 @@ def compute_merkle_root(transactions: Sequence[TransactionLike]) -> str:
     leaves: list[Node] = [RootNode(Root(compute_tx_leaf_hash(tx))) for tx in transactions]
     depth = int(get_depth(len(leaves)))
     tree: Node = subtree_fill_to_contents(leaves, depth)
-    return bytes(tree.merkle_root()).hex()
+    root_bytes = bytes(
+        merkle_hash(tree.merkle_root(), Root(len(transactions).to_bytes(32, "little")))
+    )
+    return root_bytes.hex()
 
 
 class MerkleInclusionProof(BaseModel):
@@ -60,6 +62,21 @@ class MerkleInclusionProof(BaseModel):
     branch: tuple[str, ...]
     merkle_root: str
     leaf_count: int
+
+    @field_validator("leaf_hash", "merkle_root")
+    @classmethod
+    def _validate_hex_32(cls, value: str) -> str:
+        if _HEX_32_RE.fullmatch(value) is None:
+            raise ValueError("Expected 64 lowercase hexadecimal characters.")
+        return value
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        for item in value:
+            if _HEX_32_RE.fullmatch(item) is None:
+                raise ValueError("Each branch hash must be 64 lowercase hexadecimal characters.")
+        return value
 
     @classmethod
     def from_transactions(
@@ -77,7 +94,9 @@ class MerkleInclusionProof(BaseModel):
         leaves: list[Node] = [RootNode(Root(compute_tx_leaf_hash(tx))) for tx in transactions]
         depth = int(get_depth(leaf_count))
         tree: Node = subtree_fill_to_contents(leaves, depth)
-        root_hex = bytes(tree.merkle_root()).hex()
+        root_hex = bytes(
+            merkle_hash(tree.merkle_root(), Root(leaf_count.to_bytes(32, "little")))
+        ).hex()
 
         gindex = to_gindex(index, depth)
         directions, bit_depth = gindex_bit_iter(gindex)
@@ -106,6 +125,8 @@ class MerkleInclusionProof(BaseModel):
     def verify(self, expected_root: str | None = None) -> bool:
         """Verify this Merkle inclusion proof against ``expected_root`` (or ``self.merkle_root``)."""
         if self.leaf_count < 1 or self.index < 0 or self.index >= self.leaf_count:
+            return False
+        if self.leaf_hash == "00" * 32:
             return False
 
         expected_depth = int(get_depth(self.leaf_count))
@@ -139,7 +160,9 @@ class MerkleInclusionProof(BaseModel):
         if idx != 0:
             return False
 
-        computed_bytes = bytes(current_root)
+        computed_bytes = bytes(
+            merkle_hash(current_root, Root(self.leaf_count.to_bytes(32, "little")))
+        )
         return hmac.compare_digest(computed_bytes, target_root_bytes)
 
     def verify_transaction(
@@ -148,7 +171,10 @@ class MerkleInclusionProof(BaseModel):
         expected_root: str | None = None,
     ) -> bool:
         """Verify that ``tx`` hashes to ``self.leaf_hash`` and passes Merkle inclusion."""
-        tx_leaf = compute_tx_leaf_hash(tx)
+        try:
+            tx_leaf = compute_tx_leaf_hash(tx)
+        except (ValueError, TypeError):
+            return False
         leaf_bytes = _decode_hex_32(self.leaf_hash)
         if leaf_bytes is None or not hmac.compare_digest(tx_leaf, leaf_bytes):
             return False

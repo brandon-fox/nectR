@@ -205,38 +205,61 @@ class HiveBlockchain:
                 return False
             if block.header.difficulty != self.difficulty:
                 return False
-            if not block.block_hash.startswith(prefix):
+            try:
+                current_block_hash = block.block_hash
+                expected_merkle_root = compute_merkle_root(block.transactions)
+                expected_kg_root = block.useful_compute_proof.to_commitment_hash()
+            except (ValueError, TypeError):
                 return False
-            if block.header.merkle_root != compute_merkle_root(block.transactions):
+            if not current_block_hash.startswith(prefix):
+                return False
+            if block.header.merkle_root != expected_merkle_root:
                 return False
 
             if not block.transactions and block.inclusion_proofs:
                 return False
             for tx in block.transactions:
-                if isinstance(tx, SignedTransaction) and not tx.verify_signature():
-                    return False
+                if isinstance(tx, SignedTransaction):
+                    try:
+                        if not tx.verify_signature():
+                            return False
+                    except (ValueError, TypeError):
+                        return False
             if block.inclusion_proofs:
                 if len(block.inclusion_proofs) != len(block.transactions):
                     return False
-                for proof, tx in zip(block.inclusion_proofs, block.transactions, strict=True):
-                    if not proof.verify_transaction(tx, expected_root=block.header.merkle_root):
+                expected_leaf_count = len(block.transactions)
+                for tx_idx, (proof, tx) in enumerate(
+                    zip(block.inclusion_proofs, block.transactions, strict=True)
+                ):
+                    if proof.index != tx_idx or proof.leaf_count != expected_leaf_count:
+                        return False
+                    try:
+                        if not proof.verify_transaction(tx, expected_root=block.header.merkle_root):
+                            return False
+                    except (ValueError, TypeError):
                         return False
 
-            if block.header.knowledge_graph_root != block.useful_compute_proof.to_commitment_hash():
+            if block.header.knowledge_graph_root != expected_kg_root:
                 return False
             if idx == 0 and block.header.prev_hash != "0" * 64:
                 return False
-            if idx > 0 and block.header.prev_hash != self.chain[idx - 1].block_hash:
-                return False
+            if idx > 0:
+                try:
+                    prev_block_hash = self.chain[idx - 1].block_hash
+                except (ValueError, TypeError):
+                    return False
+                if block.header.prev_hash != prev_block_hash:
+                    return False
 
             if block.proposer_public_key is not None or block.proposer_signature is not None:
                 if block.proposer_public_key is None or block.proposer_signature is None:
                     return False
                 try:
                     verifier = Ed25519Verifier.from_public_hex(block.proposer_public_key)
-                except ValueError:
-                    return False
-                if not verifier.verify(block.header, block.proposer_signature):
+                    if not verifier.verify(block.header, block.proposer_signature):
+                        return False
+                except (ValueError, TypeError):
                     return False
         return True
 
