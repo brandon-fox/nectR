@@ -88,9 +88,9 @@ To eliminate public 5-star reputation inflation (`filippas_2020`), **nectR** sup
 
 $$\frac{s^*}{\theta_L} = \Delta W \implies s^* = 6 \text{ verified downstream mastery units}$$
 
-At $s^* = 6$, an answer-dumper gains $\Delta W - s^*/\theta_L = 0$ (no incentive to mimic), whereas a pedagogical tutor earns positive net surplus $\Delta W - s^*/\theta_H = +3$. Pairing dual-signed session proofs with **Escrow-DKG Whistleblower Framing Bounties** traps colluding peers in a strict Prisoner's Dilemma:
+At $s^* = 6$, an answer-dumper gains zero net surplus (no incentive to mimic), whereas a pedagogical tutor earns positive net surplus $+3$. Pairing dual-signed session proofs with **Escrow-DKG Whistleblower Framing Bounties** traps colluding peers in a strict Prisoner's Dilemma:
 
-#### Payoff Matrix 2: Peer A vs. Peer B Collusion & Whistleblower Framing Game
+### 4.1 Payoff Matrix 2: Peer A vs. Peer B Collusion & Whistleblower Framing Game
 
 | Peer A \ Peer B | Honest Session & Private Diagnostic Signal | Collude (Phantom Check-In / Wash Loop) | Frame / Report Collusion Solicitation |
 | :--- | :--- | :--- | :--- |
@@ -104,14 +104,14 @@ At $s^* = 6$, an answer-dumper gains $\Delta W - s^*/\theta_L = 0$ (no incentive
 
 ### 5.1 Effective Backing Ratio Cross-Hive Exchange Rate (`ADR-0005`, `DEC-004`)
 
-Once a migrating Pollinator earns **Accepted Status** in target Hive $H_B$, the once-per-epoch Comb-to-Comb exchange rate $\text{FX}_{A \to B}(e)$ is computed from each Hive's Effective Backing Ratio $R_{\text{eff}}(H_i) = \frac{S_{\text{comb}}(H_i)}{N_{\text{active}}(H_i) \cdot \widetilde{B}_{\text{active}}(H_i)} \cdot h_{\text{sardex}}(H_i)$ and clamped to `[0.5x, 2.0x]` with a `5%` source Comb toll:
+Once a migrating Pollinator earns **Accepted Status** in target Hive $H$, the once-per-epoch Comb-to-Comb exchange rate is computed from each Hive's Effective Backing Ratio and clamped to `[0.5x, 2.0x]` with a `5%` source Comb toll:
 
-$$\text{FX}_{A \to B}(e) = \min\!\left(2.0, \; \max\!\left(0.5, \; \left(\frac{R_{\text{eff}}(H_A, e)}{R_{\text{eff}}(H_B, e)}\right)^{\eta}\right)\right)$$
+$$\text{FX}(e) = \min\!\left(2.0, \; \max\!\left(0.5, \; \left(\frac{R_{\text{eff}}(H_{A}, e)}{R_{\text{eff}}(H_{B}, e)}\right)^{\eta}\right)\right)$$
 
 ### 5.2 Transcript-Oracle `PoUW-PoW` Duplex Security Surplus (`ADR-0007`, `ball_2018`)
 
-Under fine-grained Proof-of-Useful-Work (`ball_2018`) and transcript-oracle difficulty coupling (`federated_PoUW-PoW_blockchain_infrastructure.md`), a campus node evaluates a bounded useful transcript $\pi_{\text{pouw}}$ over the epoch's Knowledge Graph and Pairwise Decay matrix from deterministic seed $\sigma_t = H(\text{prev\_hash} \parallel \text{kg\_root})$:
+Under fine-grained Proof-of-Useful-Work (`ball_2018`) and transcript-oracle difficulty coupling (`federated_PoUW-PoW_blockchain_infrastructure.md`), a campus node evaluates a bounded useful transcript over the epoch's Knowledge Graph and Pairwise Decay matrix from a deterministic header seed:
 
 $$H(\sigma_t \parallel \text{kg\_root} \parallel \pi_{\text{pouw}} \parallel \text{nonce}) < 2^{\ell} \cdot p$$
 
-Let $W_{\text{pure}}$ denote pure hashing work, $U_{\text{off}}$ pure off-chain graph computation, and $D_{\text{duplex}}$ joint `PoUW-PoW` work with proving overhead $\epsilon_{\text{pouw}} \ll 1$. The duplex security surplus $\Delta_{\text{sec}} = S_{\text{total}} - W_{\text{wasted}}$ remains strictly positive ($\Delta_{\text{sec}} > 0$) whenever $\epsilon_{\text{pouw}}$ is bounded and task instances are bucketed into uniform difficulty bands, while compute rewards draw strictly from the capped **Comb Compute Jar** (`ADR-0007`) so consensus security never inflates `nectR` supply.
+When proving overhead is bounded and task instances are bucketed into uniform difficulty bands, the duplex security surplus above wasted work remains strictly positive ($\Delta_{\text{sec}} > 0$), while compute rewards draw strictly from the capped **Comb Compute Jar** (`ADR-0007`) so consensus security never inflates `nectR` supply.
