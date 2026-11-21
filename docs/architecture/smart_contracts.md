@@ -232,11 +232,13 @@ All 5 smart contracts reside in `src/nectr/contracts/` and execute as pure, dete
 ## 1. The 5 Core Deterministic Smart Contracts
 
 ### 1.1 `TokenStateAndCombContract`
+
 - **State Partitioning:** Manages `RAW_POLLEN` (restricted institutional seed voucher), `LIQUID_NECTR` (unrestricted P2P tutoring currency), `ROYAL_COMB_RESERVE` (shared Hive treasury), and locked escrow/bivouac balances (`ADR-0002`, `ADR-0006`).
 - **Lazy Demurrage & Safety Cushion (`DEC-001`, `D-06`):** Lazily decays idle `LIQUID_NECTR` balances above `safety_cushion` at `~2%/month` during Weeks 1–13 (pausing during Finals Weeks 14–15) and routes 100% of decayed tokens into `comb_reserve`.
 - **Burn-Mint Equilibrium (`BME`) & 3-Door Senior Graduation Sinks (`DEC-004`):** Tracks the Comb Collateralization Ratio ($CR \ge 1.0$) and clears graduating Senior surpluses across the 3-door off-ramp (`40%` Credentials/Swarming, `35%` Campus Perks, `25%` Freshman Pay-It-Forward Bounties + dormant alumni Comb sweeps).
 
 ### 1.2 `DirectionalServiceBarterContract`
+
 - **3-Phase Tutoring Handshake (`ADR-0002`, `D-01`):**
   1. `INTENT_ESCROWED`: Learner locks `RAW_POLLEN` (only with a `CERTIFIED_WORKER_BEE` certified in `subject_id`, `D-05`) or `LIQUID_NECTR` (or `0-nectR` paired with a mandatory `reciprocal_subject_id` for mutual skill-for-skill barter), enforcing a minimum structured block of `25 minutes` (`DEC-011`).
   2. `SESSION_CO_SIGNED`: Tutor and Learner co-sign session completion and private diagnostic attestation.
@@ -244,16 +246,19 @@ All 5 smart contracts reside in `src/nectr/contracts/` and execute as pure, dete
 - **Waggle Surge Co-Pay (`DEC-002`) & Tremble / Stop-Signal Routing (`DEC-013`):** Co-pays `60%` of `2.2x` peak Midterm/Finals tutor payouts from the Comb Waggle pool, ramps Tremble validation fee splits linearly across `20s–80s` queue latency, and applies cross-inhibitory Stop-Signals ($\sigma_{j \to k}$) to congested cohorts.
 
 ### 1.3 `QueenGovernanceContract`
+
 - **Three-Tier Separation of Powers (`ADR-0003`, `D-02`):** Enforces the `BEEKEEPER` (logged institutional emergency override and $p = 0.15$ random meta-auditor), non-tutoring `QUEEN` (cryptographically barred from acting as `Tutor` or receiving `CERTIFIED_WORKER_BEE` accreditation), and `WORKER` / `LEARNER` hierarchy.
 - **Fee-to-Comb & Phase-Split Royal Jelly (`ADR-0004`, `D-03`):** Routes 100% of certification, arbitration, and bridge fees to `comb_reserve`. Computes epoch Royal Jelly $R_Q(e) = \beta \Delta S_{\text{comb}}^+(e)\mathcal{V}_{\text{graph}}(e)(1 - \text{Gini}(e))$ (non-coin impact credits for Phase 1 Faculty-Queens; bond-backed `LIQUID_NECTR` dividends for Phase 2 Student-Queens).
 - **Network-Decayed QMP & Epigenetic Supersedure / Emergency Election:** Tracks graph-hop decayed QMP gated by Brood Synergy ($\Phi_{\text{brood}}$) and manages the `RoyalJellyBitmask` (`DNMT3`/`HDAC3`/`UHRF1`) across Graceful Supersedure (`1–3` slots, 1-epoch dual coexistence) and 24-hour Emergency Succession (up to `27` candidate slots weighted toward recent `<24h larval window` high-velocity contributors).
 
 ### 1.4 `KnowledgeGraphAndPolicingContract`
+
 - **Pairwise Discoordination & Learn-then-Teach Lineage (`DEC-003`):** Records directed tutoring edges $(u \xrightarrow{s} v)$, decays repeated/reciprocal wash loops via $W(u,v,s) = \frac{A(v \to u)}{1 + \alpha N_{u \leftrightarrow v}(\tau)}(1 + \gamma L_{\text{down}})$ ($\alpha = 1.5, \gamma = 0.5$), and emits the 32-byte `knowledge_graph_root` (`kg_root`) for off-chain CQRS projection (`ADR-0014`).
 - **Polyandrous Oophagy Fraud Proofs & Whistleblower Framing Bounties:** Allows any peer in a diverse validator cohort ($m_{\text{eff}} > 2$) to slash unverified claims via Oophagy Fraud Proofs and rewards insiders who prove bribery or phantom-session solicitation via Escrow-DKG framing bounties.
 - **Temporal Polyethism & Khoury Promotion Circuit Breaker (`D-07`, `DEC-013`):** Regulates `LEARNER_BEE` $\rightarrow$ `CERTIFIED_WORKER_BEE` $\rightarrow$ `COMB_VALIDATOR_GUARD` $\rightarrow$ `SCOUT_POLLINATOR` progression via Ethyl Oleate (`EO`) inhibition and freezes Nurse-Tutor outbound promotion whenever Scout churn approaches Khoury critical mortality $\mu_{\text{crit}}$.
 
 ### 1.5 `GuardBeeCrossHiveBridgeContract`
+
 - **Reserve-Coupled Guard Acceptance & Accepted Status (`ADR-0005`, `D-04`, `DEC-003`):** Evaluates foreign Cuticular Hydrocarbon (`CHC`) credential distance against the reserve-coupled Reeve/Downs-Ratnieks threshold $\theta_{\text{guard}}(t)$, granting **Accepted Status** in target Hive $H_B$ only after a migrating `Pollinator` completes $K = 3$ verified tutoring sessions with distinct local peers.
 - **Clamped Epoch FX & Export Quotas (`DEC-004`):** Executes Comb-to-Comb liquidity swaps at once-per-epoch Effective Backing Ratio FX clamped to `[0.5x, 2.0x]` with a `5%` source Comb toll and monthly Kolektivo/Sardex export caps over NATS JetStream (`ADR-0014`).
 - **Reproductive Swarming Bivouac Escrow (`ADR-0006`, `D-08`, `DEC-012`):** Triggers `SWARM_PREP` at $\ge 90\%$ Comb congestion + QMP attenuation + tutor surplus, locks `30–40` credit-unit Honey Engorgement stakes, evaluates Scout Waggle stakes and Reina contra stop-signals, triggers a **1-hour Worker Piping Timelock** upon reaching a **15-Scout (`30%`) quorum**, and burns a **`6.25x–8.0x` Honey-to-Wax deployment fee** while isolating legacy parent disputes inside the parent Hive.
