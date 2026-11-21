@@ -35,6 +35,7 @@ lint = [
     "adrlint>=0.5.2",
     "pre-commit>=3.7.0",
     "commitizen>=4.0.0",
+    "check-jsonschema>=0.29.0",
 ]
 security = [
     "detect-secrets>=1.5.0",
@@ -58,6 +59,7 @@ dev = [
 nectr-decisions = "nectr.devtools.decisions:main"
 nectr-citations = "nectr.devtools.citations:main"
 nectr-docs = "nectr.devtools.docs_sync:main"
+nectr-ci-parity = "nectr.devtools.ci_parity:main"
 
 [build-system]
 requires = ["hatchling"]
