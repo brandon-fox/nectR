@@ -3,7 +3,6 @@ Feature: Chain Cryptographic Ledger (Ed25519, CanonicalJSON, and Merkle Proofs)
   I want blocks and transactions signed with Ed25519, serialized deterministically with canonicaljson, and committed with remerkleable inclusion proofs
   So that PoUW-PoW block verification is deterministic and tamper-evident
 
-  @red
   Scenario: Ed25519-signed canonical transaction produces verifiable Merkle inclusion proof
     Given an Ed25519 keypair for Bee "worker_1" and a canonicalized barter payload
     When the transaction is committed into a BlockHeader via remerkleable
