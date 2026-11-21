@@ -1,8 +1,11 @@
-# Adopt Two-Phase Hive Genesis and Autonomous Swarming
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Product Lifecycle & Tokenomics Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Product Lifecycle & Tokenomics Architecture
-* Date: 2026-11-21
+# Adopt Two-Phase Hive Genesis and Autonomous Swarming
 
 ## Context and Problem Statement
 

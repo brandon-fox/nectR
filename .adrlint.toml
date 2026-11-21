@@ -1,0 +1,21 @@
+# adrlint configuration (polylint/adrlint, MIT)
+[adr]
+dir = "docs/adr"
+start = 0
+allow_gaps = false
+recursive = false
+
+[lint]
+check_external_links = false
+
+[lock]
+enabled = true
+path = "adrlint.lock"
+statuses = ["accepted", "rejected", "superseded", "deprecated"]
+
+[markdown]
+enabled = true
+
+[markdown.rules]
+MD013 = "off"
+MD033 = "off"

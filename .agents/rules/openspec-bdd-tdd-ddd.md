@@ -14,11 +14,11 @@ All development in **nectR** MUST strictly follow this **Outside-In** pipeline b
   - `src/nectr/personas/`: Behavioral economy actors & simulations.
 - Use Ubiquitous Language (`RAW_POLLEN`, `LIQUID_NECTR`, `ROYAL_COMB_RESERVE`, `QUEEN`, `CERTIFIED_WORKER_BEE`, `LEARNER_BEE`, `POLLINATOR_VISITOR`, `Accepted Status`) consistently across specs, Gherkin features, tests, and code.
 
-## 2. OpenSpec Spec-Driven Development & `pyadr` ADR Governance
+## 2. OpenSpec Spec-Driven Development & `adrlint` ADR Governance
 - **No implementation without a spec.** Before modifying behavior, creating ADRs, or adding features:
   1. Check BOTH `openspec/specs/` AND active `openspec/changes/` for existing requirements or pending governance specs.
   2. Create or update an OpenSpec change under `openspec/changes/<change-id>/` (`proposal.md`, `design.md`, `tasks.md`, and `specs/<domain>/spec.md`).
-  3. All Architectural Decision Records MUST be created and validated with **`pyadr`** (`pyadr new`, `pyadr accept`, `pyadr toc`, `pyadr check-adr-repo`) under `docs/adr/NNNN-<slug>.md` (MADR format, `<= 70` lines, `<= 380` words, `# Title <= 70` chars, `<= 6` bullets per section). Never hand-author non-`pyadr` ADR filenames or formats.
+  3. All Architectural Decision Records MUST be created, linted, and locked with **`adrlint`** (`adrlint new`, `adrlint lint`, `adrlint format`, `adrlint lock`) under `docs/adr/NNNN-<slug>.md` (MADR 4.0 YAML front matter, `<= 70` lines, `<= 380` words, `# Title <= 70` chars, `<= 6` bullets per section). Never bypass `adrlint` or hand-roll custom ADR tooling.
 
 ## 3. Outside-In Behave BDD & Strict TDD Red-Green-Refactor Commit Protocol
 - **Single Source of Truth for User Stories:** Never hardcode user stories or Given/When/Then scenarios inside OpenSpec `spec.md` files. Instead, `spec.md` MUST state requirement intent/invariants and link directly to `features/<domain>.feature` and `features/steps/<domain>_steps.py`.

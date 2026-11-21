@@ -8,6 +8,7 @@
 *.toml text eol=lf
 *.feature text eol=lf
 *.sh text eol=lf
-.adr text eol=lf
+.adrlint.toml text eol=lf
+adrlint.lock text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf

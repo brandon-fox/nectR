@@ -1,8 +1,11 @@
-# Adopt SQLModel Alembic Structlog and OpenTelemetry
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Service Layer Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Service Layer Architecture
-* Date: 2026-11-21
+# Adopt SQLModel Alembic Structlog and OpenTelemetry
 
 ## Context and Problem Statement
 

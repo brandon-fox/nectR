@@ -33,7 +33,7 @@ Run `uv run nectr-docs tree` at any time to inspect the live directory tree dire
 | `src/nectr/services/` | Hexagonal Hive Service Layer (Escrow, Knowledge Graph, Arbitration, Bridge) | `contracts-service-agent` |
 | `src/nectr/personas/` | 6 Behavioral Persona Sub-Agents executing signed transactions | `ux-behavior-agent` |
 | `src/nectr/ui/` | Read-only Hive Explorer, Knowledge Graph & Comb reserve telemetry UI | `design-ui-agent` |
-| `src/nectr/devtools/` | Zero-CVE `pyadr` MADR engine, decision registry, citation custody & docs sync | `meta-orchestrator` |
+| `src/nectr/devtools/` | Decision registry, citation custody & living docs sync (MADR linting via OSS `adrlint`) | `meta-orchestrator` |
 | `openspec/` & `features/` | OpenSpec requirement specs linked 1-to-1 to Behave Gherkin scenarios | All agents |
 | `tests/` | Strict TDD (`xfail_strict`) unit, invariant, and governance test suites | Domain owners |
 <!-- END AUTO-WORKSPACE-SPACES -->
@@ -58,6 +58,8 @@ Run `uv run nectr-docs tree` at any time to inspect the live directory tree dire
    ```powershell
    uv run pytest
    uv run behave
+   uv run adrlint lint
+   uv run adrlint lock --check
    uv run nectr-decisions check
    uv run nectr-citations check
    uv run nectr-docs check
@@ -65,4 +67,4 @@ Run `uv run nectr-docs tree` at any time to inspect the live directory tree dire
    ```
 
 4. **Optional: Shipped Repository Agent Skills (`.agents/skills/`):**
-   - The repository ships portable skills and rules under `.agents/skills/` and `.agents/rules/` (validated by `tests/test_skills_spec.py`) for AI coding assistants that support workspace skill loading, while every workflow remains 100% runnable via standard CLI commands above (`uv run nectr-decisions`, `uv run pyadr`, `uv run nectr-citations`, `uv run nectr-docs`, `uv run pytest`, `uv run behave`).
+   - The repository ships portable skills and rules under `.agents/skills/` and `.agents/rules/` (validated by `tests/test_skills_spec.py`) for AI coding assistants that support workspace skill loading, while every workflow remains 100% runnable via standard CLI commands above (`uv run adrlint`, `uv run nectr-decisions`, `uv run nectr-citations`, `uv run nectr-docs`, `uv run pytest`, `uv run behave`).

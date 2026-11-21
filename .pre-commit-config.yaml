@@ -19,8 +19,22 @@ repos:
         language: system
         stages: [commit-msg]
 
+      - id: adrlint-check
+        name: adrlint MADR 4.0 structure, format & lock check (pre-commit)
+        entry: adrlint lint
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: adrlint-format-and-lock
+        name: adrlint format & lock manifest verification (pre-commit)
+        entry: python -c "import subprocess, sys; [sys.exit(r.returncode) for r in (subprocess.run(['adrlint', 'format', '--check']), subprocess.run(['adrlint', 'lock', '--check'])) if r.returncode]"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: nectr-decisions-check
-        name: nectR MADR ADR & Fast Decision Registry Check (pre-commit)
+        name: nectR MADR Verbosity & Fast Decision Registry Check (pre-commit)
         entry: python -m nectr.devtools.decisions check
         language: system
         pass_filenames: false

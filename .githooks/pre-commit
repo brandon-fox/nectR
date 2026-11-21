@@ -10,6 +10,9 @@ if [ -n "$STAGED_FILES" ]; then
     fi
 fi
 
+adrlint --no-color lint
+adrlint --no-color format --check
+adrlint --no-color lock --check
 PYTHONPATH=src python -m nectr.devtools.decisions check
 PYTHONPATH=src python -m nectr.devtools.citations check
 PYTHONPATH=src python -m nectr.devtools.docs_sync check

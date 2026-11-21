@@ -1,4 +1,4 @@
-"""Strict TDD tests for pyadr MADR records, verbosity limits, and the fast YAML decision registry."""
+"""Strict TDD tests for adrlint MADR 4.0 records, verbosity limits, and the fast YAML registry."""
 
 from __future__ import annotations
 
@@ -10,11 +10,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_repository_adrs_and_fast_decision_log_pass_all_controls() -> None:
-    """Repo docs/adr/ (pyadr) and docs/planning/decisions.yaml + decision_log.md must pass all gates."""
+    """Repo docs/adr/ (adrlint) and docs/planning/decisions.yaml + decision_log.md must pass all gates."""
     from nectr.devtools.decisions import check_all_governance
 
     summary = check_all_governance(REPO_ROOT)
     assert summary["accepted_adr_count"] >= 8
+    assert summary["adrlint_ok"] is True
     assert summary["toc_in_sync"] is True
     assert summary["decision_count"] >= 7
     assert summary["experiment_count"] >= 1
@@ -160,37 +161,50 @@ def test_cli_add_decision_updates_yaml_and_renders_markdown_in_sync(tmp_path: Pa
     assert "DEC-001" in rendered_file
 
 
-def test_mit_adr_engine_supports_proposed_lifecycle_and_zero_external_pyadr(tmp_path: Path) -> None:
-    """Zero-CVE nectr.devtools.adr replaces external pyadr and supports --allow-proposed."""
-    from nectr.devtools.adr import AdrCore, AdrError, slugify_title
-    from nectr.devtools.decisions import DecisionGovernanceError
-    from nectr.devtools.decisions import main as decisions_main
+def test_oss_adrlint_replaces_bespoke_adr_module_and_locks_decisions(tmp_path: Path) -> None:
+    """Custom adr.py must not exist; OSS adrlint handles init, new, lint, format, and lock."""
+    import shutil
+    import subprocess
+    import sys
 
-    assert slugify_title("Adopt Ed25519 CanonicalJSON and Merklelib") == (
-        "adopt-ed25519-canonicaljson-and-merklelib"
+    from nectr.devtools.decisions import DecisionGovernanceError, validate_adrlint_repo
+
+    assert not (REPO_ROOT / "src" / "nectr" / "devtools" / "adr.py").exists()
+    assert (REPO_ROOT / ".adrlint.toml").exists()
+    assert (REPO_ROOT / "adrlint.lock").exists()
+
+    adrlint_bin = shutil.which("adrlint") or str(
+        Path(sys.executable).resolve().parent
+        / ("adrlint.exe" if sys.platform == "win32" else "adrlint")
     )
-    core = AdrCore(tmp_path)
-    core.init_adr_repo()
-    proposed = core.new_adr("Evaluate Cache Adapter")
-    assert proposed.name == "XXXX-evaluate-cache-adapter.md"
-    core.generate_toc()
-    toc_text = (tmp_path / "docs" / "adr" / "index.md").read_text(encoding="utf-8")
-    assert "Status `proposed`" in toc_text
-    assert "XXXX - Evaluate Cache Adapter" in toc_text
+    subprocess.run(
+        [adrlint_bin, "init", "--dir", "docs/adr", "--start", "0", "--force"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run([adrlint_bin, "lock"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    subprocess.run(
+        [adrlint_bin, "new", "Evaluate Cache Adapter"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
-    # Strict check fails on proposed ADR
-    with pytest.raises(AdrError, match="proposed"):
-        core.check_adr_repo(check_no_proposed=True)
+    with pytest.raises(DecisionGovernanceError, match="proposed"):
+        validate_adrlint_repo(tmp_path, allow_proposed=False)
 
-    # --allow-proposed passes via CLI
-    assert decisions_main(["--root", str(tmp_path), "check-adrs", "--allow-proposed"]) == 0
+    assert validate_adrlint_repo(tmp_path, allow_proposed=True) == 1
 
-    # Accepting assigns 0002 and passes strict check
-    accepted = core.accept_or_reject(proposed, "accepted", toc=True)
-    assert accepted.name == "0002-evaluate-cache-adapter.md"
-    core.check_adr_repo(check_no_proposed=True)
-
-    # Docs lifecycle guide exists in repo docs/adr
-    assert (REPO_ROOT / "docs" / "adr" / "lifecycle_guide.md").exists()
-    with pytest.raises(DecisionGovernanceError):
-        raise DecisionGovernanceError("sanity check type")
+    proposed_file = tmp_path / "docs" / "adr" / "0001-evaluate-cache-adapter.md"
+    proposed_file.write_text(
+        proposed_file.read_text(encoding="utf-8").replace(
+            "status: proposed", "status: accepted", 1
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+    subprocess.run([adrlint_bin, "lock"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    assert validate_adrlint_repo(tmp_path, allow_proposed=False) == 2

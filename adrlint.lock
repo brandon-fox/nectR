@@ -1,0 +1,67 @@
+version = 1
+canonical = 1
+
+[adrs."docs/adr/0000-use-markdown-architectural-decision-records.md"]
+number = 0
+status = "superseded by ADR-0012"
+blake3 = "6e5a2928cbcb9fad651b3401c9151be462faa000e38b0e8b0dc7a1cc0970141b"
+
+[adrs."docs/adr/0001-use-commitizen-for-automated-changelogs-and-releases.md"]
+number = 1
+status = "accepted"
+blake3 = "44894d5bceb2d011d37041672b4aecf6b41ffff7ed681360affc0a5340b31982"
+
+[adrs."docs/adr/0002-enforce-directional-service-barter-state-transitions.md"]
+number = 2
+status = "accepted"
+blake3 = "121271b63d07cfa6bce5533fc9b0a22ca123e89ddfac119e02444dd67009cd81"
+
+[adrs."docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md"]
+number = 3
+status = "accepted"
+blake3 = "a89740ca83d2e813dac4d560de360ae3b03a0b5780a4b3ba7d128b78c8dbe3d7"
+
+[adrs."docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md"]
+number = 4
+status = "accepted"
+blake3 = "721d07dd57d16c57fb7da1475c8f5d2fcacc1df100eab124e0512e21fc72b539"
+
+[adrs."docs/adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md"]
+number = 5
+status = "accepted"
+blake3 = "ae2f4083423a9d8bf6a7845cba9c9f554b3bebe216676b325a6b4524c0258dc6"
+
+[adrs."docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md"]
+number = 6
+status = "accepted"
+blake3 = "18c307c3cb83571ff16f6e28d71ffebf1cc5418af94019450668a64ead62cec5"
+
+[adrs."docs/adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md"]
+number = 7
+status = "accepted"
+blake3 = "654135304f86345ec3caf248888c4d484058dc2878214911cb58b3592e3def11"
+
+[adrs."docs/adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md"]
+number = 8
+status = "accepted"
+blake3 = "d18527633ced9a704f9cf9037ea2930ea9c6d4feb4005ac145708e40be269b47"
+
+[adrs."docs/adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md"]
+number = 9
+status = "accepted"
+blake3 = "54f800e09dcbdac8e367327aa49936ae696839ddc41b062ae75e6533bed9b4fd"
+
+[adrs."docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md"]
+number = 10
+status = "accepted"
+blake3 = "7b74ddf8c3a102a5d2336f17013674057249d0f0bbfb1041ea3f4dca25269084"
+
+[adrs."docs/adr/0011-adopt-streamlit-and-networkx-for-telemetry-ui.md"]
+number = 11
+status = "accepted"
+blake3 = "c415ae439cead010ef2560819e08c5468276b65f92a6e8804b97e0dfe03e5dbc"
+
+[adrs."docs/adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md"]
+number = 12
+status = "accepted"
+blake3 = "56f3c50dc3d0cab1e34478cf771c3dee4dfc26a8bd20830b6517deaf2df54df9"

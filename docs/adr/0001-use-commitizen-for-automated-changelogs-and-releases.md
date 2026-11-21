@@ -1,8 +1,11 @@
-# Use Commitizen for Automated Changelogs and Releases
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Architecture & Governance
+---
 
-* Status: accepted
-* Deciders: nectR Architecture & Governance
-* Date: 2026-11-21
+# Use Commitizen for Automated Changelogs and Releases
 
 ## Context and Problem Statement
 

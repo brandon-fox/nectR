@@ -1,8 +1,11 @@
-# Couple Open Campus PoUW-PoW Mining to Capped Comb Compute Jar
+---
+status: accepted
+date: 2026-11-21
+decision-makers:
+  - nectR Consensus & System Design Architecture
+---
 
-* Status: accepted
-* Deciders: nectR Consensus & System Design Architecture
-* Date: 2026-11-21
+# Couple Open Campus PoUW-PoW Mining to Capped Comb Compute Jar
 
 ## Context and Problem Statement
 
