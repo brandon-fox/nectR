@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -51,6 +53,40 @@ class BeeAccount:
     distinct_peers_tutored_in_hive: set[str] = field(default_factory=set)
     royal_jelly_earned: float = 0.0
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize account state into canonical JSON-safe primitives."""
+        return {
+            "bee_id": self.bee_id,
+            "home_hive_id": self.home_hive_id,
+            "role": self.role.value,
+            "raw_pollen_balance": float(self.raw_pollen_balance),
+            "liquid_nectr_balance": float(self.liquid_nectr_balance),
+            "certified_subjects": sorted(self.certified_subjects),
+            "accepted_in_hives": sorted(self.accepted_in_hives),
+            "distinct_peers_tutored_in_hive": sorted(self.distinct_peers_tutored_in_hive),
+            "royal_jelly_earned": float(self.royal_jelly_earned),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> BeeAccount:
+        """Hydrate a BeeAccount from serialized primitives."""
+        try:
+            return cls(
+                bee_id=str(data["bee_id"]),
+                home_hive_id=str(data["home_hive_id"]),
+                role=BeeRole(str(data["role"])),
+                raw_pollen_balance=float(data["raw_pollen_balance"]),
+                liquid_nectr_balance=float(data["liquid_nectr_balance"]),
+                certified_subjects={str(s) for s in data["certified_subjects"]},
+                accepted_in_hives={str(h) for h in data["accepted_in_hives"]},
+                distinct_peers_tutored_in_hive={
+                    str(p) for p in data["distinct_peers_tutored_in_hive"]
+                },
+                royal_jelly_earned=float(data["royal_jelly_earned"]),
+            )
+        except (KeyError, ValueError, TypeError) as exc:
+            raise ContractViolationError(f"Invalid BeeAccount snapshot: {exc}") from exc
+
 
 @dataclass
 class ServiceBarterSession:
@@ -69,6 +105,47 @@ class ServiceBarterSession:
     learner_attestation_score: float = 0.0
     tutor_comprehension_hash: str = ""
     effective_weight: float = 0.0
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize session state into canonical JSON-safe primitives."""
+        return {
+            "session_id": self.session_id,
+            "hive_id": self.hive_id,
+            "tutor_id": self.tutor_id,
+            "learner_id": self.learner_id,
+            "subject_id": self.subject_id,
+            "duration_hours": float(self.duration_hours),
+            "escrowed_amount": float(self.escrowed_amount),
+            "token_state": self.token_state.value,
+            "reciprocal_subject_id": self.reciprocal_subject_id,
+            "status": self.status.value,
+            "learner_attestation_score": float(self.learner_attestation_score),
+            "tutor_comprehension_hash": self.tutor_comprehension_hash,
+            "effective_weight": float(self.effective_weight),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> ServiceBarterSession:
+        """Hydrate a ServiceBarterSession from serialized primitives."""
+        try:
+            rec = data.get("reciprocal_subject_id")
+            return cls(
+                session_id=str(data["session_id"]),
+                hive_id=str(data["hive_id"]),
+                tutor_id=str(data["tutor_id"]),
+                learner_id=str(data["learner_id"]),
+                subject_id=str(data["subject_id"]),
+                duration_hours=float(data["duration_hours"]),
+                escrowed_amount=float(data["escrowed_amount"]),
+                token_state=TokenState(str(data["token_state"])),
+                reciprocal_subject_id=None if rec is None else str(rec),
+                status=SessionStatus(str(data["status"])),
+                learner_attestation_score=float(data["learner_attestation_score"]),
+                tutor_comprehension_hash=str(data["tutor_comprehension_hash"]),
+                effective_weight=float(data["effective_weight"]),
+            )
+        except (KeyError, ValueError, TypeError) as exc:
+            raise ContractViolationError(f"Invalid ServiceBarterSession snapshot: {exc}") from exc
 
 
 class HiveContractEngine:
@@ -467,3 +544,108 @@ class HiveContractEngine:
         if acct.role != BeeRole.QUEEN:
             raise ContractViolationError(f"Account '{queen_id}' does not hold QUEEN role.")
         return acct
+
+    # -------------------------------------------------------------------------
+    # Pure Deterministic Snapshot / Hydration
+    # -------------------------------------------------------------------------
+    def to_snapshot(self) -> dict[str, Any]:
+        """Export full contract state as canonical JSON-safe stdlib primitives."""
+        return {
+            "schema_version": 1,
+            "hive_id": self.hive_id,
+            "collusion_alpha": float(self.collusion_alpha),
+            "lineage_gamma": float(self.lineage_gamma),
+            "accepted_status_peer_threshold": int(self.accepted_status_peer_threshold),
+            "comb_reserve": float(self.comb_reserve),
+            "total_minted_supply": float(self.total_minted_supply),
+            "accounts": {bee_id: acct.to_dict() for bee_id, acct in sorted(self.accounts.items())},
+            "sessions": {
+                session_id: sess.to_dict() for session_id, sess in sorted(self.sessions.items())
+            },
+            "pairwise_counts": [
+                {"pair": pair_list, "count": int(count)}
+                for pair_list, count in sorted(
+                    ((sorted(pair), count) for pair, count in self.pairwise_counts.items()),
+                    key=lambda item: item[0],
+                )
+            ],
+            "subject_lineage": [
+                {"learner_id": learner_id, "subject_id": subject_id, "tutors": list(tutors)}
+                for (learner_id, subject_id), tutors in sorted(
+                    self.subject_lineage.items(),
+                    key=lambda item: item[0],
+                )
+            ],
+            "tutor_effectiveness": {
+                k: float(v) for k, v in sorted(self.tutor_effectiveness.items())
+            },
+            "settled_tx_log": copy.deepcopy(self.settled_tx_log),
+        }
+
+    @classmethod
+    def from_snapshot(
+        cls,
+        snapshot: Mapping[str, Any],
+        *,
+        verify_invariants: bool = True,
+    ) -> HiveContractEngine:
+        """Hydrate a HiveContractEngine from a snapshot dictionary."""
+        try:
+            schema_version = snapshot.get("schema_version", 1)
+            if schema_version != 1:
+                raise ContractViolationError(
+                    f"Unsupported snapshot schema version: {schema_version}"
+                )
+            engine = cls(
+                hive_id=str(snapshot["hive_id"]),
+                collusion_alpha=float(snapshot["collusion_alpha"]),
+                lineage_gamma=float(snapshot["lineage_gamma"]),
+                accepted_status_peer_threshold=int(snapshot["accepted_status_peer_threshold"]),
+            )
+            engine.comb_reserve = float(snapshot["comb_reserve"])
+            engine.total_minted_supply = float(snapshot["total_minted_supply"])
+
+            raw_accounts = snapshot["accounts"]
+            for key, raw_acct in raw_accounts.items():
+                acct = BeeAccount.from_dict(raw_acct)
+                if acct.bee_id != str(key):
+                    raise ContractViolationError(
+                        f"Account key '{key}' does not match bee_id '{acct.bee_id}'."
+                    )
+                engine.accounts[acct.bee_id] = acct
+
+            raw_sessions = snapshot["sessions"]
+            for key, raw_sess in raw_sessions.items():
+                sess = ServiceBarterSession.from_dict(raw_sess)
+                if sess.session_id != str(key):
+                    raise ContractViolationError(
+                        f"Session key '{key}' does not match session_id '{sess.session_id}'."
+                    )
+                if sess.hive_id != engine.hive_id:
+                    raise ContractViolationError(
+                        f"Session '{sess.session_id}' hive_id '{sess.hive_id}' != '{engine.hive_id}'."
+                    )
+                engine.sessions[sess.session_id] = sess
+
+            for entry in snapshot["pairwise_counts"]:
+                pair = [str(x) for x in entry["pair"]]
+                if len(pair) != 2 or pair[0] == pair[1]:
+                    raise ContractViolationError(f"Invalid pairwise_counts entry: {entry!r}")
+                engine.pairwise_counts[frozenset(pair)] = int(entry["count"])
+
+            for lineage_entry in snapshot["subject_lineage"]:
+                lineage_key = (str(lineage_entry["learner_id"]), str(lineage_entry["subject_id"]))
+                engine.subject_lineage[lineage_key] = [str(t) for t in lineage_entry["tutors"]]
+
+            engine.tutor_effectiveness = {
+                str(k): float(v) for k, v in snapshot["tutor_effectiveness"].items()
+            }
+            engine.settled_tx_log = copy.deepcopy(list(snapshot["settled_tx_log"]))
+        except ContractViolationError:
+            raise
+        except (KeyError, ValueError, TypeError) as exc:
+            raise ContractViolationError(f"Invalid HiveContractEngine snapshot: {exc}") from exc
+
+        if verify_invariants:
+            engine.assert_supply_conservation()
+        return engine

@@ -554,10 +554,6 @@ def test_bridge_fx_clamp_bounds_and_zero_comb_floor() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: add-sqlmodel-persistence-and-api not yet implemented",
-)
 def test_contract_engine_snapshot_round_trip_and_isolation() -> None:
     engine = _setup_basic_hive(hive_id="HIVE_SNAP", seed_comb=300.0, accepted_threshold=2)
     engine.register_bee("visitor:1", role=BeeRole.POLLINATOR_VISITOR, home_hive_id="HIVE_EXT")
@@ -622,18 +618,52 @@ def test_contract_engine_snapshot_round_trip_and_isolation() -> None:
     assert ServiceBarterSession.from_dict(sess_dict) == engine.sessions["sess_escrow"]  # type: ignore[attr-defined]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: add-sqlmodel-persistence-and-api not yet implemented",
-)
 def test_contract_engine_from_snapshot_rejects_corrupted_supply_and_bad_pairs() -> None:
     engine = _setup_basic_hive(hive_id="HIVE_CORRUPT")
-    snap = engine.to_snapshot()  # type: ignore[attr-defined]
+    snap = engine.to_snapshot()
     snap["comb_reserve"] = snap["comb_reserve"] + 42.0
     with pytest.raises(ContractViolationError, match="Supply conservation invariant violated"):
-        HiveContractEngine.from_snapshot(snap)  # type: ignore[attr-defined]
+        HiveContractEngine.from_snapshot(snap)
 
-    bad_pair_snap = engine.to_snapshot()  # type: ignore[attr-defined]
+    bad_pair_snap = engine.to_snapshot()
     bad_pair_snap["pairwise_counts"] = [{"pair": ["only_one"], "count": 1}]
     with pytest.raises(ContractViolationError):
-        HiveContractEngine.from_snapshot(bad_pair_snap)  # type: ignore[attr-defined]
+        HiveContractEngine.from_snapshot(bad_pair_snap)
+
+    bad_ver = engine.to_snapshot()
+    bad_ver["schema_version"] = 99
+    with pytest.raises(ContractViolationError, match="Unsupported snapshot schema version"):
+        HiveContractEngine.from_snapshot(bad_ver)
+
+    bad_acct_key = engine.to_snapshot()
+    bad_acct_key["accounts"]["wrong_key"] = bad_acct_key["accounts"].pop("worker_1")
+    with pytest.raises(ContractViolationError, match="does not match bee_id"):
+        HiveContractEngine.from_snapshot(bad_acct_key)
+
+    engine.create_service_barter_escrow(
+        session_id="sess_bad",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=5.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    bad_sess_key = engine.to_snapshot()
+    bad_sess_key["sessions"]["wrong_sess"] = bad_sess_key["sessions"].pop("sess_bad")
+    with pytest.raises(ContractViolationError, match="does not match session_id"):
+        HiveContractEngine.from_snapshot(bad_sess_key)
+
+    bad_sess_hive = engine.to_snapshot()
+    bad_sess_hive["sessions"]["sess_bad"]["hive_id"] = "OTHER_HIVE"
+    with pytest.raises(ContractViolationError, match="hive_id"):
+        HiveContractEngine.from_snapshot(bad_sess_hive)
+
+    with pytest.raises(ContractViolationError, match="Invalid BeeAccount snapshot"):
+        BeeAccount.from_dict({"bee_id": "only_id"})
+
+    with pytest.raises(ContractViolationError, match="Invalid ServiceBarterSession snapshot"):
+        ServiceBarterSession.from_dict({"session_id": "only_id"})
+
+    with pytest.raises(ContractViolationError, match="Invalid HiveContractEngine snapshot"):
+        HiveContractEngine.from_snapshot({"schema_version": 1})
