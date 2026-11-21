@@ -5,10 +5,13 @@ from __future__ import annotations
 import copy
 import json
 import math
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
+from pydantic import BaseModel
+
+import nectr.chain as nectr_chain
 from nectr.chain.ledger import Block, HiveBlockchain, UsefulComputeProof, compute_sha256
 from nectr.contracts.engine import (
     BeeAccount,
@@ -25,6 +28,28 @@ from nectr.services.ports import (
     NoOpTelemetry,
     TelemetryPort,
 )
+
+
+def _serialize_tx_entry(entry: object) -> dict[str, Any]:
+    """Normalize a transaction entry (Pydantic BaseModel or Mapping) to a JSON-safe dict."""
+    if isinstance(entry, BaseModel):
+        return entry.model_dump(mode="json")
+    if isinstance(entry, Mapping):
+        return copy.deepcopy(dict(entry))
+    raise TypeError(f"Unsupported transaction entry type: {type(entry).__name__}")
+
+
+def _deserialize_mempool_entry(item: Mapping[str, Any]) -> Any:
+    """Rehydrate a serialized mempool entry into SignedTransaction when available, else dict."""
+    signed_tx_cls = getattr(nectr_chain, "SignedTransaction", None)
+    if (
+        isinstance(signed_tx_cls, type)
+        and issubclass(signed_tx_cls, BaseModel)
+        and "signer_public_key" in item
+        and "signature" in item
+    ):
+        return signed_tx_cls.model_validate(item)
+    return copy.deepcopy(dict(item))
 
 
 def compute_gini_coefficient(values: list[float]) -> float:
@@ -95,7 +120,10 @@ class HiveServiceLayer:
         self.blockchain = HiveBlockchain(hive_id=self.hive_id, difficulty=snapshot.difficulty)
         if snapshot.blocks:
             self.blockchain.chain = [Block.model_validate(b) for b in snapshot.blocks]
-        self.blockchain.mempool = copy.deepcopy(snapshot.mempool)
+        self.blockchain.mempool.clear()
+        self.blockchain.mempool.extend(
+            _deserialize_mempool_entry(item) for item in snapshot.mempool
+        )
 
     def _build_snapshot(self) -> HiveSnapshot:
         return HiveSnapshot(
@@ -104,7 +132,7 @@ class HiveServiceLayer:
             current_epoch=self.current_epoch,
             contract_state=self.contracts.to_snapshot(),
             blocks=[b.model_dump(mode="json") for b in self.blockchain.chain],
-            mempool=copy.deepcopy(self.blockchain.mempool),
+            mempool=[_serialize_tx_entry(entry) for entry in self.blockchain.mempool],
         )
 
     @contextmanager
