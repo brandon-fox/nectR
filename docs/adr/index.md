@@ -26,6 +26,7 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0016` | [Scope External Workflow Automation Off-Chain](0016-scope-external-workflow-automation-off-chain.md) | `accepted` |
 | `ADR-0017` | [Isolate Concurrent Work in Ephemeral Worktrunk Git Worktrees](0017-isolate-concurrent-work-in-ephemeral-worktrunk-git-worktrees.md) | `accepted` |
 | `ADR-0018` | [Enforce Incremental Mutation Testing with Poodle Ratchet Floors](0018-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md) | `accepted` |
+| `ADR-0019` | [Adopt pre-commit.ci for Cloud Hook Autofix and Autoupdate](0019-adopt-pre-commit-ci-for-cloud-hook-autofix-and-autoupdate.md) | `accepted` |
 <!-- END AUTO-ADR-INDEX -->
 
 ## `adrlint` Workflow & Configuration

@@ -1,202 +1,218 @@
 schema_version: 1
 decisions:
-  - id: DEC-001
-    category: parameter-default
-    status: locked
-    title: Default Idle-Balance Melt & Safety Cushion
-    decision: Apply ~2%/month lazy demurrage only above a protected student safety buffer during Weeks 1-13, pausing in Finals (Weeks 14-15); tunable per Hive by Queens/Beekeepers.
-    owner_agent: product-lifecycle-agent
-    related_adr: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
-    openspec_ref: openspec/specs/protocol-invariants/spec.md
-
-  - id: DEC-002
-    category: parameter-default
-    status: locked
-    title: Default Midterm & Finals Comb Top-Up Multiplier
-    decision: Default Comb Waggle surge co-pays ~60% of ~2.2x peak tutor payouts during Midterms and Finals so learners pay ~1.0x-1.3x; tunable per Hive by Queens/Beekeepers.
-    owner_agent: product-lifecycle-agent
-    related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
-
-  - id: DEC-003
-    category: parameter-default
-    status: locked
-    title: Baseline Pairwise Decay & Guard Acceptance Threshold
-    decision: Initialize HiveContractEngine defaults at collusion_alpha=1.5, lineage_gamma=0.5, and accepted_status_peer_threshold=3 distinct host-Hive peers tutored.
-    owner_agent: contracts-service-agent
-    related_adr: docs/adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md
-    openspec_ref: openspec/specs/protocol-invariants/spec.md
-
-  - id: DEC-004
-    category: parameter-default
-    status: locked
-    title: Default Senior Sink Split & Cross-Hive FX Corridor
-    decision: Target 40% Credentials/Swarming, 35% Campus Perks, 25% Freshman Bounties (+ dormant alumni sweep); clamp epoch cross-Hive FX to [0.5x, 2.0x] with 5% Comb toll.
-    owner_agent: business-proposal-agent
-    related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
-
-  - id: DEC-005
-    category: research-hygiene
-    status: locked
-    title: Primary-Source Citation & Empirical Self-Citation Rule
-    decision: Exclude placeholder URLs, plagiarism notices, AI-wikis, Reddit, and SEO blogs from paper/; cite primary peer-reviewed works and reproducible experiments/ runs.
-    owner_agent: sci-research-agent
-
-  - id: DEC-006
-    category: workflow-policy
-    status: locked
-    title: Outside-In OpenSpec -> Behave BDD -> Strict TDD Pipeline
-    decision: Require an openspec/changes/<id>/ spec, Gherkin feature, and xfail_strict Red-Green-Refactor atomic SSH-signed commits for every behavioral or tooling change.
-    owner_agent: meta-orchestrator
-    related_adr: docs/adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
-    openspec_ref: openspec/project.md
-
-  - id: DEC-007
-    category: security-oss
-    status: locked
-    title: Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy
-    decision: Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; delegate MADR linting and locking to MIT OSS adrlint with zero waivers.
-    owner_agent: meta-orchestrator
-    related_adr: docs/adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
-
-  - id: DEC-008
-    category: workflow-policy
-    status: locked
-    title: IDE-Agnostic Docs, Defined Terms & Living Trees
-    decision: Never assume IDE/skill access in public docs; define all acronyms (MV=PQ, PoUW-PoW) in glossary, and auto-generate or CI-check directory trees and nav.
-    owner_agent: meta-orchestrator
-
-  - id: DEC-009
-    category: parameter-default
-    status: locked
-    title: Mesa ABM + ML/RL Over LLM Workflows (CrewAI/n8n)
-    decision: Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations over CrewAI/n8n (formerly k8n).
-    owner_agent: ux-behavior-agent
-    related_adr: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
-
-  - id: DEC-010
-    category: workflow-policy
-    status: locked
-    title: Isolate Future CrewAI Use to Off-Chain Peripherals
-    decision: Exclude CrewAI from core, ACE, and dev extras; permit only in isolated off-chain UX, CI remediation, or offline red-team scripts outside core runtime.
-    owner_agent: meta-orchestrator
-    related_adr: docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md
-
-  - id: DEC-011
-    category: parameter-default
-    status: locked
-    title: Minimum 25-Minute Structured Session & Pre-Booking Deposit
-    decision: Enforce a >=25-minute minimum structured tutoring block to prevent Gneezy-Rustichini micro-payment crowding out, paired with optional Weeks 1-4 commitment deposits.
-    owner_agent: ux-behavior-agent
-    related_adr: docs/adr/0002-enforce-directional-service-barter-state-transitions.md
-    openspec_ref: openspec/specs/protocol-invariants/spec.md
-
-  - id: DEC-012
-    category: parameter-default
-    status: locked
-    title: Swarming Honey-to-Wax Burn Ratio & 15-Scout Quorum
-    decision: Trigger SWARM_PREP at >=90% Comb congestion + QMP attenuation + tutor surplus; enforce 6.25x-8.0x Honey-to-Wax Comb burn and 15-scout (30%) quorum with 1h piping timelock.
-    owner_agent: product-lifecycle-agent
-    related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
-    openspec_ref: openspec/specs/protocol-invariants/spec.md
-
-  - id: DEC-013
-    category: parameter-default
-    status: locked
-    title: Tremble Latency Ramp & Khoury Promotion Circuit Breaker
-    decision: Ramp Tremble fee reallocation linearly across 20s-80s queue latency and clamp Nurse-Tutor promotion to Scout when churn approaches Khoury critical mortality.
-    owner_agent: contracts-service-agent
-    related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
-    openspec_ref: openspec/specs/protocol-invariants/spec.md
-
-  - id: DEC-014
-    category: security-oss
-    status: locked
-    title: Apache-2.0 Perses & Kurtosis Over BSL/Copyleft Testbeds
-    decision: Standardize multi-Hive observability on Apache-2.0 Perses + Prometheus OTLP (over Grafana) and chaos devnets on post-June-2024 Apache-2.0 Kurtosis + Pumba/Toxiproxy.
-    owner_agent: system-arch-agent
-    related_adr: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
-
-  - id: DEC-015
-    category: workflow-policy
-    status: locked
-    title: MIT + DCO 1.1 Inbound IP & Two-Stage Apereo Governance
-    decision: Require DCO 1.1 + SSH-signed commits (avoiding multi-university Corporate CLAs), transitioning from a Stage 1 Academic Consortium to Stage 2 Apereo Foundation incubation.
-    owner_agent: business-proposal-agent
-    related_adr: docs/adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md
-
-  - id: DEC-016
-    category: workflow-policy
-    status: locked
-    title: Out-of-Process Boundary for n8n & Workflow Engines
-    decision: Keep n8n (SUL) out of pyproject.toml; trigger HiveServiceLayer via webhooks only, preferring MIT/Apache-2.0 tools (Activepieces, Kestra, Prefect, Temporal) if packaged.
-    owner_agent: ux-behavior-agent
-    related_adr: docs/adr/0016-scope-external-workflow-automation-off-chain.md
-
-  - id: DEC-017
-    category: workflow-policy
-    status: locked
-    title: Mutation Targets & Ratchet Floors
-    decision: Enforce >=85% Tier-1 and >=75% Tier-2 Poodle targets on changed lines (pre-merge/pre-push/PR), upward-only main baseline floors (floor-1), and zero src/ pragmas.
-    owner_agent: meta-orchestrator
-    related_adr: docs/adr/0018-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md
-
+- id: DEC-001
+  category: parameter-default
+  status: locked
+  title: Default Idle-Balance Melt & Safety Cushion
+  decision: Apply ~2%/month lazy demurrage only above a protected student safety buffer during Weeks 1-13,
+    pausing in Finals (Weeks 14-15); tunable per Hive by Queens/Beekeepers.
+  owner_agent: product-lifecycle-agent
+  related_adr: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
+  openspec_ref: openspec/specs/protocol-invariants/spec.md
+- id: DEC-002
+  category: parameter-default
+  status: locked
+  title: Default Midterm & Finals Comb Top-Up Multiplier
+  decision: Default Comb Waggle surge co-pays ~60% of ~2.2x peak tutor payouts during Midterms and Finals
+    so learners pay ~1.0x-1.3x; tunable per Hive by Queens/Beekeepers.
+  owner_agent: product-lifecycle-agent
+  related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+- id: DEC-003
+  category: parameter-default
+  status: locked
+  title: Baseline Pairwise Decay & Guard Acceptance Threshold
+  decision: Initialize HiveContractEngine defaults at collusion_alpha=1.5, lineage_gamma=0.5, and accepted_status_peer_threshold=3
+    distinct host-Hive peers tutored.
+  owner_agent: contracts-service-agent
+  related_adr: docs/adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md
+  openspec_ref: openspec/specs/protocol-invariants/spec.md
+- id: DEC-004
+  category: parameter-default
+  status: locked
+  title: Default Senior Sink Split & Cross-Hive FX Corridor
+  decision: Target 40% Credentials/Swarming, 35% Campus Perks, 25% Freshman Bounties (+ dormant alumni
+    sweep); clamp epoch cross-Hive FX to [0.5x, 2.0x] with 5% Comb toll.
+  owner_agent: business-proposal-agent
+  related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+- id: DEC-005
+  category: research-hygiene
+  status: locked
+  title: Primary-Source Citation & Empirical Self-Citation Rule
+  decision: Exclude placeholder URLs, plagiarism notices, AI-wikis, Reddit, and SEO blogs from paper/;
+    cite primary peer-reviewed works and reproducible experiments/ runs.
+  owner_agent: sci-research-agent
+- id: DEC-006
+  category: workflow-policy
+  status: locked
+  title: Outside-In OpenSpec -> Behave BDD -> Strict TDD Pipeline
+  decision: Require an openspec/changes/<id>/ spec, Gherkin feature, and xfail_strict Red-Green-Refactor
+    atomic SSH-signed commits for every behavioral or tooling change.
+  owner_agent: meta-orchestrator
+  related_adr: docs/adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
+  openspec_ref: openspec/project.md
+- id: DEC-007
+  category: security-oss
+  status: locked
+  title: Zero-CVE MIT Runtime, Devtools & Persona Dependency Policy
+  decision: Enforce permissive MIT/BSD/Apache/MPL dependencies across runtime and persona extras; delegate
+    MADR linting and locking to MIT OSS adrlint with zero waivers.
+  owner_agent: meta-orchestrator
+  related_adr: docs/adr/0012-adopt-adrlint-for-madr-linting-and-immutability.md
+- id: DEC-008
+  category: workflow-policy
+  status: locked
+  title: IDE-Agnostic Docs, Defined Terms & Living Trees
+  decision: Never assume IDE/skill access in public docs; define all acronyms (MV=PQ, PoUW-PoW) in glossary,
+    and auto-generate or CI-check directory trees and nav.
+  owner_agent: meta-orchestrator
+- id: DEC-009
+  category: parameter-default
+  status: locked
+  title: Mesa ABM + ML/RL Over LLM Workflows (CrewAI/n8n)
+  decision: Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE
+    simulations over CrewAI/n8n (formerly k8n).
+  owner_agent: ux-behavior-agent
+  related_adr: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
+- id: DEC-010
+  category: workflow-policy
+  status: locked
+  title: Isolate Future CrewAI Use to Off-Chain Peripherals
+  decision: Exclude CrewAI from core, ACE, and dev extras; permit only in isolated off-chain UX, CI remediation,
+    or offline red-team scripts outside core runtime.
+  owner_agent: meta-orchestrator
+  related_adr: docs/adr/0013-restrict-crewai-to-isolated-off-chain-peripherals.md
+- id: DEC-011
+  category: parameter-default
+  status: locked
+  title: Minimum 25-Minute Structured Session & Pre-Booking Deposit
+  decision: Enforce a >=25-minute minimum structured tutoring block to prevent Gneezy-Rustichini micro-payment
+    crowding out, paired with optional Weeks 1-4 commitment deposits.
+  owner_agent: ux-behavior-agent
+  related_adr: docs/adr/0002-enforce-directional-service-barter-state-transitions.md
+  openspec_ref: openspec/specs/protocol-invariants/spec.md
+- id: DEC-012
+  category: parameter-default
+  status: locked
+  title: Swarming Honey-to-Wax Burn Ratio & 15-Scout Quorum
+  decision: Trigger SWARM_PREP at >=90% Comb congestion + QMP attenuation + tutor surplus; enforce 6.25x-8.0x
+    Honey-to-Wax Comb burn and 15-scout (30%) quorum with 1h piping timelock.
+  owner_agent: product-lifecycle-agent
+  related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+  openspec_ref: openspec/specs/protocol-invariants/spec.md
+- id: DEC-013
+  category: parameter-default
+  status: locked
+  title: Tremble Latency Ramp & Khoury Promotion Circuit Breaker
+  decision: Ramp Tremble fee reallocation linearly across 20s-80s queue latency and clamp Nurse-Tutor
+    promotion to Scout when churn approaches Khoury critical mortality.
+  owner_agent: contracts-service-agent
+  related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+  openspec_ref: openspec/specs/protocol-invariants/spec.md
+- id: DEC-014
+  category: security-oss
+  status: locked
+  title: Apache-2.0 Perses & Kurtosis Over BSL/Copyleft Testbeds
+  decision: Standardize multi-Hive observability on Apache-2.0 Perses + Prometheus OTLP (over Grafana)
+    and chaos devnets on post-June-2024 Apache-2.0 Kurtosis + Pumba/Toxiproxy.
+  owner_agent: system-arch-agent
+  related_adr: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
+- id: DEC-015
+  category: workflow-policy
+  status: locked
+  title: MIT + DCO 1.1 Inbound IP & Two-Stage Apereo Governance
+  decision: Require DCO 1.1 + SSH-signed commits (avoiding multi-university Corporate CLAs), transitioning
+    from a Stage 1 Academic Consortium to Stage 2 Apereo Foundation incubation.
+  owner_agent: business-proposal-agent
+  related_adr: docs/adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md
+- id: DEC-016
+  category: workflow-policy
+  status: locked
+  title: Out-of-Process Boundary for n8n & Workflow Engines
+  decision: Keep n8n (SUL) out of pyproject.toml; trigger HiveServiceLayer via webhooks only, preferring
+    MIT/Apache-2.0 tools (Activepieces, Kestra, Prefect, Temporal) if packaged.
+  owner_agent: ux-behavior-agent
+  related_adr: docs/adr/0016-scope-external-workflow-automation-off-chain.md
+- id: DEC-017
+  category: workflow-policy
+  status: locked
+  title: Mutation Targets & Ratchet Floors
+  decision: Enforce >=85% Tier-1 and >=75% Tier-2 Poodle targets on changed lines (pre-merge/pre-push/PR),
+    upward-only main baseline floors (floor-1), and zero src/ pragmas.
+  owner_agent: meta-orchestrator
+  related_adr: docs/adr/0018-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md
+- id: DEC-018
+  category: workflow-policy
+  status: locked
+  title: Pre-commit.ci Split Gate & Bot Commit Policy
+  decision: Run permissive remote/pygrep hooks on pre-commit.ci with Conventional Commit autofix/weekly
+    autoupdate PRs; skip uv-venv system hooks for GitHub Actions and worktrees.
+  owner_agent: meta-orchestrator
+  related_adr: docs/adr/0019-adopt-pre-commit-ci-for-cloud-hook-autofix-and-autoupdate.md
+  openspec_ref: openspec/specs/ci-and-hook-parity/spec.md
 experiments:
-  - id: EXP-001
-    status: open-simulation
-    title: Queen Receiver-Only Praise vs. Nepotism Stress-Test
-    hypothesis: Keep ratings private, cap roommate loops, and let Queens praise only learner success (tracing backward to tutors) across Honest vs. Biased simulation arms.
-    risk_note: Nepotism (Queens disproportionately praising favored students) and gamification side-effects are untested empirically; weights stay unlocked until simulated.
-    owner_agents:
-      - ux-behavior-agent
-      - sci-research-agent
-    related_adr: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
-
-  - id: EXP-002
-    status: open-simulation
-    title: 15-Week Finals Crunch & Waggle 60% Co-Pay Fill Rate
-    hypothesis: Pairing ~2%/mo Weeks 1-13 demurrage with 60% Comb Waggle co-pay on 2.2x peak tutor payouts lifts 15-week semester fill rate from ~38% (fixed scrip) to >=65%.
-    risk_note: Over-aggressive demurrage or under-funded Comb buffers could deplete reserves before Finals Week 14 if midterm surges exceed 4.0x baseline.
-    owner_agents:
-      - ux-behavior-agent
-      - product-lifecycle-agent
-    related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
-
-  - id: EXP-003
-    status: open-simulation
-    title: Pairwise Discoordination + COCM Dorm-Cluster Sybil Bound
-    hypothesis: Combining pairwise decay (alpha=1.5), EigenTrust anchors, and COCM Fiedler-vector dorm-SBT clustering caps m-node colluder rings below C(m,2)*k extraction.
-    risk_note: Over-penalizing shared dorm/major SBTs could unintentionally discount legitimate study groups in small upper-division departments.
-    owner_agents:
-      - sci-research-agent
-      - contracts-service-agent
-    related_adr: docs/adr/0002-enforce-directional-service-barter-state-transitions.md
-
-  - id: EXP-004
-    status: open-simulation
-    title: Khoury Mortality Bifurcation & EO Promotion Circuit Breaker
-    hypothesis: Clamping Nurse-Tutor outbound promotion when Scout attrition approaches mu_crit prevents precocious foraging collapse and preserves >=85% freshman retention.
-    risk_note: Hard promotion clamps during prolonged cross-Hive demand shocks may temporarily slow outbound cross-campus pollination.
-    owner_agents:
-      - sci-research-agent
-      - ux-behavior-agent
-    related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
-
-  - id: EXP-005
-    status: open-simulation
-    title: Asymmetric Campus NAT Partition & NATS JetStream Recovery
-    hypothesis: Outbound NATS Leaf Node JetStream mirrors recover 100% of AcceptedStatusGranted proofs after 30-minute Pumba/Toxiproxy WAN partitions with zero double-minting.
-    risk_note: Long WAN partitions exceeding Prometheus 30m out-of-order windows require replay deduplication and epoch FX snapshot pinning.
-    owner_agents:
-      - system-arch-agent
-      - contracts-service-agent
-    related_adr: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
-
-  - id: EXP-006
-    status: open-simulation
-    title: Mesa Baseline vs. External n8n Hybrid Trigger Arm
-    hypothesis: Compare deterministic seeded Mesa ABM + ML/RL runs against external n8n/Activepieces webhook-triggered surge and Sybil arms on seed parity, latency, and collusion detection.
-    risk_note: External LLM/webhook timing adds non-determinism and SUL license risk; keep triggers off-chain and replayable via logged inputs.
-    owner_agents:
-      - ux-behavior-agent
-      - contracts-service-agent
-    related_adr: docs/adr/0016-scope-external-workflow-automation-off-chain.md
+- id: EXP-001
+  status: open-simulation
+  title: Queen Receiver-Only Praise vs. Nepotism Stress-Test
+  hypothesis: Keep ratings private, cap roommate loops, and let Queens praise only learner success (tracing
+    backward to tutors) across Honest vs. Biased simulation arms.
+  risk_note: Nepotism (Queens disproportionately praising favored students) and gamification side-effects
+    are untested empirically; weights stay unlocked until simulated.
+  owner_agents:
+  - ux-behavior-agent
+  - sci-research-agent
+  related_adr: docs/adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md
+- id: EXP-002
+  status: open-simulation
+  title: 15-Week Finals Crunch & Waggle 60% Co-Pay Fill Rate
+  hypothesis: Pairing ~2%/mo Weeks 1-13 demurrage with 60% Comb Waggle co-pay on 2.2x peak tutor payouts
+    lifts 15-week semester fill rate from ~38% (fixed scrip) to >=65%.
+  risk_note: Over-aggressive demurrage or under-funded Comb buffers could deplete reserves before Finals
+    Week 14 if midterm surges exceed 4.0x baseline.
+  owner_agents:
+  - ux-behavior-agent
+  - product-lifecycle-agent
+  related_adr: docs/adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md
+- id: EXP-003
+  status: open-simulation
+  title: Pairwise Discoordination + COCM Dorm-Cluster Sybil Bound
+  hypothesis: Combining pairwise decay (alpha=1.5), EigenTrust anchors, and COCM Fiedler-vector dorm-SBT
+    clustering caps m-node colluder rings below C(m,2)*k extraction.
+  risk_note: Over-penalizing shared dorm/major SBTs could unintentionally discount legitimate study groups
+    in small upper-division departments.
+  owner_agents:
+  - sci-research-agent
+  - contracts-service-agent
+  related_adr: docs/adr/0002-enforce-directional-service-barter-state-transitions.md
+- id: EXP-004
+  status: open-simulation
+  title: Khoury Mortality Bifurcation & EO Promotion Circuit Breaker
+  hypothesis: Clamping Nurse-Tutor outbound promotion when Scout attrition approaches mu_crit prevents
+    precocious foraging collapse and preserves >=85% freshman retention.
+  risk_note: Hard promotion clamps during prolonged cross-Hive demand shocks may temporarily slow outbound
+    cross-campus pollination.
+  owner_agents:
+  - sci-research-agent
+  - ux-behavior-agent
+  related_adr: docs/adr/0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md
+- id: EXP-005
+  status: open-simulation
+  title: Asymmetric Campus NAT Partition & NATS JetStream Recovery
+  hypothesis: Outbound NATS Leaf Node JetStream mirrors recover 100% of AcceptedStatusGranted proofs after
+    30-minute Pumba/Toxiproxy WAN partitions with zero double-minting.
+  risk_note: Long WAN partitions exceeding Prometheus 30m out-of-order windows require replay deduplication
+    and epoch FX snapshot pinning.
+  owner_agents:
+  - system-arch-agent
+  - contracts-service-agent
+  related_adr: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
+- id: EXP-006
+  status: open-simulation
+  title: Mesa Baseline vs. External n8n Hybrid Trigger Arm
+  hypothesis: Compare deterministic seeded Mesa ABM + ML/RL runs against external n8n/Activepieces webhook-triggered
+    surge and Sybil arms on seed parity, latency, and collusion detection.
+  risk_note: External LLM/webhook timing adds non-determinism and SUL license risk; keep triggers off-chain
+    and replayable via logged inputs.
+  owner_agents:
+  - ux-behavior-agent
+  - contracts-service-agent
+  related_adr: docs/adr/0016-scope-external-workflow-automation-off-chain.md
