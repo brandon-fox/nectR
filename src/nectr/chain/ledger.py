@@ -2,31 +2,24 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import time
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-def compute_sha256(payload: str) -> str:
-    """Compute a deterministic SHA-256 hex digest."""
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-
-def compute_merkle_root(transactions: list[dict[str, Any]]) -> str:
-    """Compute a deterministic Merkle tree root over an ordered list of transactions."""
-    if not transactions:
-        return compute_sha256("EMPTY_BLOCK")
-    layer = [
-        compute_sha256(json.dumps(tx, sort_keys=True, separators=(",", ":"))) for tx in transactions
-    ]
-    while len(layer) > 1:
-        if len(layer) % 2 == 1:
-            layer.append(layer[-1])
-        layer = [compute_sha256(layer[i] + layer[i + 1]) for i in range(0, len(layer), 2)]
-    return layer[0]
+from nectr.chain.crypto import (
+    CanonicalPayload,
+    Ed25519Signer,
+    Ed25519Verifier,
+    SignedTransaction,
+    compute_sha256,
+)
+from nectr.chain.merkle import (
+    MerkleInclusionProof,
+    TransactionLike,
+    compute_merkle_root,
+    compute_tx_leaf_hash,
+)
 
 
 class UsefulComputeProof(BaseModel):
@@ -42,8 +35,8 @@ class UsefulComputeProof(BaseModel):
     graph_state_hash: str
 
     def to_commitment_hash(self) -> str:
-        payload = json.dumps(self.model_dump(), sort_keys=True, separators=(",", ":"))
-        return compute_sha256(payload)
+        """Return the canonical SHA-256 hex commitment over this UsefulComputeProof."""
+        return CanonicalPayload.hash_hex(self)
 
 
 class BlockHeader(BaseModel):
@@ -61,8 +54,8 @@ class BlockHeader(BaseModel):
     timestamp: float
 
     def block_hash(self) -> str:
-        payload = json.dumps(self.model_dump(), sort_keys=True, separators=(",", ":"))
-        return compute_sha256(payload)
+        """Return the canonical SHA-256 hex digest of this BlockHeader."""
+        return CanonicalPayload.hash_hex(self)
 
 
 class Block(BaseModel):
@@ -72,7 +65,10 @@ class Block(BaseModel):
 
     header: BlockHeader
     useful_compute_proof: UsefulComputeProof
-    transactions: list[dict[str, Any]] = Field(default_factory=list)
+    transactions: list[SignedTransaction | dict[str, Any]] = Field(default_factory=list)
+    inclusion_proofs: list[MerkleInclusionProof] = Field(default_factory=list)
+    proposer_public_key: str | None = None
+    proposer_signature: str | None = None
 
     @property
     def block_hash(self) -> str:
@@ -83,10 +79,12 @@ class HiveBlockchain:
     """Private closed-loop PoUW-PoW blockchain for a localized campus Hive."""
 
     def __init__(self, hive_id: str, difficulty: int = 2) -> None:
+        if difficulty < 0:
+            raise ValueError("difficulty must be non-negative.")
         self.hive_id = hive_id
         self.difficulty = difficulty
         self.chain: list[Block] = []
-        self.mempool: list[dict[str, Any]] = []
+        self.mempool: list[SignedTransaction | dict[str, Any]] = []
         self._create_genesis_block()
 
     def _create_genesis_block(self) -> None:
@@ -105,7 +103,14 @@ class HiveBlockchain:
             knowledge_graph_root=genesis_proof.to_commitment_hash(),
             timestamp=1700000000.0,
         )
-        self.chain.append(Block(header=header, useful_compute_proof=genesis_proof, transactions=[]))
+        self.chain.append(
+            Block(
+                header=header,
+                useful_compute_proof=genesis_proof,
+                transactions=[],
+                inclusion_proofs=[],
+            )
+        )
 
     def _mine_header(
         self,
@@ -133,16 +138,23 @@ class HiveBlockchain:
                 return candidate
             nonce += 1
 
-    def submit_transaction(self, tx: dict[str, Any]) -> None:
-        """Queue a verified contract transaction into the Hive mempool."""
+    def submit_transaction(self, tx: SignedTransaction | dict[str, Any]) -> None:
+        """Queue a verified contract or Ed25519-signed transaction into the Hive mempool."""
+        if isinstance(tx, SignedTransaction) and not tx.verify_signature():
+            raise ValueError("Invalid Ed25519 signature on SignedTransaction.")
         self.mempool.append(tx)
+
+    def submit_signed_transaction(self, tx: SignedTransaction) -> None:
+        """Verify and queue an Ed25519-signed transaction into the Hive mempool."""
+        self.submit_transaction(tx)
 
     def mine_block(
         self,
         useful_compute_proof: UsefulComputeProof,
         timestamp: float | None = None,
+        proposer_signer: Ed25519Signer | None = None,
     ) -> Block:
-        """Mine a new PoUW-PoW block committing all queued transactions and the Knowledge Graph proof."""
+        """Mine a new PoUW-PoW block committing queued transactions and the Knowledge Graph proof."""
         prev_block = self.chain[-1]
         txs = list(self.mempool)
         self.mempool.clear()
@@ -156,24 +168,114 @@ class HiveBlockchain:
             knowledge_graph_root=kg_root,
             timestamp=timestamp,
         )
+        inclusion_proofs = [MerkleInclusionProof.from_transactions(txs, i) for i in range(len(txs))]
+        proposer_public_key: str | None = None
+        proposer_signature: str | None = None
+        if proposer_signer is not None:
+            proposer_public_key = proposer_signer.public_key_hex
+            proposer_signature = proposer_signer.sign_hex(header)
+
         block = Block(
             header=header,
             useful_compute_proof=useful_compute_proof,
             transactions=txs,
+            inclusion_proofs=inclusion_proofs,
+            proposer_public_key=proposer_public_key,
+            proposer_signature=proposer_signature,
         )
         self.chain.append(block)
         return block
 
+    def get_inclusion_proof(self, block_height: int, tx_index: int) -> MerkleInclusionProof:
+        """Retrieve or construct the Merkle inclusion proof for ``tx_index`` at ``block_height``."""
+        if block_height < 0 or block_height >= len(self.chain):
+            raise IndexError(f"Block height {block_height} out of range.")
+        block = self.chain[block_height]
+        if block.inclusion_proofs and 0 <= tx_index < len(block.inclusion_proofs):
+            return block.inclusion_proofs[tx_index]
+        return MerkleInclusionProof.from_transactions(block.transactions, tx_index)
+
     def verify_chain(self) -> bool:
-        """Verify cryptographic PoW, hash links, Merkle roots, and PoUW graph commitments."""
+        """Verify PoW, hash links, Merkle roots, inclusion proofs, Ed25519 signatures, and PoUW."""
+        if not self.chain:
+            return False
         prefix = "0" * self.difficulty
         for idx, block in enumerate(self.chain):
-            if not block.block_hash.startswith(prefix):
+            if block.header.hive_id != self.hive_id or block.header.height != idx:
                 return False
-            if block.header.merkle_root != compute_merkle_root(block.transactions):
+            if block.header.difficulty != self.difficulty:
                 return False
-            if block.header.knowledge_graph_root != block.useful_compute_proof.to_commitment_hash():
+            try:
+                current_block_hash = block.block_hash
+                expected_merkle_root = compute_merkle_root(block.transactions)
+                expected_kg_root = block.useful_compute_proof.to_commitment_hash()
+            except (ValueError, TypeError):
                 return False
-            if idx > 0 and block.header.prev_hash != self.chain[idx - 1].block_hash:
+            if not current_block_hash.startswith(prefix):
                 return False
+            if block.header.merkle_root != expected_merkle_root:
+                return False
+
+            if not block.transactions and block.inclusion_proofs:
+                return False
+            for tx in block.transactions:
+                if isinstance(tx, SignedTransaction):
+                    try:
+                        if not tx.verify_signature():
+                            return False
+                    except (ValueError, TypeError):
+                        return False
+            if block.inclusion_proofs:
+                if len(block.inclusion_proofs) != len(block.transactions):
+                    return False
+                expected_leaf_count = len(block.transactions)
+                for tx_idx, (proof, tx) in enumerate(
+                    zip(block.inclusion_proofs, block.transactions, strict=True)
+                ):
+                    if proof.index != tx_idx or proof.leaf_count != expected_leaf_count:
+                        return False
+                    try:
+                        if not proof.verify_transaction(tx, expected_root=block.header.merkle_root):
+                            return False
+                    except (ValueError, TypeError):
+                        return False
+
+            if block.header.knowledge_graph_root != expected_kg_root:
+                return False
+            if idx == 0 and block.header.prev_hash != "0" * 64:
+                return False
+            if idx > 0:
+                try:
+                    prev_block_hash = self.chain[idx - 1].block_hash
+                except (ValueError, TypeError):
+                    return False
+                if block.header.prev_hash != prev_block_hash:
+                    return False
+
+            if block.proposer_public_key is not None or block.proposer_signature is not None:
+                if block.proposer_public_key is None or block.proposer_signature is None:
+                    return False
+                try:
+                    verifier = Ed25519Verifier.from_public_hex(block.proposer_public_key)
+                    if not verifier.verify(block.header, block.proposer_signature):
+                        return False
+                except (ValueError, TypeError):
+                    return False
         return True
+
+
+__all__ = [
+    "Block",
+    "BlockHeader",
+    "CanonicalPayload",
+    "Ed25519Signer",
+    "Ed25519Verifier",
+    "HiveBlockchain",
+    "MerkleInclusionProof",
+    "SignedTransaction",
+    "TransactionLike",
+    "UsefulComputeProof",
+    "compute_merkle_root",
+    "compute_sha256",
+    "compute_tx_leaf_hash",
+]
