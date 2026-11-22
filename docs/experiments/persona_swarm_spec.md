@@ -1,6 +1,6 @@
 # Behavioral Persona Swarm & Agent-Based Computational Economics (ACE) Specification
 
-To validate **nectR**'s mechanism design empirically prior to human-subjects IRB trials, `src/nectr/personas/` and `experiments/` implement a deterministic **Agent-Based Computational Economics (`ACE`)** testbed where **6 Behavioral Persona Sub-Agents** execute real Ed25519-signed transactions against `HiveContractEngine` and `HiveBlockchain`.
+To validate **nectR**'s mechanism design empirically prior to human-subjects IRB trials, `src/nectr/personas/` and `experiments/` implement a deterministic **Agent-Based Computational Economics (`ACE`)** testbed structured according to the **ODD+D (`Overview, Design Concepts, Details + Human Decision-Making`)** protocol for **JASSS / JEBO** (`DEC-020`), where **6 Behavioral Persona Sub-Agents** execute real signed transactions (`eth-account` `secp256k1` EIP-712 for `vyper`/`py-evm` contracts + `Ed25519` for `PoUW-PoW` blocks, `ADR-0017`, `DEC-019`) against `HiveContractEngine` and `HiveBlockchain`.
 
 ---
 

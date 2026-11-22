@@ -1,0 +1,18 @@
+# Proposal: Lock `/grill-me` Decisions for Vyper `py-evm` Contracts, PactFlow API/Event Contracts, `micro_nectr` Math, and JASSS/DRMS Framing (`lock-vyper-pactflow-and-grill-me-decisions`)
+
+## Why
+Interactive `/grill-me` alignment resolved seven architectural and product-owner design branches before launching Swarm Wave 2:
+1. **Open-Source Chain Smart Contracts (`ADR-0017`):** Replace custom Python FSM logic in `src/nectr/contracts/` with **5 modular `vyper` (`Apache-2.0`) `.vy` smart contracts** executed on a **zero-gas-price `eth-tester[py-evm]` + `web3.py` (`MIT`)** EVM backend anchored into `HiveBlockchain` `PoUW-PoW` headers (`evm_state_root` + `kg_root`), avoiding copyleft traps (`solc` `GPL-3.0`, `snekmate` `AGPL-3.0`, `bitcoinlib` `GPLv3+`, `python-bitcoinlib` `LGPLv3+`).
+2. **PactFlow Consumer-Driven, Bi-Directional & Async Message API Contracts (`ADR-0018`):** Enforce **`pact-python` v4.2+ (`MIT`) + PactFlow** across all HTTP REST endpoints (`FastAPI` $\leftrightarrow$ UI / Personas / LTI 1.3) and asynchronous NATS JetStream domain events (`AcceptedStatusGranted`, `SessionSettled`), running offline verification on local hooks/fork PRs (`pacts/*.json`) and `can-i-deploy` + OpenAPI 3.1 bi-directional verification in PactFlow CI/releases.
+3. **Integer `micro_nectr` (`10^6`) & `bps` On-Chain Arithmetic (`DEC-017`):** Eliminate IEEE-754 float drift on-chain via `uint256` `micro_nectr` (`1 nectR = 1,000,000` units) and basis points (`0..10,000 bps`), converting to decimals only at Service/UI boundaries.
+4. **Direct On-Chain Learner Attestation Scores (`DEC-018`):** Keep co-signed learner session scores (`0..10,000 bps`) directly inside `DirectionalServiceBarter.vy`, relying on integer pairwise decay ($\alpha=1.5$) and Learn-then-Teach lineage ($\gamma=0.5$) without external score oracles.
+5. **Canonical `SQLModel` Block-Log Replay (`ADR-0009` / `ADR-0017`):** Persist immutable `PoUW-PoW` blocks and signed `.vy` EVM transactions in `SQLModel` (`Alembic` SQLite WAL), deterministically replaying into `py-evm` on reload (`evm_state_root` check) while projecting CQRS read tables.
+6. **Layered `secp256k1` EVM + `Ed25519` Consensus Signing (`DEC-019`):** Bees & Queens sign `.vy` transactions and EIP-712 session handshakes with `eth-account` (`secp256k1`, `MIT`) for native `py-evm` `msg.sender`/`ecrecover`, while `PoUW-PoW` block headers and NATS cross-Hive proof envelopes use `cryptography` Ed25519 + `canonicaljson` + `remerkleable` (`ADR-0008`).
+7. **JASSS / JEBO (`ODD+D`) Academic Venue & NSF DRMS / RSF Primary Grant Track (`DEC-020`):** Anchor `paper/nectR_whitepaper.md` on the Agent-Based Computational Economics & Behavioral Science track (**JASSS / JEBO** with an explicit **ODD+D** ABM protocol specification), paired with **NSF DRMS + Russell Sage Foundation (`J-PAL` RCT)** as primary Q1 2027 funding targets.
+
+## Bounded Contexts & Paths Affected
+- `docs/adr/` (`0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md`, `0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md`, `index.md`, `adrlint.lock`)
+- `docs/planning/` (`decisions.yaml`, `decision_log.md`, `roadmap.md`, `agent_orchestration.md`)
+- `openspec/specs/decision-governance/spec.md` and `openspec/changes/` (`adopt-vyper-and-zero-gas-pyevm/`, `add-pactflow-api-and-message-contracts/`, `add-biomimetic-lifecycle-and-swarming-contracts/`, `add-sqlmodel-persistence-and-api/`)
+- `docs/architecture/` (`smart_contracts.md`, `system_design.md`), `docs/theory/whitepaper_outline.md`, `docs/experiments/persona_swarm_spec.md`, `docs/business/institutional_proposal.md`, `docs/glossary.md`, `mkdocs.yml`
+- `features/decision_governance.feature`, `features/steps/decision_governance_steps.py`, `tests/test_decision_governance.py`
