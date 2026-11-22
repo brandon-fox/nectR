@@ -39,13 +39,16 @@ def test_merkle_root_and_proof_commitments() -> None:
     r_even = compute_merkle_root([tx1, tx2])
     assert r_even != compute_merkle_root([tx2, tx1])
 
-    # Odd count duplicates final leaf hash
-    h1 = compute_sha256('{"amount":5,"id":"1"}')
-    h2 = compute_sha256('{"amount":7,"id":"2"}')
-    h3 = compute_sha256('{"amount":9,"id":"3"}')
-    left = compute_sha256(h1 + h2)
-    right = compute_sha256(h3 + h3)
-    assert compute_merkle_root([tx1, tx2, tx3]) == compute_sha256(left + right)
+    from nectr.chain import MerkleInclusionProof
+
+    # Odd count uses remerkleable SSZ tree padding with leaf_count mix-in
+    r_odd = compute_merkle_root([tx1, tx2, tx3])
+    assert len(r_odd) == 64
+    assert r_odd != r_even
+    assert r_odd == compute_merkle_root([tx1, tx2, tx3])
+    proof_3 = MerkleInclusionProof.from_transactions([tx1, tx2, tx3], index=2)
+    assert proof_3.merkle_root == r_odd
+    assert proof_3.verify_transaction(tx3, expected_root=r_odd) is True
 
     proof = _sample_proof()
     with pytest.raises(ValidationError):
