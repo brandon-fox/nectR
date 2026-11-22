@@ -18,9 +18,7 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     When git tracking, .gitattributes, and pyproject.toml extras are inspected
     Then HANDOFF.md is untracked, LF normalization is configured, and persona extras exist
 
-  @red
   Scenario: Agent operating rules enforce structure freeze until v0.1.0 and orchestration banner
     Given the repository documentation root
     When the documentation freeze validator inspects AGENTS.md and agent_orchestration.md
     Then AGENTS.md enforces the structure freeze and agent_orchestration.md displays the superseded banner
-

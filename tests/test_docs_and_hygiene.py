@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -84,13 +82,10 @@ def test_six_deep_research_tracks_and_five_wave_swarm_plan_documented() -> None:
     assert "Swarm Wave 5" in orchestration
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: DC1 structure freeze in AGENTS.md and agent_orchestration.md banner not yet implemented",
-)
 def test_structure_freeze_until_v010() -> None:
     """Verify AGENTS.md has structure freeze section and agent_orchestration.md has superseded banner."""
     agents_md = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+
     assert "Structure Freeze Until v0.1.0" in agents_md or "Freeze Until v0.1.0" in agents_md
     assert (
         "no new ADRs, change proposals, skills, workflows or gates outside the Plan to B+ until v0.1.0"
