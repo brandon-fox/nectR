@@ -1,6 +1,8 @@
-# nectR — Federated Biomimetic Campus Tutoring Blockchain & Closed-Economy Ecosystem
+# nectR
 
-**nectR** is an open-source, research-driven monorepo for a private, closed-loop **Proof-of-Useful-Work & Proof-of-Work (`PoUW-PoW`)** blockchain and multi-agent behavioral economy modeled after honeybee (*Apis mellifera*) colony dynamics. All domain acronyms, equations, and roles are defined in the canonical [Domain Glossary](docs/glossary.md).
+> **Status:** research prototype — a campus peer-tutoring credit economy with deterministic smart contracts, agent simulation, and a signed audit log.
+
+**nectR** is an open-source research prototype exploring how universities can organize peer tutoring as a closed-loop credit economy. Students earn tutoring credits (nectR) by teaching peers and spend them when receiving tutoring, backed by a campus treasury (the Comb). The protocol uses deterministic smart contracts, simulated economic agent personas, and a signed cryptographic audit log to study token velocity, anti-collusion incentives, and academic retention. All domain acronyms, equations, and roles are defined in the canonical [Domain Glossary](docs/glossary.md).
 
 ---
 
@@ -68,3 +70,15 @@ Run `uv run nectr-docs tree` at any time to inspect the live directory tree dire
 
 4. **Optional: Shipped Repository Agent Skills (`.agents/skills/`):**
    - The repository ships portable skills and rules under `.agents/skills/` and `.agents/rules/` (validated by `tests/test_skills_spec.py`) for AI coding assistants that support workspace skill loading, while every workflow remains 100% runnable via standard CLI commands above (`uv run adrlint`, `uv run nectr-decisions`, `uv run nectr-citations`, `uv run nectr-docs`, `uv run pytest`, `uv run behave`).
+
+---
+
+## Independence
+
+This is a personal project by Brandon Fox, built on my own time and equipment. It is not affiliated with, endorsed by, or derived from the work of any employer, current or former, and does not represent their views, products or practices. Licensed under the MIT License; principles at [First-ADE/PRINCIPLES.md](https://github.com/First-ADE/.github/blob/main/PRINCIPLES.md).
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for the full text.

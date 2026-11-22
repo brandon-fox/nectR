@@ -22,3 +22,8 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     Given the repository documentation root
     When the documentation freeze validator inspects AGENTS.md and agent_orchestration.md
     Then AGENTS.md enforces the structure freeze and agent_orchestration.md displays the superseded banner
+
+  Scenario: README documents plain-language intro, status, personal-capacity notice, and license
+    Given the repository documentation root
+    When the README transparency validator inspects README and LICENSE
+    Then README has a status line within ten lines and an Independence section and license link

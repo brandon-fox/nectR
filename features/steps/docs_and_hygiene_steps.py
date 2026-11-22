@@ -110,3 +110,27 @@ def step_then_freeze_ok(context) -> None:
     )
     assert "superseded for current work by the Plan to B+" in context.orch_text
     assert "Waves 3 to 5 are out of scope until after v0.1.0" in context.orch_text
+
+
+@when("the README transparency validator inspects README and LICENSE")
+def step_when_inspect_readme_transparency(context) -> None:
+    readme_path = context.repo_root / "README.md"
+    context.readme_lines = (
+        readme_path.read_text(encoding="utf-8").splitlines() if readme_path.exists() else []
+    )
+    context.readme_text = "\n".join(context.readme_lines)
+    context.has_license = (context.repo_root / "LICENSE").exists()
+
+
+@then("README has a status line within ten lines and an Independence section and license link")
+def step_then_readme_transparency_ok(context) -> None:
+    assert context.readme_lines and context.readme_lines[0].startswith("# ")
+    status_lines = [ln for ln in context.readme_lines[:10] if ln.startswith("> **Status:**")]
+    assert len(status_lines) == 1, "Expected > **Status:** within first 10 lines of README.md"
+    assert "research prototype" in status_lines[0]
+    assert "## Independence" in context.readme_text
+    assert "This is a personal project by Brandon Fox" in context.readme_text
+    assert "First-ADE/PRINCIPLES.md" in context.readme_text
+    if context.has_license:
+        assert "## License" in context.readme_text or "[LICENSE](LICENSE)" in context.readme_text
+        assert "MIT" in context.readme_text
