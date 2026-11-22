@@ -1,5 +1,7 @@
 # Honeybee (*Apis mellifera*) Biomimetic Protocol Mapping & Mathematical Formalism
 
+> **Biomimetic Metaphor Notice:** The terminology and mechanisms described here use honeybee (*Apis mellifera*) superorganism dynamics as a biomimetic design metaphor and mathematical analogy for human peer-to-peer tutoring coordination, liquidity balancing, and decentralized administration, rather than literal entomological reproduction.
+
 The **nectR** decentralized peer-to-peer (P2P) tutoring marketplace translates six superorganism mechanisms of the Western honeybee (*Apis mellifera*)—trophallactic nectar refinement, waggle/tremble surge signaling, Queen Mandibular Pheromone (`QMP`) non-tutoring governance, polyandrous worker policing, guard-bee adaptive acceptance, and ethyl oleate-regulated temporal polyethism with quorum-sensed reproductive swarming—into formal differential equations and deterministic smart-contract invariants in `src/nectr/contracts/` and `src/nectr/services/`. Every parameter and mechanism aligns with the [Domain Glossary](../glossary.md), the [Fast Decision Log](../planning/decision_log.md) (`DEC-001` through `DEC-015`, `EXP-001`, `EXP-004`), and verified primary literature in `paper/references.yaml` (tracked in [Provenance & Lineage](provenance_lineage.md)).
 
 ## 1. Problem Statement & Scope Boundaries

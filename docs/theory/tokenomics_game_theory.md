@@ -211,7 +211,6 @@ Executing `run_multi_hive_persona_simulation()` (`src/nectr/personas/simulator.p
 
 | Telemetry Metric (`SimulationTelemetry`) | Scripted smoke-scenario output (not an experiment) (`nectr_sim_baseline_2026`) | Theoretical Invariant Validated |
 | :--- | :---: | :--- |
-| :--- | :---: | :--- |
 | `hive_a_blocks_mined` / `hive_a_chain_valid` | `5` / `True` | Signed audit log Merkle + `UsefulComputeProof` chain integrity |
 | `hive_a_comb_reserve` | `905.5` | `1000.0` Seed Comb $-$ `95.0` `RAW_POLLEN` $+$ `0.5` `5%` bridge toll |
 | `honest_worker_effectiveness` | `3.2062` | `>= 0.6` attestation + `0.25 * W` Learn-then-Teach cascade |

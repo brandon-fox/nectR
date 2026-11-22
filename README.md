@@ -4,6 +4,8 @@
 
 **nectR** is an open-source research prototype exploring how universities can organize peer tutoring as a closed-loop credit economy. Students earn tutoring credits (nectR) by teaching peers and spend them when receiving tutoring, backed by a campus treasury (the Comb). The protocol uses deterministic smart contracts, simulated economic agent personas, and a signed cryptographic audit log to study token velocity, anti-collusion incentives, and academic retention. All domain acronyms, equations, and roles are defined in the canonical [Domain Glossary](docs/glossary.md).
 
+> **Biomimetic Design Metaphor:** nectR draws on honeybee (*Apis mellifera*) superorganism dynamics as an organizational and economic design metaphor—translating biological mechanisms (such as nectar-to-honey refinement, waggle dance signaling, and worker policing) into software patterns for peer-to-peer tutoring coordination, liquidity balancing, and decentralized administration.
+
 ---
 
 ## Priority Hierarchy of Deliverables

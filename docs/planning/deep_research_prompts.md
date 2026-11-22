@@ -1,5 +1,7 @@
 # Gemini Deep Research Prompts & Foundational Reports for nectR
 
+> **Notice:** The six foundational research reports below were generated via Gemini Deep Research as reference literature surveys. Key findings, historical precedents, and formal equations have been verified and integrated into nectR's specifications.
+
 These six completed Deep Research tracks feed the theoretical foundation in `docs/theory/`, the academic manuscript in `paper/`, the institutional sponsorship strategy in `business/`, and the system architecture in `docs/architecture/`.
 
 ## Prompt 1: Token Minting, Treasury Mechanics & Crypto Architectures in Closed Economies

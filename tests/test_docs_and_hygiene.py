@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -209,10 +207,6 @@ def test_unsourced_figures_labeled_as_assumptions_and_smoke_scenario_retitle() -
     assert "Scripted smoke-scenario output (not an experiment)" in game_theory
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: AI-generated research and bee metaphor must be explicitly labeled",
-)
 def test_ai_generated_research_and_bee_metaphor_labeled() -> None:
     """Verify research reports carry AI-generated notices and bee metaphor is explicitly labeled."""
     research_dir = REPO_ROOT / "docs" / "theory" / "research"
