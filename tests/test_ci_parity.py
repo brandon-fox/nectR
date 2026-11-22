@@ -5,7 +5,6 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-import pytest
 import yaml
 
 from nectr.devtools.ci_parity import (
@@ -44,10 +43,6 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
             ruff check src tests features
             ruff format --check src tests features
             pymarkdown --config pyproject.toml scan README.md docs/theory paper
-            mkdocs build --strict
-            python -m mypy src
-            python -m pytest
-            python -m behave --tags=-red
             """
         ),
         encoding="utf-8",
@@ -62,8 +57,9 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
             git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
             git grep -nE '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
             mkdocs build --strict
+            python -m mypy src
             python -m pytest
-            python -m behave
+            python -m behave --tags=-red
             """
         ),
         encoding="utf-8",
@@ -76,35 +72,50 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
               - repo: local
                 hooks:
                   - id: detect-secrets
-                    entry: detect-secrets-hook --baseline .secrets.baseline
+                    entry: uv run detect-secrets-hook --baseline .secrets.baseline
+                    stages: [pre-commit]
                   - id: forbid-local-paths
                     entry: '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
+                    stages: [pre-commit]
                   - id: adrlint-check
-                    entry: adrlint lint
+                    entry: uv run adrlint lint
+                    stages: [pre-commit]
                   - id: check-jsonschema-decisions
-                    entry: check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
+                    entry: uv run check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
+                    stages: [pre-commit]
                   - id: nectr-decisions-check
-                    entry: python -m nectr.devtools.decisions check
+                    entry: uv run python -m nectr.devtools.decisions check
+                    stages: [pre-commit]
                   - id: nectr-citations-check
-                    entry: python -m nectr.devtools.citations check
+                    entry: uv run python -m nectr.devtools.citations check
+                    stages: [pre-commit]
                   - id: nectr-docs-check
-                    entry: python -m nectr.devtools.docs_sync check
+                    entry: uv run python -m nectr.devtools.docs_sync check
+                    stages: [pre-commit]
                   - id: nectr-spec-links-check
-                    entry: python -m nectr.devtools.spec_links
+                    entry: uv run python -m nectr.devtools.spec_links
+                    stages: [pre-commit]
                   - id: ruff-check
-                    entry: ruff check src tests features
+                    entry: uv run ruff check src tests features
+                    stages: [pre-commit]
                   - id: ruff-format-check
-                    entry: ruff format --check src tests features
-                  - id: mkdocs-build-strict
-                    entry: mkdocs build --strict
+                    entry: uv run ruff format --check src tests features
+                    stages: [pre-commit]
                   - id: pymarkdown-lint
-                    entry: pymarkdown --config pyproject.toml scan README.md docs/theory paper
+                    entry: uv run pymarkdown --config pyproject.toml scan README.md docs/theory paper
+                    stages: [pre-commit]
+                  - id: mkdocs-build-strict
+                    entry: uv run mkdocs build --strict
+                    stages: [pre-push]
                   - id: mypy-strict-typecheck
-                    entry: python -m mypy src
+                    entry: uv run python -m mypy src
+                    stages: [pre-push]
                   - id: nectr-tdd-unit-tests
-                    entry: python -m pytest
-                  - id: nectr-bdd-behave-precommit
-                    entry: python -m behave --tags=-red
+                    entry: uv run python -m pytest
+                    stages: [pre-push]
+                  - id: nectr-bdd-behave-push
+                    entry: uv run python -m behave --tags=-red
+                    stages: [pre-push]
             """
         ),
         encoding="utf-8",
@@ -441,53 +452,20 @@ def test_check_pipeline_parity_accepts_40_char_sha_pinned_actions(tmp_path: Path
     assert report.passed is True
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: TL1 fast pre-commit / pre-push split not yet implemented"
-)
 def test_hooks_split_fast_pre_commit_from_heavy_pre_push(tmp_path: Path) -> None:
     _write_synthetic_workspace(tmp_path, include_release=True)
-    githooks = tmp_path / ".githooks"
-    (githooks / "pre-commit").write_text(
-        textwrap.dedent(
-            """\
-            #!/usr/bin/env sh
-            REPO_ROOT=$(cygpath -u "$(git rev-parse --show-toplevel)")
-            PATH="$REPO_ROOT/.venv/Scripts:$REPO_ROOT/.venv/bin:$PATH"
-            git diff --cached --name-only -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
-            git grep --cached -nE '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
-            adrlint --no-color lint
-            adrlint --no-color format --check
-            adrlint --no-color lock --check
-            check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
-            python -m nectr.devtools.decisions check
-            python -m nectr.devtools.citations check
-            python -m nectr.devtools.docs_sync check
-            python -m nectr.devtools.spec_links
-            ruff check src tests features
-            ruff format --check src tests features
-            pymarkdown --config pyproject.toml scan README.md docs/theory paper
-            """
-        ),
-        encoding="utf-8",
-    )
-    (githooks / "pre-push").write_text(
-        textwrap.dedent(
-            """\
-            #!/usr/bin/env sh
-            REPO_ROOT=$(cygpath -u "$(git rev-parse --show-toplevel)")
-            PATH="$REPO_ROOT/.venv/Scripts:$REPO_ROOT/.venv/bin:$PATH"
-            git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
-            git grep -nE '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
-            mkdocs build --strict
-            python -m mypy src
-            python -m pytest
-            python -m behave --tags=-red
-            """
-        ),
-        encoding="utf-8",
-    )
     synthetic_report = check_pipeline_parity(tmp_path)
     assert synthetic_report.passed is True, synthetic_report.errors
+
+    # Dropping --tags=-red from pre-push must fail behave parity.
+    pre_push_file = tmp_path / ".githooks" / "pre-push"
+    pre_push_file.write_text(
+        pre_push_file.read_text(encoding="utf-8").replace(" --tags=-red", ""),
+        encoding="utf-8",
+    )
+    broken_report = check_pipeline_parity(tmp_path)
+    assert broken_report.passed is False
+    assert any(diag.gate == "behave" and not diag.passed for diag in broken_report.diagnostics)
 
     repo_root = Path(__file__).resolve().parents[1]
     pre_commit_text = (repo_root / ".githooks" / "pre-commit").read_text(encoding="utf-8")

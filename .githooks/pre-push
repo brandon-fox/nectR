@@ -19,5 +19,6 @@ if git grep -nE '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/[:space:]]+|\.gemini
 fi
 
 mkdocs build --strict
+python -m mypy src .agents/lib .agents/skills tests/test_skills_spec.py
 python -m pytest
-python -m behave
+python -m behave --tags=-red

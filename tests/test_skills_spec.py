@@ -33,8 +33,8 @@ def test_agent_files_have_no_local_paths() -> None:
 
 
 def test_mypy_is_enforced_in_commit_hooks() -> None:
-    """Verify mypy is configured in both .pre-commit-config.yaml and .githooks/pre-commit."""
+    """Verify mypy is configured in both .pre-commit-config.yaml and .githooks/pre-push."""
     pre_commit_cfg = (REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
-    git_hook = (REPO_ROOT / ".githooks" / "pre-commit").read_text(encoding="utf-8")
+    git_hook = (REPO_ROOT / ".githooks" / "pre-push").read_text(encoding="utf-8")
     assert "mypy" in pre_commit_cfg, "mypy hook missing from .pre-commit-config.yaml"
-    assert "mypy" in git_hook, "mypy check missing from .githooks/pre-commit"
+    assert "mypy" in git_hook, "mypy check missing from .githooks/pre-push"
