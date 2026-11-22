@@ -225,3 +225,28 @@ def step_then_audit_log_wording_ok(context) -> None:
     sys_design_text = context.sys_design_path.read_text(encoding="utf-8")
     assert "Private PoUW-PoW Blockchain" not in sys_design_text
     assert "Signed Audit Log" in sys_design_text or "signed audit log" in sys_design_text
+
+
+@when(
+    "the assumption and smoke scenario validator inspects institutional proposal and tokenomics game theory"
+)
+def step_when_inspect_assumptions_and_smoke_scenario(context) -> None:
+    context.proposal_text = (
+        context.repo_root / "docs" / "business" / "institutional_proposal.md"
+    ).read_text(encoding="utf-8")
+    context.game_theory_text = (
+        context.repo_root / "docs" / "theory" / "tokenomics_game_theory.md"
+    ).read_text(encoding="utf-8")
+
+
+@then(
+    "institutional proposal labels fill rates and ROI inputs as assumptions and tokenomics game theory retitles smoke scenario output"
+)
+def step_then_assumptions_and_smoke_scenario_ok(context) -> None:
+    assert "38.0%" in context.proposal_text and "67.4%" in context.proposal_text
+    assert "assumption" in context.proposal_text.lower()
+    assert (
+        "planning assumption" in context.proposal_text.lower()
+        or "modeled assumption" in context.proposal_text.lower()
+    )
+    assert "Scripted smoke-scenario output (not an experiment)" in context.game_theory_text
