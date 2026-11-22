@@ -42,3 +42,8 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     Given the repository documentation root
     When the assumption and smoke scenario validator inspects institutional proposal and tokenomics game theory
     Then institutional proposal labels fill rates and ROI inputs as assumptions and tokenomics game theory retitles smoke scenario output
+
+  Scenario: Documentation labels AI-generated research reports and the honeybee design metaphor
+    Given the repository documentation root
+    When the AI research and metaphor validator inspects research reports, README, biomimicry model, and tokenomics
+    Then all deep research reports carry an AI-generated notice and bee terminology is labeled as a design metaphor

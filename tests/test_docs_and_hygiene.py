@@ -205,3 +205,29 @@ def test_unsourced_figures_labeled_as_assumptions_and_smoke_scenario_retitle() -
         encoding="utf-8"
     )
     assert "Scripted smoke-scenario output (not an experiment)" in game_theory
+
+
+def test_ai_generated_research_and_bee_metaphor_labeled() -> None:
+    """Verify research reports carry AI-generated notices and bee metaphor is explicitly labeled."""
+    research_dir = REPO_ROOT / "docs" / "theory" / "research"
+    for report_name in (
+        "biomimetic_hive_economics.md",
+        "federated_barter_tokenomics.md",
+        "federated_PoUW-PoW_blockchain_infrastructure.md",
+        "nectR_funding_and_pilot_strategy.md",
+        "permissive_tooling_survey_for_nectR.md",
+        "student_tutoring_mechanism_design.md",
+    ):
+        report_text = (research_dir / report_name).read_text(encoding="utf-8")
+        assert "AI-generated" in report_text or "Gemini Deep Research" in report_text
+
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "metaphor" in readme.lower()
+
+    biomimicry = (REPO_ROOT / "docs" / "theory" / "biomimicry_model.md").read_text(encoding="utf-8")
+    assert "metaphor" in biomimicry.lower()
+
+    game_theory = (REPO_ROOT / "docs" / "theory" / "tokenomics_game_theory.md").read_text(
+        encoding="utf-8"
+    )
+    assert "| :--- | :---: | :--- |\n| :--- | :---: | :--- |" not in game_theory
