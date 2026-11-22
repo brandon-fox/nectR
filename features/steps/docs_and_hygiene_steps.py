@@ -250,3 +250,39 @@ def step_then_assumptions_and_smoke_scenario_ok(context) -> None:
         or "modeled assumption" in context.proposal_text.lower()
     )
     assert "Scripted smoke-scenario output (not an experiment)" in context.game_theory_text
+
+
+@when(
+    "the AI research and metaphor validator inspects research reports, README, biomimicry model, and tokenomics"
+)
+def step_when_inspect_ai_research_and_metaphor(context) -> None:
+    context.research_dir = context.repo_root / "docs" / "theory" / "research"
+    context.readme_text = (context.repo_root / "README.md").read_text(encoding="utf-8")
+    context.biomimicry_text = (
+        context.repo_root / "docs" / "theory" / "biomimicry_model.md"
+    ).read_text(encoding="utf-8")
+    context.game_theory_text = (
+        context.repo_root / "docs" / "theory" / "tokenomics_game_theory.md"
+    ).read_text(encoding="utf-8")
+
+
+@then(
+    "all deep research reports carry an AI-generated notice and bee terminology is labeled as a design metaphor"
+)
+def step_then_ai_research_and_metaphor_ok(context) -> None:
+    for report_name in (
+        "biomimetic_hive_economics.md",
+        "federated_barter_tokenomics.md",
+        "federated_PoUW-PoW_blockchain_infrastructure.md",
+        "nectR_funding_and_pilot_strategy.md",
+        "permissive_tooling_survey_for_nectR.md",
+        "student_tutoring_mechanism_design.md",
+    ):
+        report_text = (context.research_dir / report_name).read_text(encoding="utf-8")
+        assert "AI-generated" in report_text or "Gemini Deep Research" in report_text, (
+            f"Missing notice in {report_name}"
+        )
+
+    assert "metaphor" in context.readme_text.lower()
+    assert "metaphor" in context.biomimicry_text.lower()
+    assert "| :--- | :---: | :--- |\n| :--- | :---: | :--- |" not in context.game_theory_text
