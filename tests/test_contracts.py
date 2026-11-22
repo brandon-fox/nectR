@@ -1123,3 +1123,77 @@ def test_learner_cancels_expired_escrow_and_recovers_original_token_state() -> N
     assert engine.accounts["learner_1"].liquid_nectr_balance == 0.0
     assert engine.sessions["s_expired"].status != SessionStatus.INTENT_ESCROWED
     engine.assert_supply_conservation()
+
+
+@pytest.mark.xfail(strict=True, reason="RED: CA3 dispute_session participant & fee cap guards")
+def test_dispute_session_requires_participant_and_rejects_full_fee_even_when_disputed() -> None:
+    engine = _setup_basic_hive()
+    engine.create_service_barter_escrow(
+        session_id="s_disp_guard",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=10.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    with pytest.raises(ContractViolationError):
+        engine.dispute_session(session_id="s_disp_guard", caller_id="queen_1")  # type: ignore[attr-defined]
+
+    engine.dispute_session(session_id="s_disp_guard", caller_id="learner_1")  # type: ignore[attr-defined]
+    assert engine.sessions["s_disp_guard"].status == SessionStatus.DISPUTED  # type: ignore[attr-defined]
+    engine.assert_supply_conservation()
+
+    with pytest.raises(ContractViolationError, match="service_fee_rate"):
+        engine.resolve_disputed_session(
+            queen_id="queen_1",
+            session_id="s_disp_guard",
+            tutor_share_ratio=0.5,
+            service_fee_rate=1.0,
+        )
+
+
+@pytest.mark.xfail(
+    strict=True, reason="RED: CA3 escrow expiry boundary, caller check & LIQUID_NECTR"
+)
+def test_cancel_expired_escrow_enforces_expiry_caller_and_liquid_refund() -> None:
+    engine = _setup_basic_hive()
+    # Give learner_1 20 LIQUID_NECTR
+    engine.create_service_barter_escrow(
+        "seed_w", "worker_1", "learner_1", "CS-101", 1.0, 20.0, TokenState.RAW_POLLEN
+    )
+    engine.settle_co_signed_session("seed_w", 1.0, "hw")
+    engine.create_service_barter_escrow(
+        "seed_l", "learner_1", "worker_1", "ART-101", 1.0, 20.0, TokenState.LIQUID_NECTR
+    )
+    engine.settle_co_signed_session("seed_l", 1.0, "hl")
+
+    engine.create_service_barter_escrow(  # type: ignore[call-arg]
+        session_id="s_liq_exp",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=12.0,
+        token_state=TokenState.LIQUID_NECTR,
+        created_at_epoch=10,
+        expiry_epochs=3,
+    )
+    # Not expired yet at epoch 13 (10 + 3 == 13, not > 13)
+    with pytest.raises(ContractViolationError, match="expired"):
+        engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+            session_id="s_liq_exp", learner_id="learner_1", current_epoch=13
+        )
+    # Non-learner cannot cancel even after expiry
+    with pytest.raises(ContractViolationError, match="Only learner"):
+        engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+            session_id="s_liq_exp", learner_id="worker_1", current_epoch=14
+        )
+    # Learner cancels at epoch 14 -> full 12.0 LIQUID_NECTR returned
+    res = engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+        session_id="s_liq_exp", learner_id="learner_1", current_epoch=14
+    )
+    assert res["refunded_amount"] == 12.0
+    assert engine.accounts["learner_1"].liquid_nectr_balance == 20.0
+    assert engine.sessions["s_liq_exp"].status == SessionStatus.CANCELLED  # type: ignore[attr-defined]
+    engine.assert_supply_conservation()
