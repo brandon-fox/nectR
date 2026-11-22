@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 
@@ -19,6 +19,8 @@ class HiveSnapshot:
     contract_state: dict[str, Any]
     blocks: list[dict[str, Any]]
     mempool: list[dict[str, Any]]
+    bee_public_keys: dict[str, str] = field(default_factory=dict)
+    bee_nonces: dict[str, int] = field(default_factory=dict)
 
 
 @runtime_checkable

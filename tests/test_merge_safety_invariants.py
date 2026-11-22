@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
+from typing import Any, cast
+
 import pytest
 from hypothesis import settings
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, initialize, invariant, rule
 
+from nectr.chain.crypto import Ed25519Signer, SignedTransaction
 from nectr.chain.ledger import (
     Block,
     BlockHeader,
@@ -43,7 +47,13 @@ def test_blockchain_merkle_and_all_four_tamper_detection_paths() -> None:
         gini_coefficient=0.2,
         graph_state_hash=compute_sha256("epoch-1"),
     )
-    chain.submit_transaction({"session_id": "s1", "amount": 10.0})
+    tx_signer = Ed25519Signer.from_seed(hashlib.sha256(b"merge_safety:tx").digest())
+    signed_tx = SignedTransaction.create(
+        {"session_id": "s1", "amount": 10.0},
+        signer=tx_signer,
+        signer_id="tutor_1",
+    )
+    chain.submit_transaction(signed_tx)
     mined = chain.mine_block(proof, timestamp=1700000100.0)
     assert chain.verify_chain() is True
 
@@ -54,14 +64,14 @@ def test_blockchain_merkle_and_all_four_tamper_detection_paths() -> None:
 
     # 2. Mutated transaction list invalidating Merkle root
     tampered_tx_chain = HiveBlockchain(hive_id="HIVE_SEC", difficulty=1)
-    tampered_tx_chain.submit_transaction({"session_id": "s1", "amount": 10.0})
+    tampered_tx_chain.submit_transaction(signed_tx)
     blk_tx = tampered_tx_chain.mine_block(proof, timestamp=1700000100.0)
-    blk_tx.transactions.append({"injected": True})
+    cast(list[Any], blk_tx.transactions).append({"injected": True})
     assert tampered_tx_chain.verify_chain() is False
 
     # 3. Swapped UsefulComputeProof invalidating knowledge_graph_root
     tampered_kg_chain = HiveBlockchain(hive_id="HIVE_SEC", difficulty=1)
-    tampered_kg_chain.submit_transaction({"session_id": "s1", "amount": 10.0})
+    tampered_kg_chain.submit_transaction(signed_tx)
     blk_kg = tampered_kg_chain.mine_block(proof, timestamp=1700000100.0)
     forged_proof = UsefulComputeProof(
         epoch=99,
@@ -236,22 +246,87 @@ class HiveEconomyStateMachine(RuleBasedStateMachine):
         )
         self.seq = 0
         self.bridged_bees: set[str] = set()
+        self._signers: dict[str, Ed25519Signer] = {}
+        self._nonces: dict[tuple[str, str], int] = {}
+
+    def _signer(self, bee_id: str) -> Ed25519Signer:
+        if bee_id not in self._signers:
+            self._signers[bee_id] = Ed25519Signer.from_seed(
+                hashlib.sha256(f"fuzz:{bee_id}".encode()).digest()
+            )
+        return self._signers[bee_id]
+
+    def _next_nonce(self, hive_id: str, bee_id: str) -> int:
+        key = (hive_id, bee_id)
+        val = self._nonces.get(key, 0) + 1
+        self._nonces[key] = val
+        return val
+
+    def _sign(self, hive_id: str, actor_id: str, payload: dict[str, Any]) -> SignedTransaction:
+        return SignedTransaction.create(payload, signer=self._signer(actor_id), signer_id=actor_id)
 
     @initialize()
     def bootstrap_hives(self) -> None:
         self.hive_a.bootstrap_sponsored_hive(
-            seed_comb_amount=500.0,
-            queen_ids=["queen_a"],
-            certified_workers={"worker_1": ["CS-101"], "worker_2": ["MATH-101"]},
+            self._sign(
+                "FUZZ_A",
+                "queen_a",
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "FUZZ_A",
+                    "queen_id": "queen_a",
+                    "seed_comb_amount": 500.0,
+                    "queen_public_keys": {"queen_a": self._signer("queen_a").public_key_hex},
+                    "certified_workers": {"worker_1": ["CS-101"], "worker_2": ["MATH-101"]},
+                    "worker_public_keys": {
+                        "worker_1": self._signer("worker_1").public_key_hex,
+                        "worker_2": self._signer("worker_2").public_key_hex,
+                    },
+                    "nonce": self._next_nonce("FUZZ_A", "queen_a"),
+                },
+            )
         )
         self.hive_b.bootstrap_sponsored_hive(
-            seed_comb_amount=300.0,
-            queen_ids=["queen_b"],
-            certified_workers={"worker_b": ["BIO-101"]},
+            self._sign(
+                "FUZZ_B",
+                "queen_b",
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "FUZZ_B",
+                    "queen_id": "queen_b",
+                    "seed_comb_amount": 300.0,
+                    "queen_public_keys": {"queen_b": self._signer("queen_b").public_key_hex},
+                    "certified_workers": {"worker_b": ["BIO-101"]},
+                    "worker_public_keys": {"worker_b": self._signer("worker_b").public_key_hex},
+                    "nonce": self._next_nonce("FUZZ_B", "queen_b"),
+                },
+            )
         )
         for lid in ("learner_1", "learner_2", "learner_3"):
-            self.hive_a.contracts.register_bee(lid, role=BeeRole.LEARNER_BEE)
-            self.hive_b.contracts.register_bee(lid, role=BeeRole.LEARNER_BEE)
+            self.hive_a.register_bee(
+                self._sign(
+                    "FUZZ_A",
+                    lid,
+                    {
+                        "action": "REGISTER_BEE",
+                        "hive_id": "FUZZ_A",
+                        "bee_id": lid,
+                        "nonce": self._next_nonce("FUZZ_A", lid),
+                    },
+                )
+            )
+            self.hive_b.register_bee(
+                self._sign(
+                    "FUZZ_B",
+                    lid,
+                    {
+                        "action": "REGISTER_BEE",
+                        "hive_id": "FUZZ_B",
+                        "bee_id": lid,
+                        "nonce": self._next_nonce("FUZZ_B", lid),
+                    },
+                )
+            )
 
     @rule(
         learner=st.sampled_from(["learner_1", "learner_2", "learner_3"]),
@@ -274,15 +349,36 @@ class HiveEconomyStateMachine(RuleBasedStateMachine):
         acct = self.hive_a.contracts.accounts[learner]
         if acct.raw_pollen_balance >= rounded:
             self.seq += 1
+            sid = f"fuzz_p_{self.seq}"
+            escrow_tx = self._sign(
+                "FUZZ_A",
+                learner,
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "FUZZ_A",
+                    "session_id": sid,
+                    "tutor_id": worker,
+                    "learner_id": learner,
+                    "subject_id": subj,
+                    "duration_hours": 1.0,
+                    "amount": rounded,
+                    "token_state": TokenState.RAW_POLLEN.value,
+                    "nonce": self._next_nonce("FUZZ_A", learner),
+                },
+            )
+            settle_payload = {
+                "action": "SETTLE_SESSION",
+                "hive_id": "FUZZ_A",
+                "session_id": sid,
+                "learner_attestation_score": round(score, 2),
+                "tutor_comprehension_hash": compute_sha256(f"{sid}:{worker}:{learner}:{subj}"),
+                "learner_nonce": self._next_nonce("FUZZ_A", learner),
+                "tutor_nonce": self._next_nonce("FUZZ_A", worker),
+            }
             self.hive_a.execute_tutoring_handshake(
-                session_id=f"fuzz_p_{self.seq}",
-                tutor_id=worker,
-                learner_id=learner,
-                subject_id=subj,
-                duration_hours=1.0,
-                amount=rounded,
-                token_state=TokenState.RAW_POLLEN,
-                learner_attestation_score=round(score, 2),
+                escrow_tx=escrow_tx,
+                learner_settle_tx=self._sign("FUZZ_A", learner, settle_payload),
+                tutor_settle_tx=self._sign("FUZZ_A", worker, settle_payload),
             )
 
     @rule(
@@ -324,17 +420,52 @@ class HiveEconomyStateMachine(RuleBasedStateMachine):
 
     @rule(worker=st.sampled_from(["worker_1", "worker_2"]))
     def earn_acceptance_and_bridge(self, worker: str) -> None:
-        self.hive_b.contracts.register_bee(worker, home_hive_id="FUZZ_A")
+        if worker not in self.hive_b.contracts.accounts:
+            self.hive_b.register_bee(
+                self._sign(
+                    "FUZZ_B",
+                    worker,
+                    {
+                        "action": "REGISTER_BEE",
+                        "hive_id": "FUZZ_B",
+                        "bee_id": worker,
+                        "home_hive_id": "FUZZ_A",
+                        "nonce": self._next_nonce("FUZZ_B", worker),
+                    },
+                )
+            )
         self.seq += 1
+        sid = f"fuzz_b_{self.seq}"
+        escrow_tx = self._sign(
+            "FUZZ_B",
+            "learner_1",
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": "FUZZ_B",
+                "session_id": sid,
+                "tutor_id": worker,
+                "learner_id": "learner_1",
+                "subject_id": "CS-101",
+                "duration_hours": 1.0,
+                "amount": 0.0,
+                "token_state": TokenState.LIQUID_NECTR.value,
+                "reciprocal_subject_id": "BIO-101",
+                "nonce": self._next_nonce("FUZZ_B", "learner_1"),
+            },
+        )
+        settle_payload = {
+            "action": "SETTLE_SESSION",
+            "hive_id": "FUZZ_B",
+            "session_id": sid,
+            "learner_attestation_score": 0.95,
+            "tutor_comprehension_hash": compute_sha256(f"{sid}:{worker}:learner_1:CS-101"),
+            "learner_nonce": self._next_nonce("FUZZ_B", "learner_1"),
+            "tutor_nonce": self._next_nonce("FUZZ_B", worker),
+        }
         self.hive_b.execute_tutoring_handshake(
-            session_id=f"fuzz_b_{self.seq}",
-            tutor_id=worker,
-            learner_id="learner_1",
-            subject_id="CS-101",
-            duration_hours=1.0,
-            amount=0.0,
-            reciprocal_subject_id="BIO-101",
-            learner_attestation_score=0.95,
+            escrow_tx=escrow_tx,
+            learner_settle_tx=self._sign("FUZZ_B", "learner_1", settle_payload),
+            tutor_settle_tx=self._sign("FUZZ_B", worker, settle_payload),
         )
         src_acct = self.hive_a.contracts.accounts[worker]
         if src_acct.liquid_nectr_balance >= 2.0:
@@ -347,8 +478,30 @@ class HiveEconomyStateMachine(RuleBasedStateMachine):
 
     @rule()
     def mine_epoch(self) -> None:
-        self.hive_a.mine_epoch_block()
-        self.hive_b.mine_epoch_block()
+        self.hive_a.mine_epoch_block(
+            self._sign(
+                "FUZZ_A",
+                "queen_a",
+                {
+                    "action": "MINE_EPOCH_BLOCK",
+                    "hive_id": "FUZZ_A",
+                    "queen_id": "queen_a",
+                    "nonce": self._next_nonce("FUZZ_A", "queen_a"),
+                },
+            )
+        )
+        self.hive_b.mine_epoch_block(
+            self._sign(
+                "FUZZ_B",
+                "queen_b",
+                {
+                    "action": "MINE_EPOCH_BLOCK",
+                    "hive_id": "FUZZ_B",
+                    "queen_id": "queen_b",
+                    "nonce": self._next_nonce("FUZZ_B", "queen_b"),
+                },
+            )
+        )
 
     @invariant()
     def all_protocol_invariants_hold(self) -> None:

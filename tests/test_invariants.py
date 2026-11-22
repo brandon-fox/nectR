@@ -83,11 +83,28 @@ def test_raw_pollen_restricted_to_certified_workers_and_refines_to_liquid() -> N
 
 def test_dispute_routes_fee_to_comb_and_conserves_supply() -> None:
     """Only Queen dispute resolution charges a fee, routing 100% of the fee into the Comb."""
+    import hashlib
+
+    from nectr.chain import Ed25519Signer, SignedTransaction
+
+    queen_signer = Ed25519Signer.from_seed(hashlib.sha256(b"inv:queen_1").digest())
+    worker_signer = Ed25519Signer.from_seed(hashlib.sha256(b"inv:worker_1").digest())
     service = HiveServiceLayer(hive_id="HIVE_DISPUTE")
     service.bootstrap_sponsored_hive(
-        seed_comb_amount=200.0,
-        queen_ids=["queen_1"],
-        certified_workers={"worker_1": ["PHYS-101"]},
+        SignedTransaction.create(
+            {
+                "action": "BOOTSTRAP_HIVE",
+                "hive_id": "HIVE_DISPUTE",
+                "queen_id": "queen_1",
+                "seed_comb_amount": 200.0,
+                "queen_public_keys": {"queen_1": queen_signer.public_key_hex},
+                "certified_workers": {"worker_1": ["PHYS-101"]},
+                "worker_public_keys": {"worker_1": worker_signer.public_key_hex},
+                "nonce": 1,
+            },
+            signer=queen_signer,
+            signer_id="queen_1",
+        )
     )
     service.contracts.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
     service.contracts.allocate_raw_pollen_to_learner("queen_1", "learner_1", 20.0)
