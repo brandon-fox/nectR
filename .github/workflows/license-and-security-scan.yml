@@ -6,6 +6,7 @@ on:
     - cron: "0 6 * * *"
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   push:
     branches: [main]
   workflow_dispatch:
@@ -106,8 +107,8 @@ jobs:
           output: ${{ runner.temp }}/lychee-out.md
           fail: true
 
-      - name: Strict TDD suite with coverage gate (pytest)
-        run: uv run python -m pytest --cov=src/nectr --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
+      - name: Strict TDD suite with 90% branch coverage gate (pytest)
+        run: uv run python -m pytest --cov=src/nectr --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90
 
       - name: BDD acceptance suite (behave)
         run: uv run python -m behave
@@ -172,3 +173,36 @@ jobs:
           fail-on-severity: high
           allow-licenses: MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, BSD-3-Clause-Clear, 0BSD, Zlib, ISC, PSF-2.0, Python-2.0, MPL-2.0, Unlicense, CC0-1.0
           allow-dependencies-licenses: pkg:githubactions/astral-sh/setup-uv, pkg:githubactions/softprops/action-gh-release, pkg:githubactions/lycheeverse/lychee-action
+
+  pr-merge-safety:
+    name: PR Merge-Safety Gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head commit with full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up uv & Python 3.12
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-suffix: merge-safety
+
+      - name: Verify uv.lock consistency & install base project
+        run: |
+          uv lock --check
+          uv sync --frozen --no-default-groups
+
+      - name: Verify Conventional PR title, rebase-linear history & clean merge-tree
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          git fetch --no-tags origin "${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          uv run python -m nectr.devtools.pr_lifecycle check-branch \
+            --base "origin/${BASE_REF}" \
+            --title "${PR_TITLE}"

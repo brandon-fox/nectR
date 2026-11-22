@@ -140,8 +140,17 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                   - env:
                       NO_MKDOCS_2_WARNING: "1"
                     run: mkdocs build --strict
-                  - run: python -m pytest --cov=src/nectr --cov-fail-under=80
+                  - run: python -m pytest --cov=src/nectr --cov-branch --cov-fail-under=90
                   - run: python -m behave
+              pr-merge-safety:
+                steps:
+                  - uses: actions/checkout@v7
+                    with:
+                      ref: ${{ github.event.pull_request.head.sha }}
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      cache-suffix: merge-safety
+                  - run: uv lock --check && python -m nectr.devtools.pr_lifecycle check-branch --base origin/main
               dependency-review:
                 steps:
                   - uses: actions/dependency-review-action@v5
@@ -149,6 +158,24 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                       fail-on-severity: high
                       allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, PSF-2.0, Python-2.0, MPL-2.0, 0BSD, Zlib, Unlicense, CC0-1.0
                       allow-dependencies-licenses: pkg:githubactions/astral-sh/setup-uv
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    (workflows / "pr-lifecycle.yml").write_text(
+        textwrap.dedent(
+            """\
+            name: PR Lifecycle
+            jobs:
+              reconcile:
+                steps:
+                  - uses: astral-sh/setup-uv@v10.4.0
+                    with:
+                      cache-suffix: pr-lifecycle
+                  - env:
+                      GH_TOKEN: ${{ secrets.PR_LIFECYCLE_TOKEN || github.token }}
+                    run: python -m nectr.devtools.pr_lifecycle reconcile --repo brandon-fox/nectR
             """
         ),
         encoding="utf-8",
@@ -187,7 +214,7 @@ def test_check_pipeline_parity_reports_missing_gates_and_release_yml(tmp_path: P
     _write_synthetic_workspace(tmp_path, include_release=False)
     ci_file = tmp_path / ".github" / "workflows" / "license-and-security-scan.yml"
     ci_text = ci_file.read_text(encoding="utf-8")
-    ci_text = ci_text.replace("lychee", "echo skipped").replace("--cov-fail-under=80", "")
+    ci_text = ci_text.replace("lychee", "echo skipped").replace("--cov-fail-under=90", "")
     ci_file.write_text(ci_text, encoding="utf-8")
 
     report = check_pipeline_parity(tmp_path)
