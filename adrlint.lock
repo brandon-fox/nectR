@@ -80,3 +80,8 @@ blake3 = "3eb0d78bbea9ea406fe3fd851921f008a835c761328020471f8bcae183c3009d"
 number = 15
 status = "accepted"
 blake3 = "737c350829758ad51adcb8ff86c4503183bb595b417cc34c81da4f7556f58a8f"
+
+[adrs."docs/adr/0016-scope-external-workflow-automation-off-chain.md"]
+number = 16
+status = "accepted"
+blake3 = "0a612f10fcb786cf4489b97574d33948c206ae20ab45b7fc14b923284a28d6c0"

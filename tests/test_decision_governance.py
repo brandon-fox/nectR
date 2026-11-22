@@ -208,3 +208,51 @@ def test_oss_adrlint_replaces_bespoke_adr_module_and_locks_decisions(tmp_path: P
     )
     subprocess.run([adrlint_bin, "lock"], cwd=tmp_path, check=True, capture_output=True, text=True)
     assert validate_adrlint_repo(tmp_path, allow_proposed=False) == 2
+
+
+def test_n8n_workflow_decisions_adr_and_roadmap_options() -> None:
+    """DEC-009 clarifies CrewAI/n8n while DEC-016, EXP-006, ADR-0016, and roadmap govern Milestone 3 options."""
+    from nectr.devtools.decisions import (
+        DecisionStatus,
+        ExperimentStatus,
+        check_all_governance,
+        load_registry,
+    )
+
+    summary = check_all_governance(REPO_ROOT)
+    assert summary["adrlint_ok"] is True
+    assert summary["decision_log_in_sync"] is True
+
+    registry = load_registry(REPO_ROOT / "docs" / "planning" / "decisions.yaml")
+    decisions = {d.id: d for d in registry.decisions}
+    experiments = {e.id: e for e in registry.experiments}
+
+    dec009 = decisions["DEC-009"]
+    assert dec009.status == DecisionStatus.LOCKED
+    assert "CrewAI/n8n" in dec009.title
+    assert "CrewAI/n8n" in dec009.decision
+    assert "Mesa ABM" in dec009.decision
+
+    assert "DEC-016" in decisions
+    dec016 = decisions["DEC-016"]
+    assert dec016.status == DecisionStatus.LOCKED
+    assert "n8n" in dec016.decision
+    assert "HiveServiceLayer" in dec016.decision
+    assert dec016.related_adr == "docs/adr/0016-scope-external-workflow-automation-off-chain.md"
+
+    assert "EXP-006" in experiments
+    exp006 = experiments["EXP-006"]
+    assert exp006.status == ExperimentStatus.OPEN_SIMULATION
+    assert "n8n" in exp006.hypothesis
+    assert exp006.related_adr == "docs/adr/0016-scope-external-workflow-automation-off-chain.md"
+
+    adr_path = REPO_ROOT / "docs" / "adr" / "0016-scope-external-workflow-automation-off-chain.md"
+    assert adr_path.exists()
+    adr_text = adr_path.read_text(encoding="utf-8")
+    assert "status: accepted" in adr_text
+    assert "Sustainable Use License" in adr_text
+
+    roadmap_text = (REPO_ROOT / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
+    assert "CrewAI/n8n" in roadmap_text
+    for option_tool in ("Activepieces", "Kestra", "Prefect", "Temporal", "EXP-006"):
+        assert option_tool in roadmap_text
