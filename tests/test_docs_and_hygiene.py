@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -122,10 +120,6 @@ def test_readme_plain_language_status_independence_and_license() -> None:
         assert "MIT" in readme
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: DC3 OpenSpec archiving of merged changes and deferrals of out-of-scope proposals not yet implemented",
-)
 def test_openspec_archiving_and_deferrals() -> None:
     """Verify merged changes are archived and out-of-scope proposals carry deferral notices."""
     archive_dir = REPO_ROOT / "openspec" / "changes" / "archive"

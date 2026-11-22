@@ -1,5 +1,7 @@
 # Proposal: Add Zero-PII FERPA/GDPR Boundary, LTI 1.3 / Shibboleth SSO & Title IV Compliance Perimeter (`add-campus-compliance-lti-and-zk-identity`)
 
+> **DEFERRED:** This change proposal is out of scope for current work under the Plan to B+ and is deferred until after the v0.1.0 release.
+
 ## Why
 As established in `nectR_funding_and_pilot_strategy.md` and `federated_PoUW-PoW_blockchain_infrastructure.md`, converting `nectR` from an academic simulation testbed into a funded university pilot requires clearing four institutional gates:
 1. **FERPA & GDPR Zero-PII Ledger Boundary (`ADR-0015`):** Under FERPA (protected student education records) and EDPB GDPR guidance (right to rectification/erasure vs. blockchain immutability), zero student names, campus IDs, emails, grades, or raw transcripts may ever touch the blockchain ledger. All PII must reside in a campus-controlled relational database supporting erasure, while the chain records only salted/peppered one-way commitments or **BBS+ / Groth-Kohlweiss Zero-Knowledge membership proofs** anchored to **eduGAIN / InCommon Shibboleth** certificates.

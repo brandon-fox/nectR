@@ -1,5 +1,7 @@
 # Proposal: Add Read-Only Telemetry Dashboard UI (`add-telemetry-dashboard-ui`)
 
+> **DEFERRED:** This change proposal is out of scope for current work under the Plan to B+ and is deferred until after the v0.1.0 release.
+
 ## Why
 `src/nectr/ui/__init__.py` is currently a placeholder. Researchers and campus administrators need an interactive, read-only dashboard to inspect the Knowledge Graph, Collusion Matrix, Gini index, and Comb reserves without coupling UI rendering to write-side smart contract execution.
 

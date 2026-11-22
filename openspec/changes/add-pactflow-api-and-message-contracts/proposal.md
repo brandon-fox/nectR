@@ -1,5 +1,7 @@
 # Proposal: Enforce Pact v4 & PactFlow Bi-Directional HTTP and Async Message Contracts (`add-pactflow-api-and-message-contracts`)
 
+> **DEFERRED:** This change proposal is out of scope for current work under the Plan to B+ and is deferred until after the v0.1.0 release.
+
 ## Why
 As `HiveServiceLayer` (`FastAPI`) connects to multiple independent consumers (`Streamlit` Telemetry UI, `Mesa` Persona HTTP runners, Campus `LTI 1.3` adapters, and cross-Hive `NATS JetStream` subscribers), ad-hoc mocked unit tests risk silent payload drift across parallel multi-agent worktrees. Per [ADR-0018](../../../docs/adr/0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md), we adopt **`pact-python` v4.2+ (`MIT`) and PactFlow** for end-to-end API and event contract governance:
 1. **HTTP REST Consumer-Driven Pacts:** Verify request/response contracts between `TelemetrySnapshotLoader` / `LTI 1.3` / Persona HTTP clients and `FastAPIHiveRouter`.

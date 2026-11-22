@@ -1,5 +1,7 @@
 # Proposal: Migrate 5 Hive Smart Contracts to Vyper (`.vy`) on Zero-Gas `py-evm` (`adopt-vyper-and-zero-gas-pyevm`)
 
+> **DEFERRED:** This change proposal is out of scope for current work under the Plan to B+ and is deferred until after the v0.1.0 release.
+
 ## Why
 `src/nectr/contracts/engine.py` currently implements a bespoke Python state machine using IEEE-754 `float` balances. Per [ADR-0017](../../../docs/adr/0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md) and our Open-Source-First mandate, **Swarm Wave 2B-1** migrates the 5 core deterministic smart contracts (`TokenStateAndComb.vy`, `DirectionalServiceBarter.vy`, `QueenGovernance.vy`, `KnowledgeGraphAndPolicing.vy`, `GuardBeeCrossHiveBridge.vy`) to **`vyper` (`Apache-2.0`)** executed on an embedded **zero-gas-price `eth-tester[py-evm]` + `web3.py` (`MIT`)** EVM backend:
 1. **100% Permissive Transitive Stack:** Avoids copyleft traps (`solc` `GPL-3.0`, `snekmate` `AGPL-3.0-only`, `bitcoinlib` `GPLv3+`, `python-bitcoinlib` `LGPLv3+`).
