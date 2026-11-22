@@ -48,7 +48,6 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     When the AI research and metaphor validator inspects research reports, README, biomimicry model, and tokenomics
     Then all deep research reports carry an AI-generated notice and bee terminology is labeled as a design metaphor
 
-  @red
   Scenario: Documentation separates long-term product vision from the active Plan to B+ roadmap
     Given the repository documentation root
     When the roadmap and vision validator inspects roadmap.md, vision.md, and mkdocs.yml

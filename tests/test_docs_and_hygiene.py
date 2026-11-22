@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -74,8 +72,9 @@ def test_six_deep_research_tracks_and_five_wave_swarm_plan_documented() -> None:
         assert report in prompts
 
     roadmap = (REPO_ROOT / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
-    assert "Milestone 5:" in roadmap
-    assert "Apereo Foundation" in roadmap
+    vision = (REPO_ROOT / "docs" / "planning" / "vision.md").read_text(encoding="utf-8")
+    assert "Milestone 5:" in roadmap or "Milestone 5:" in vision
+    assert "Apereo Foundation" in roadmap or "Apereo Foundation" in vision
 
     orchestration = (REPO_ROOT / "docs" / "planning" / "agent_orchestration.md").read_text(
         encoding="utf-8"
@@ -235,10 +234,6 @@ def test_ai_generated_research_and_bee_metaphor_labeled() -> None:
     assert "| :--- | :---: | :--- |\n| :--- | :---: | :--- |" not in game_theory
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: roadmap must be replaced with Plan to B+ and vision.md separated",
-)
 def test_roadmap_plan_to_b_plus_and_vision_document() -> None:
     """Verify roadmap.md focuses on Plan to B+ and vision.md captures 3-horizon vision."""
     vision_path = REPO_ROOT / "docs" / "planning" / "vision.md"

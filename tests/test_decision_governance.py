@@ -252,7 +252,13 @@ def test_n8n_workflow_decisions_adr_and_roadmap_options() -> None:
     assert "status: accepted" in adr_text
     assert "Sustainable Use License" in adr_text
 
-    roadmap_text = (REPO_ROOT / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
+    roadmap_path = REPO_ROOT / "docs" / "planning" / "roadmap.md"
+    vision_path = REPO_ROOT / "docs" / "planning" / "vision.md"
+    roadmap_text = (
+        roadmap_path.read_text(encoding="utf-8")
+        + "\n"
+        + (vision_path.read_text(encoding="utf-8") if vision_path.exists() else "")
+    )
     assert "CrewAI/n8n" in roadmap_text
     for option_tool in ("Activepieces", "Kestra", "Prefect", "Temporal", "EXP-006"):
         assert option_tool in roadmap_text

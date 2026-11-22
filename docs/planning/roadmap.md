@@ -1,105 +1,70 @@
-# Long-Term Product Vision, Roadmap & Autonomous Development Milestones
+# Project Roadmap: The Plan to B+ (v0.1.0 Remediation & Hardening)
 
-## Three-Horizon Product Vision & North Star (2026–2029)
-
-**nectR** evolves across three disciplined horizons from an open-source academic mechanism-design monorepo into a federated, non-speculative Digital Public Good (`DPG`) incubated under higher-education foundation stewardship:
-
-```mermaid
-flowchart LR
-    H1["Horizon 1 (Months 1–6)<br/>Academic Monorepo, 6 Deep Research Tracks,<br/>PoUW-PoW Core & Mesa ACE Validation"] --> H2["Horizon 2 (Months 6–14)<br/>Single-Campus IRB Sandbox Pilot,<br/>Zero-PII LTI 1.3 / Shibboleth & NSF Grants"]
-    H2 --> H3["Horizon 3 (Months 14–24+)<br/>Autonomous Daughter-Hive Federation (3+ Universities)<br/>via NATS Leaf Nodes & Apereo Foundation Incubation"]
-```
-
-1. **Horizon 1 — Formal Theory, Deterministic Core & Empirical ACE Testbed (Months 1–6: Nov 2026–Apr 2027):**
-   Prove the *Apis mellifera* biomimetic and game-theoretic mechanisms mathematically (`paper/`, `docs/theory/`), harden the private `PoUW-PoW` blockchain and 5 deterministic smart contracts (`D-01`–`D-08`), execute reproducible 15-week semester Monte Carlo and adversarial simulations (`EXP-001`–`EXP-005`), and submit parallel non-dilutive research grant proposals (`NSF IUSE`, `NSF Future CoRe`, `NSF PESOSE Track 1`, `NSF DRMS`, `RSF/J-PAL`, `Sloan`, `EF ESP`).
-2. **Horizon 2 — Zero-PII Campus Compliance & Single-Campus IRB Sandbox Pilot (Months 6–14: Mid-2027–Early 2028):**
-   Abstract all blockchain keys behind **InCommon Shibboleth SAML 2.0** and **1EdTech LTI 1.3 (`NRPS`)** inside Canvas/Moodle, enforce the **Zero-PII FERPA/GDPR** hybrid boundary and **IRS Pub 970 / Title IV non-monetary service-duration credit firewall** (`ADR-0015`), complete **EDUCAUSE HECVAT 4 (`v4.1.6`)**, and run a one-semester matched-cohort IRB pilot across 2–3 high-DFW gateway STEM courses.
-3. **Horizon 3 — Multi-Campus Autonomous Swarming & Apereo Foundation Stewardship (Months 14–24+: 2028–2029):**
-   Onboard 3+ partner universities as autonomous daughter Hives federated via outbound **NATS Leaf Nodes (port `7422`) and JetStream Domains** (`ADR-0014`), graduate governance from the Stage 1 Multi-Campus Academic Consortium into **Apereo Foundation `501(c)(3)` incubation** (`DEC-015`), and unlock scale funding (`NSF PESOSE Track 2/3 $1.5M`, `NSF IUSE Level 2/3 $2M`, `Horizon Europe`, and `Sovereign Tech Agency`).
+> **Notice:** Under the **Structure Freeze** (`AGENTS.md`) adopted for v0.1.0, active project development is strictly scoped to the **Plan to B+** to remediate code-review findings, complete test hardening, and establish release transparency. Long-term horizons and multi-year milestones are documented in the [Product Vision & Three-Horizon North Star](vision.md).
 
 ---
 
-## Milestone 0: Open-Source Hygiene, Governance, Formal Verification & CI Parity
+## 1. Plan to B+ Executive Summary
 
-- [x] **Security, Secret & Local-Path Hygiene:** Configured `detect-secrets` (`.secrets.baseline`), `pygrep`/hook local-path guards, `.githooks/` (`pre-commit`, `commit-msg`, `pre-push`), and `.pre-commit-config.yaml`.
-- [x] **Open-Source-First & Transitive License Audit:** Enforced permissive-license-only rule and scheduled `pip-licenses` + `pip-audit` + CycloneDX SBOM (`.github/workflows/license-and-security-scan.yml`) + Dependabot (`.github/dependabot.yml`).
-- [x] **OpenSpec + Behave BDD + Strict TDD (`xfail_strict`) + `adrlint` Governance:** Enforced `adrlint` (MADR 4.0 + `adrlint.lock`) and `nectr.devtools.decisions check` (`decisions.yaml` + verbosity limits), `nectr.devtools.spec_links` (no hardcoded scenarios in `spec.md`), `commitizen` (`cz check` / `cz changelog`), and `.github/workflows/roadmap-and-changelog.yml`.
-- [x] **Repo Normalization & `.gitattributes` ([#8](https://github.com/brandon-fox/nectR/issues/8)):** Enforce LF line endings, `ruff format --check`, and Markdown linting (`pymarkdownlnt`) in pre-commit & CI before legacy diffs accumulate.
-- [x] **Replace `pyadr` with OSS `adrlint` & Persona Dependency Split ([#6](https://github.com/brandon-fox/nectR/issues/6), [#10](https://github.com/brandon-fox/nectR/issues/10)):** Adopted MIT OSS `adrlint` (`.adrlint.toml` + `adrlint.lock`, zero CVEs, zero custom ADR engine code) dropping `cleo 0.8.1` (`PYSEC-2022-43178`) and `text-unidecode`, and split `pyproject.toml` `dev` extras by user persona (`test`, `lint`, `security`, `docs`, `research`, `dev`).
-- [x] **Git Tracking & MADR Workflow Polish ([#5](https://github.com/brandon-fox/nectR/issues/5), [#11](https://github.com/brandon-fox/nectR/issues/11)):** Untracked `HANDOFF.md` (`git rm --cached`) so `.gitignore` applies, added `--allow-proposed` branch checks alongside `adrlint`, and consolidated workflow & index docs in `docs/adr/index.md`.
-- [ ] **CI/Hook Parity, Worktrunk Worktree Isolation & Changed-Line Mutation Gate (`add-github-actions-and-schema-hooks`, `adopt-worktrees-and-mutation-testing`):** Enforce `check-jsonschema`, `lychee` broken-link checks, `@red` main-branch guard, Worktrunk (`.config/wt.toml`) multi-agent worktree isolation, and tiered changed-line mutation score floors.
-- [ ] **Phase 2 (Automated Issue Creation on License Drift/Flag):** Open/deduplicate labeled GitHub Issues (`license-violation`, `cve-alert`) via `actions/github-script` when scheduled scans fail.
-- [ ] **Phase 3 (Downstream Agent Auto-Remediation):** Trigger isolated off-chain agent PR workflow (`ADR-0013`) on `license-violation` issues under strict OpenSpec $\rightarrow$ BDD $\rightarrow$ TDD gates.
+The Plan to B+ organizes all current development into five coordinated, parallel workstreams executed with strict Outside-In OpenSpec $\rightarrow$ Behave BDD $\rightarrow$ Strict TDD Red-Green-Refactor discipline and zero git cross-contamination:
 
----
-
-## Milestone 1: Theoretical Foundation, Six Deep Research Syntheses & Provenance Custody
-
-- [x] **Archive All 6 Foundational Deep Research Reports in [`docs/theory/research/`](../theory/research/federated_barter_tokenomics.md):**
-  - [x] Track 1: [Federated Barter Economy Tokenomics Design](../theory/research/federated_barter_tokenomics.md)
-  - [x] Track 2: [Student Tutoring Barter Mechanism Design](../theory/research/student_tutoring_mechanism_design.md)
-  - [x] Track 3: [Biomimetic Hive Economics For nectR](../theory/research/biomimetic_hive_economics.md)
-  - [x] Track 4: [Permissive Tooling & Formal Verification Survey](../theory/research/permissive_tooling_survey_for_nectR.md)
-  - [x] Track 5: [Federated PoUW-PoW & NATS Infrastructure](../theory/research/federated_PoUW-PoW_blockchain_infrastructure.md)
-  - [x] Track 6: [Non-Dilutive Funding & Campus Pilot Strategy](../theory/research/nectR_funding_and_pilot_strategy.md)
-- [x] **Lock Architectural Decisions (`ADR-0001`–`ADR-0018`) & Fast Operational Rules (`DEC-001`–`DEC-020`, `EXP-001`–`EXP-006`):** Completed `/grill-me` synthesis across tokenomics, governance, permissive tooling, NATS Leaf Node / CQRS isolation (`ADR-0014`), Zero-PII FERPA/GDPR/Title IV compliance (`ADR-0015`), off-chain `n8n` boundary (`ADR-0016`), zero-gas `vyper` + `py-evm` smart contracts with `uint256` `micro_nectr` (`ADR-0017`, `DEC-017`–`DEC-019`), **Pact v4 + PactFlow** bi-directional HTTP & async message contracts (`ADR-0018`), and **JASSS / JEBO (`ODD+D`) + NSF DRMS / RSF** primary academic framing (`DEC-020`).
-- [x] **Citation Validation & Provenance Chain-of-Custody ([#7](https://github.com/brandon-fox/nectR/issues/7)):** Expanded `paper/references.yaml` (`27` external references, `88.9%` peer-reviewed floor) and `paper/lineage.yaml` (`36` DAG edges) with automated downstream quarantine & rebuild flagging (`nectr-citations`).
-- [x] **Formalize Biomimetic & Game-Theoretic Specifications:** Expanded [`docs/theory/biomimicry_model.md`](../theory/biomimicry_model.md), [`docs/theory/tokenomics_game_theory.md`](../theory/tokenomics_game_theory.md), and [`docs/theory/whitepaper_outline.md`](../theory/whitepaper_outline.md) with 1-to-1 ODEs, payoff matrices, Spence separating thresholds, and duplex `PoUW-PoW` security proofs.
+| Track | Focus Domain | Key Objectives | Status |
+| :--- | :--- | :--- | :--- |
+| **Track CA** | Core Contracts & Accounting Invariants | Integer accounting (`micro_nectr`), exact supply conservation, escrow resolution & expiry, Guard Bee mover rejection | In Progress |
+| **Track CB** | Hive Service Layer, Authority & Cryptographic Signing | Queen-signed registration commands, Bee Keys registry (`0003`), Ed25519 session signatures, replay nonces | In Progress |
+| **Track TL** | Tooling, Developer Experience & CI Parity | Move mypy to pre-push, cross-platform CI venv PATH resolution, PR lifecycle automation, local `nectr` CLI | Completed / Landed |
+| **Track HY** | Repository Hygiene, Licensing & Community | MIT License, full community health suite, automated citation audits (`reference-check.md`), smoke-scenario labeling | Completed / Landed |
+| **Track DC** | Living Documentation, Transparency & OpenSpec | Structure freeze, plain-language README, OpenSpec wave archiving, signed audit log ADR-0019, assumption labeling | In Progress |
 
 ---
 
-## Milestone 2: Private `PoUW-PoW` Blockchain, 5 Vyper `py-evm` Contracts & PactFlow Service Layer
+## 2. Workstream Breakdown & Deliverables
 
-- [ ] **Wave 2A — Cryptographic & Merkle Ports + Transcript-Oracle `PoUW-PoW` (`src/nectr/chain/`, `adopt-ed25519-and-pymerkle`):**
-  - Baseline `Ed25519Signer`, `CanonicalPayload`, and `remerkleable` `MerkleInclusionProof` delivered (`ADR-0008`); extend `BlockHeader` to anchor both `evm_state_root` (`ADR-0017`) and `0x00`/`0x01` domain-separated `knowledge_graph_root`.
-  - Couple Transcript-Oracle `PoUW-PoW` difficulty ($\Delta_{\text{sec}} > 0$, `ball_2018`) to the capped Comb Compute Jar (`ADR-0007`).
-- [ ] **Wave 2B-1 — Core Vyper `.vy` Smart Contracts on Zero-Gas `py-evm` (`src/nectr/contracts/`, `adopt-vyper-and-zero-gas-pyevm`, `ADR-0017`):**
-  - Implement all 5 core `.vy` smart contracts (`vyper` `Apache-2.0`) on zero-gas-price `eth-tester[py-evm]` + `web3.py` (`MIT`) with exact `uint256` `micro_nectr` (`DEC-017`), `0..10,000 bps` direct learner attestations (`DEC-018`), `eth-account` (`secp256k1` EIP-712) `msg.sender` wallets (`DEC-019`), Lazy Demurrage (`DEC-001`), Waggle `60%` Co-Pay (`DEC-002`), `25-minute` minimum block (`DEC-011`), and 3-door Senior graduation sinks (`DEC-004`).
-- [ ] **Wave 2B-2 — Colony Lifecycle, Policing & Swarming `.vy` Extensions (`src/nectr/contracts/`, `add-biomimetic-lifecycle-and-swarming-contracts`):**
-  - Formalize `specs/quint/hive_invariants.qnt` (Quint / TLA+ / Apalache) + `icontract` boundary invariants (`D-01`–`D-08`) and implement `QMPHealthAndSupersedure` (24h Emergency Election), `TemporalPolyethismGovernor` (Khoury EO Circuit Breaker, `D-07`), Oophagy Fraud Proofs, and `SwarmBivouacEscrow` (`6.25x–8.0x` Honey-to-Wax burn + 15-Scout Quorum Sensing, `DEC-012`, `D-08`).
-- [ ] **Wave 2C — Canonical `SQLModel` Block-Log Replay, CQRS Graph Projector & PactFlow Contracts (`src/nectr/services/`, `add-pactflow-api-and-message-contracts`):**
-  - Extend `SQLModelHiveRepository` + `FastAPIHiveRouter` (`ADR-0009`) with deterministic canonical block-log replay into `py-evm` (`evm_state_root` verification, `ADR-0017`) and asynchronous post-commit `CQRSGraphProjector` (`networkx`/`NetworKit`/`rustworkx`, `ADR-0014`).
-  - Enforce `pact-python` v4 consumer HTTP REST (`FastAPI`) and async message (`NATS JetStream`) pacts offline in `pytest`/`behave`, plus **PactFlow** Bi-Directional OpenAPI 3.1 verification and `can-i-deploy` release gates in CI (`ADR-0018`).
-- [ ] **Wave 2D — Outbound NATS Leaf Node Federation & Kurtosis Chaos Testbed (`add-nats-jetstream-cross-hive-federation`):**
-  - Implement `CrossHiveBridgePort` over `nats-py` Leaf Nodes (outbound TLS port `7422`) and per-Hive JetStream Domains (`ADR-0014`).
-  - Package reproducible multi-Hive fault-injection enclaves with post-June-2024 Apache-2.0 **Kurtosis** + **Pumba** (`tc netem`) / **Toxiproxy** (`DEC-014`).
+### Track CA: Core Contracts & Accounting Invariants
+
+- [x] **CA1:** Strict xfail test harness in `tests/test_contracts.py` and `tests/test_services.py` for review findings 1, 3, 4, and 5 (`harden-authority-and-accounting`).
+- [x] **CA2:** Migration `0002` integer accounting conversion (`micro_nectr`) with exact supply conservation across 500-round randomized escrow loops.
+- [x] **CA3:** Dispute resolution safeguards (undisputed escrows cannot be resolved by Queens at full fee) and expired escrow cancellation returning tokens to original state.
+- [ ] **CA4:** Guard Bee foreign mover rejection: unaccepted movers holding target-hive registrations without home Hive sponsorship are rejected upon bridging.
+- [ ] **CA5:** Clean test suite verification: removal of all remaining finding xfails and 100% green contract tests.
+
+### Track CB: Hive Service Layer, Authority & Cryptographic Signing
+
+- [x] **CB1:** Migration `0003` Bee Keys registry and signature-verified Queen registration commands (`tests/test_signed_commands.py`).
+- [ ] **CB2:** Ed25519-signed session escrow allocation, co-signed attestation commands, and cryptographic verification on state transitions.
+- [ ] **CB3:** Monotonic nonce tracking and replay attack protection across all signed service commands.
+- [ ] **CB4:** Deterministic service audit-log replay from SQLite journal into in-memory state.
+
+### Track TL: Tooling, Developer Experience & CI Parity
+
+- [x] **TL1:** Hook execution optimization: moved `mypy` to `.githooks/pre-push` keeping `.githooks/pre-commit` fast and responsive.
+- [x] **TL2:** Cross-platform venv PATH resolution in `.githooks/` and GitHub Actions workflows for seamless Windows and POSIX execution.
+- [x] **TL3:** Automated PR lifecycle check-branch gate and merge-safety invariants (`nectr.devtools.pr_lifecycle`).
+- [x] **TL4:** Dual-track decision governance tooling (`nectr-decisions` and `adrlint`).
+- [ ] **TL5:** Local developer CLI (`nectr`) commands for node initialization, invariant checks, and simulation execution.
+
+### Track HY: Repository Hygiene, Licensing & Community Standards
+
+- [x] **HY0:** Read-only repository audit and GitHub repository settings configuration.
+- [x] **HY1:** Canonical MIT License file matching `brandon-fox/repo-template`.
+- [x] **HY2:** Full community health suite (`CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CITATION.cff`, and issue/PR templates).
+- [x] **HY3:** Automated Crossref REST & URL audit of all 27 references with peer-review breakdown in `paper/reference-check.md`.
+- [x] **HY4:** Scripted smoke-scenario annotation for `nectr_sim_baseline_2026` in `paper/references.yaml`.
+
+### Track DC: Living Documentation, Transparency & OpenSpec
+
+- [x] **DC1:** Governance freeze in `AGENTS.md` and superseded banner in `docs/planning/agent_orchestration.md`.
+- [x] **DC2:** Plain-language README intro, status badge, personal-capacity notice, and MIT License alignment.
+- [x] **DC3:** OpenSpec archiving of 8 merged change proposals and deferral notices on Waves 3–5 proposals.
+- [x] **DC4:** Architectural Decision Record `ADR-0019` treating the chain as a signed audit log, superseding `ADR-0007`.
+- [x] **DC5:** Explicit labeling of unsourced figures and ROI metrics as planning assumptions; smoke-scenario retitling.
+- [x] **DC6:** AI-generated research notices on deep research reports and explicit framing of the honeybee design metaphor.
+- [x] **DC7:** Roadmap alignment with the Plan to B+ and extraction of multi-horizon vision into `vision.md`.
+- [ ] **DC8:** Quick Start guide in `README.md` following delivery of the `nectr` CLI (post-TL5).
+- [ ] **DC9:** Final v0.1.0 claim-to-code alignment, known limits documentation, and release polish.
 
 ---
 
-## Milestone 3: Behavioral Persona Swarm, 15-Week Semester ACE & Telemetry UI
+## 3. Long-Term Horizons & Subsequent Milestones
 
-- [ ] **Wave 3A — Seeded Mesa ABM & Hypothesis State-Machine Fuzzing (`src/nectr/personas/`, `adopt-mesa-abm-and-hypothesis`):**
-  - Implement `HiveMesaModel` and `PersonaBeeAgent` for all 6 archetypes (`ADR-0010`, `DEC-009` over LLM/workflow frameworks CrewAI/n8n, formerly k8n), backed by `GraphTelemetryPort` (`networkx`, `NetworKit`, `rustworkx`) and `Hypothesis` `RuleBasedStateMachine` invariant fuzzing.
-- [ ] **Wave 3B — Experimental Matrix (`EXP-001`–`EXP-006`) & Adaptive ML/RL Track (`experiments/`):**
-  - Execute multi-semester Monte Carlo sweeps and contextual multi-armed bandit / RL stress tests across `EXP-001` (Queen Nepotism vs. Honest Praise), `EXP-002` (15-Week Finals Crunch & `60%` Waggle Co-Pay), `EXP-003` (Pairwise + `COCM` Dorm-Cluster Sybil Bound), `EXP-004` (Khoury Mortality Shock & Circuit Breaker), `EXP-005` (NATS WAN Partition Recovery), and `EXP-006` (Mesa Baseline vs. External `n8n`/Activepieces Trigger Arm).
-  - **Workflow Orchestration Options (`n8n` / `DEC-016` / [ADR-0016](../adr/0016-scope-external-workflow-automation-off-chain.md)):**
-    - *Option A (Locked Default — Pure Mesa ABM + ML/RL):* Deterministic seeded `mesa` Monte Carlo sweeps, `DataCollector` telemetry, and `hypothesis` invariant fuzzing (`DEC-009`).
-    - *Option B (Sidecar `n8n` Webhook Runner):* Self-hosted `n8n` triggers scheduled simulation sweeps, campus surge webhooks, and telemetry alerts via `HiveServiceLayer` APIs (kept outside `pyproject.toml` due to `n8n`'s Sustainable Use License).
-    - *Option C (Permissive-OSS Alternatives, `DEC-007`):* Evaluate `Activepieces` (`MIT`) for visual webhook flows, `Kestra` / `Prefect` (`Apache-2.0`) for reproducible batch experiment DAGs, and `Temporal` (`MIT`) for durable multi-semester orchestration.
-    - *Option D (Hybrid Benchmark Arm, `EXP-006`):* Compare seeded Mesa baselines against external `n8n`/Activepieces-triggered `Sybil_Roommate_Ring` and `Finals_Week_Panicker` runs using logged replayable payloads.
-- [ ] **Wave 3C — Read-Only Telemetry Dashboard & Apache-2.0 Perses Observability (`src/nectr/ui/`, `add-telemetry-dashboard-ui`):**
-  - Build the read-only `Streamlit` + `NetworkX` Hive Explorer (`ADR-0011`), configure `Prometheus` OTLP + **Perses (`Apache-2.0`)** multi-Hive dashboards (`DEC-014`), and export immutable CSV/Parquet paper artifacts.
-
----
-
-## Milestone 4: Academic Paper, Non-Dilutive Grant Pipeline & Flagship Portfolio
-
-- [x] **Living Docs, Glossary & IDE-Agnostic Onboarding ([#9](https://github.com/brandon-fox/nectR/issues/9), [#12](https://github.com/brandon-fox/nectR/issues/12)):** Added `docs/glossary.md` defining `MV=PQ` & `PoUW-PoW`, made `README.md` IDE/skill-agnostic, and automated `README.md` spaces & `mkdocs.yml` `nav:` generation/drift checks (`nectr-docs`).
-- [ ] **Compile Publication-Ready Whitepaper (`paper/nectR_whitepaper.md`, `DEC-020`):** Author the 10-section manuscript targeting **JASSS (*Journal of Artificial Societies and Social Simulation*)** / ***JEBO*** using the **ODD+D** ABM protocol ([`docs/theory/whitepaper_outline.md`](../theory/whitepaper_outline.md)) with 100% verified `nectr-citations check` custody and empirical figures from `experiments/`.
-- [ ] **Finalize Institutional ROI & Grant Submission Dossiers (`business/`, `docs/business/institutional_proposal.md`):**
-  - Package the 10,000-student university ROI calculator (`$42.50/hr` $\rightarrow$ `$3.33/hr`, `2.40` break-even retained freshmen, `1,150%` Year-1 ROI).
-  - Prepare Q1 2027 non-dilutive grant submissions led by primary behavioral/ACE targets **NSF DRMS** and **Russell Sage Foundation (+ J-PAL RCT)** (`DEC-020`), alongside **NSF IUSE: EDU** (`Jan 20, 2027`), **NSF Future CoRe (`CISE`)** (`Feb 4, 2027`), **Ethereum Foundation `ESP`** (`Feb 2027`), **NSF PESOSE Track 1** (`Mar 2, 2027`), and **Alfred P. Sloan Foundation**.
-- [ ] **Publish System Design Portfolio Site:** Verify and deploy via `uv run mkdocs build --strict`.
-
----
-
-## Milestone 5: University IRB Sandbox Pilot, LTI 1.3 Integration & Apereo Incubation (Months 6–24)
-
-- [ ] **Complete the 8-Point University Pilot Readiness Checklist (`add-campus-compliance-lti-and-zk-identity`, `ADR-0015`, `DEC-015`):**
-  - [ ] Enforce **MIT License + DCO 1.1** (`CONTRIBUTING.md` + SSH-signed commits) and host TTO Bayh-Dole clearance.
-  - [ ] Implement `ZeroPiiCommitmentGuard` (off-chain campus relational PII DB + on-chain salted hashes / BBS+ ZK membership proofs + reusable GDPR DPIA).
-  - [ ] Implement `TitleIvComplianceFirewall` (non-monetary organizer-cleared service-duration credit mode + optional Payroll/OSFAS adapter).
-  - [ ] Implement `CampusIdentityPort` for **1EdTech LTI 1.3 (`NRPS` + Deep Linking 2.0)** and **InCommon Shibboleth SAML 2.0 SSO** with SCIM term-rollover deprovisioning.
-  - [ ] Complete **EDUCAUSE HECVAT 4 (`v4.1.6`)** workbook and 2-page Campus CIO Total Cost of Ownership (`TCO`) Brief.
-- [ ] **Stage 1 Single-Campus IRB Sandbox Pilot (Months 6–14):** Deploy inside one host university Learning Center across 2–3 high-DFW gateway STEM courses (`CALC-101`, `CS-101`, `CHEM-101`) and measure causal retention and cost-per-hour lift against `EXP-002` predictions.
-- [ ] **Stage 2 Multi-Campus Daughter-Hive Federation & Apereo Foundation Incubation (Months 14–24+):** Spawn 2–4 partner university daughter Hives via 15-Scout Quorum Sensing (`DEC-012`) over NATS Leaf Nodes (`ADR-0014`), transition governance into the **Apereo Foundation** (`501(c)(3)`), and submit Stage 2 scale proposals (`NSF PESOSE Track 2/3`, `NSF IUSE Level 2/3`, `Horizon Europe`, `Sovereign Tech Agency`).
+For details on post-v0.1.0 development—including Milestone 2 (Federated NATS Infrastructure), Milestone 3 (Full Mesa ABM Sweeps over frameworks like CrewAI/n8n, with permissive workflow options Activepieces, Kestra, Prefect, Temporal, and EXP-006 benchmark arms), Milestone 4 (Published Academic Paper), and Milestone 5: University IRB Sandbox Pilot, LTI 1.3 Integration & Apereo Foundation Incubation—refer to the [Product Vision & Three-Horizon North Star](vision.md).
