@@ -1,12 +1,49 @@
+ci:
+  autofix_prs: false
+  skip:
+    - adrlint-check
+    - adrlint-format-and-lock
+    - nectr-decisions-check
+    - nectr-citations-check
+    - nectr-docs-check
+    - nectr-spec-links-check
+    - pymarkdown-lint
+
 repos:
-  - repo: local
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
     hooks:
-      - id: detect-secrets
-        name: detect-secrets (OSS secret & entropy scan)
-        entry: uv run detect-secrets-hook --baseline .secrets.baseline
-        language: system
+      - id: detect-secrets-hook
+        name: detect-secrets-hook --baseline .secrets.baseline (OSS secret & entropy scan)
+        args: ["--baseline", ".secrets.baseline"]
         stages: [pre-commit]
 
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        name: ruff check (src, tests, features)
+        args: ["src", "tests", "features"]
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: ruff-format
+        name: ruff format --check (src, tests, features)
+        args: ["--check", "src", "tests", "features"]
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.39.0
+    hooks:
+      - id: check-jsonschema
+        name: check-jsonschema (docs/planning/decisions.yaml)
+        args: ["--schemafile", "docs/planning/decisions.schema.json", "docs/planning/decisions.yaml"]
+        pass_filenames: false
+        files: ^docs/planning/decisions\.(yaml|schema\.json)$
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
       - id: forbid-local-paths
         name: Forbid hardcoded user/local/private paths
         entry: '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/\s]+|\.gemini[/\\]|\.ollama[/\\])'
@@ -40,13 +77,6 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: check-jsonschema-decisions
-        name: check-jsonschema (docs/planning/decisions.yaml)
-        entry: uv run check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
       - id: nectr-citations-check
         name: nectR Citation Quality & Provenance Lineage Check (pre-commit)
         entry: uv run python -m nectr.devtools.citations check
@@ -64,20 +94,6 @@ repos:
       - id: nectr-spec-links-check
         name: nectR OpenSpec-to-Feature Link Check (pre-commit)
         entry: uv run python -m nectr.devtools.spec_links
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
-      - id: ruff-check
-        name: ruff lint check (src, tests, features)
-        entry: uv run ruff check src tests features
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
-      - id: ruff-format-check
-        name: ruff format check (src, tests, features)
-        entry: uv run ruff format --check src tests features
         language: system
         pass_filenames: false
         stages: [pre-commit]

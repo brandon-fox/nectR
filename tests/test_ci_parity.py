@@ -68,6 +68,9 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
     (root / ".pre-commit-config.yaml").write_text(
         textwrap.dedent(
             """\
+            ci:
+              autofix_prs: false
+              skip: []
             repos:
               - repo: local
                 hooks:
@@ -496,3 +499,36 @@ def test_hooks_split_fast_pre_commit_from_heavy_pre_push(tmp_path: Path) -> None
         assert hooks_by_id[hook_id]["entry"].startswith("uv run ")
     assert "nectr-bdd-behave-precommit" not in hooks_by_id
     assert "--tags=-red" in hooks_by_id["nectr-bdd-behave-push"]["entry"]
+
+
+def test_pre_commit_ci_compatibility_and_workflow_validation() -> None:
+    """Verify .pre-commit-config.yaml works on pre-commit.ci and is validated in CI."""
+    repo_root = Path(__file__).resolve().parents[1]
+    pre_commit_cfg = yaml.safe_load(
+        (repo_root / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    )
+
+    ci_cfg = pre_commit_cfg.get("ci")
+    assert isinstance(ci_cfg, dict), "Missing top-level 'ci' configuration for pre-commit.ci"
+    assert ci_cfg.get("autofix_prs") is False, "pre-commit.ci autofix_prs must be false"
+
+    skip_ids = set(ci_cfg.get("skip", []))
+    pre_commit_system_ids: set[str] = set()
+    repo_urls = {repo.get("repo") for repo in pre_commit_cfg.get("repos", [])}
+    for repo in pre_commit_cfg.get("repos", []):
+        for hook in repo.get("hooks", []):
+            stages = hook.get("stages", ["pre-commit"])
+            if hook.get("language") == "system" and "pre-commit" in stages:
+                pre_commit_system_ids.add(hook["id"])
+
+    assert pre_commit_system_ids <= skip_ids, (
+        f"pre-commit.ci cannot run language: system hooks without uv: {pre_commit_system_ids - skip_ids}"
+    )
+    assert "https://github.com/Yelp/detect-secrets" in repo_urls
+    assert "https://github.com/astral-sh/ruff-pre-commit" in repo_urls
+    assert "https://github.com/python-jsonschema/check-jsonschema" in repo_urls
+
+    ci_workflow = (repo_root / ".github" / "workflows" / "license-and-security-scan.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "pre-commit validate-config" in ci_workflow

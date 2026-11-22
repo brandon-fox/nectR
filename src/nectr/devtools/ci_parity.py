@@ -540,6 +540,48 @@ def _validate_workflow_file(wf_path: Path, repo_root: Path) -> list[str]:
     return errors
 
 
+def check_pre_commit_ci_compatibility(repo_root: Path) -> list[str]:
+    """Verify .pre-commit-config.yaml is safe and runnable on pre-commit.ci."""
+    cfg_path = repo_root / ".pre-commit-config.yaml"
+    if not cfg_path.is_file():
+        return []
+
+    data = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        return [".pre-commit-config.yaml: root must be a YAML mapping."]
+
+    errors: list[str] = []
+    ci_cfg = data.get("ci")
+    if not isinstance(ci_cfg, dict):
+        return [".pre-commit-config.yaml: missing 'ci' configuration for pre-commit.ci."]
+
+    if ci_cfg.get("autofix_prs") is not False:
+        errors.append(
+            ".pre-commit-config.yaml: ci.autofix_prs must be false to prevent unsigned bot commits."
+        )
+
+    skip_raw = ci_cfg.get("skip", [])
+    skip_ids = set(skip_raw) if isinstance(skip_raw, list) else set()
+    for repo in data.get("repos", []):
+        if not isinstance(repo, dict):
+            continue
+        for hook in repo.get("hooks", []):
+            if not isinstance(hook, dict):
+                continue
+            stages = hook.get("stages", ["pre-commit"])
+            if (
+                hook.get("language") == "system"
+                and isinstance(stages, list)
+                and "pre-commit" in stages
+                and hook.get("id") not in skip_ids
+            ):
+                errors.append(
+                    f".pre-commit-config.yaml: pre-commit hook '{hook.get('id')}' uses "
+                    "language: system without being listed in ci.skip for pre-commit.ci."
+                )
+    return errors
+
+
 def check_workflow_action_hygiene(repo_root: Path) -> list[str]:
     """Validate Node 24 action runtimes, cache isolation, lychee output, and SPDX allow-list."""
     workflows_dir = repo_root / ".github" / "workflows"
@@ -591,15 +633,18 @@ def main(argv: list[str] | None = None) -> int:
 
     report = check_pipeline_parity(repo_root)
     hygiene_errors = check_workflow_action_hygiene(repo_root)
+    pre_commit_ci_errors = check_pre_commit_ci_compatibility(repo_root)
     red_hits: list[str] = []
     if args.forbid_red:
         red_hits = check_no_red_scenarios(repo_root, allowed_files=args.allow_file)
 
-    if not report.passed or hygiene_errors or red_hits:
+    if not report.passed or hygiene_errors or pre_commit_ci_errors or red_hits:
         for err in report.errors:
             print(f"CI PARITY ERROR: {err}", file=sys.stderr)
         for err in hygiene_errors:
             print(f"CI WORKFLOW HYGIENE ERROR: {err}", file=sys.stderr)
+        for err in pre_commit_ci_errors:
+            print(f"PRE-COMMIT.CI COMPATIBILITY ERROR: {err}", file=sys.stderr)
         for hit in red_hits:
             print(f"FORBIDDEN @red SCENARIO: {hit}", file=sys.stderr)
         return 1

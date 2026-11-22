@@ -81,6 +81,7 @@ jobs:
 
       - name: Governance, Citation Custody & Docs Sync checks
         run: |
+          uv run pre-commit validate-config .pre-commit-config.yaml
           uv run adrlint lint
           uv run adrlint format --check
           uv run adrlint lock --check
