@@ -6,6 +6,8 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -232,6 +234,30 @@ def test_ai_generated_research_and_bee_metaphor_labeled() -> None:
         encoding="utf-8"
     )
     assert "| :--- | :---: | :--- |\n| :--- | :---: | :--- |" not in game_theory
+
+
+@pytest.mark.xfail(strict=True, reason="RED: roadmap.md accuracy fixes for review feedback")
+def test_roadmap_accuracy_against_plan_to_b_plus() -> None:
+    """Verify roadmap.md accurately reflects workstream items and current main status."""
+    roadmap_text = (REPO_ROOT / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
+    assert "| **Track TL** | Tooling, Developer Experience & CI Parity |" in roadmap_text
+    track_tl_line = next(line for line in roadmap_text.splitlines() if "Track TL" in line)
+    assert "In Progress" in track_tl_line
+    # Check open hold PR items are marked [ ]
+    assert "[ ] **CA3:**" in roadmap_text
+    assert "[ ] **CB1:**" in roadmap_text
+    # Check CB2, CB3, CB4 descriptions
+    assert "dispute and escrow-cancel" in roadmap_text.lower()
+    assert "append-only" in roadmap_text and "verify_chain()" in roadmap_text
+    assert "velocity" in roadmap_text and "royal jelly" in roadmap_text.lower()
+    # Check TL1 to TL7 items
+    assert "--check-stale" in roadmap_text
+    assert "license" in roadmap_text.lower() and "author" in roadmap_text.lower()
+    assert (
+        "numpy" in roadmap_text.lower() or "runtime" in roadmap_text.lower()
+    ) and "TL4" in roadmap_text
+    assert "**TL6:**" in roadmap_text
+    assert "**TL7:**" in roadmap_text
 
 
 def test_roadmap_plan_to_b_plus_and_vision_document() -> None:

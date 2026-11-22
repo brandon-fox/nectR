@@ -52,3 +52,9 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     Given the repository documentation root
     When the roadmap and vision validator inspects roadmap.md, vision.md, and mkdocs.yml
     Then vision.md documents the three-horizon product vision and roadmap.md details the Plan to B+
+
+  @red
+  Scenario: Roadmap accurately reflects Plan to B+ workstreams and landed status
+    Given the repository documentation root
+    When the roadmap and vision validator inspects roadmap.md, vision.md, and mkdocs.yml
+    Then roadmap.md accurately details all Plan to B+ workstream deliverables and unmerged hold statuses
