@@ -12,7 +12,7 @@ The Plan to B+ organizes all current development into five coordinated, parallel
 | :--- | :--- | :--- | :--- |
 | **Track CA** | Core Contracts & Accounting Invariants | Integer accounting (`micro_nectr`), exact supply conservation, escrow resolution & expiry, Guard Bee mover rejection | In Progress |
 | **Track CB** | Hive Service Layer, Authority & Cryptographic Signing | Queen-signed registration commands, Bee Keys registry (`0003`), Ed25519 session signatures, replay nonces | In Progress |
-| **Track TL** | Tooling, Developer Experience & CI Parity | Move mypy to pre-push, cross-platform CI venv PATH resolution, PR lifecycle automation, local `nectr` CLI | Completed / Landed |
+| **Track TL** | Tooling, Developer Experience & CI Parity | Move mypy to pre-push, cross-platform CI venv PATH resolution, PR lifecycle automation, local `nectr` CLI | In Progress |
 | **Track HY** | Repository Hygiene, Licensing & Community | MIT License, full community health suite, automated citation audits (`reference-check.md`), smoke-scenario labeling | Completed / Landed |
 | **Track DC** | Living Documentation, Transparency & OpenSpec | Structure freeze, plain-language README, OpenSpec wave archiving, signed audit log ADR-0019, assumption labeling | In Progress |
 
@@ -24,24 +24,26 @@ The Plan to B+ organizes all current development into five coordinated, parallel
 
 - [x] **CA1:** Strict xfail test harness in `tests/test_contracts.py` and `tests/test_services.py` for review findings 1, 3, 4, and 5 (`harden-authority-and-accounting`).
 - [x] **CA2:** Migration `0002` integer accounting conversion (`micro_nectr`) with exact supply conservation across 500-round randomized escrow loops.
-- [x] **CA3:** Dispute resolution safeguards (undisputed escrows cannot be resolved by Queens at full fee) and expired escrow cancellation returning tokens to original state.
-- [ ] **CA4:** Guard Bee foreign mover rejection: unaccepted movers holding target-hive registrations without home Hive sponsorship are rejected upon bridging.
+- [ ] **CA3:** Require dispute state, cap fee < 1, and add escrow expiry returning tokens to original token state (open `hold` PR).
+- [ ] **CA4:** Cross-hive migration capital control & Guard Bee verification: unaccepted movers holding target-hive registrations without home Hive sponsorship are rejected upon bridging.
 - [ ] **CA5:** Clean test suite verification: removal of all remaining finding xfails and 100% green contract tests.
 
 ### Track CB: Hive Service Layer, Authority & Cryptographic Signing
 
-- [x] **CB1:** Migration `0003` Bee Keys registry and signature-verified Queen registration commands (`tests/test_signed_commands.py`).
-- [ ] **CB2:** Ed25519-signed session escrow allocation, co-signed attestation commands, and cryptographic verification on state transitions.
-- [ ] **CB3:** Monotonic nonce tracking and replay attack protection across all signed service commands.
-- [ ] **CB4:** Deterministic service audit-log replay from SQLite journal into in-memory state.
+- [ ] **CB1:** Require signed commands and bind roles to keys: Key registry (`bee_public_keys` + per-bee nonce in `HiveSnapshot` & new `bee_keys` table migration `0003`); `bootstrap_sponsored_hive` takes Queens/seed workers public keys; `SignedTransaction` for all state-changing service methods; self-signed `register_bee` creates `LEARNER_BEE` only; settlement requires two identical-payload `SignedTransactions` (learner + tutor); signed bridge between two `HiveServiceLayer` instances; `HiveBlockchain.submit_transaction` accepts only verified `SignedTransactions`; API POST bodies are signed envelopes; simulator uses deterministic test-only signer and epoch timestamps; remove Finding 1 xfail (open `hold` PR).
+- [ ] **CB2:** Expose dispute and escrow-cancel commands through `HiveServiceLayer` and API endpoints.
+- [ ] **CB3:** Make blocks append-only and verify the chain on load: append-only `hive_blocks`, persist `block_hash`, `verify_chain()` on load raising `ChainIntegrityError` naming bad height, default `difficulty=0`.
+- [ ] **CB4:** Compute velocity per epoch and accrue Royal Jelly dividends.
 
 ### Track TL: Tooling, Developer Experience & CI Parity
 
-- [x] **TL1:** Hook execution optimization: moved `mypy` to `.githooks/pre-push` keeping `.githooks/pre-commit` fast and responsive.
-- [x] **TL2:** Cross-platform venv PATH resolution in `.githooks/` and GitHub Actions workflows for seamless Windows and POSIX execution.
-- [x] **TL3:** Automated PR lifecycle check-branch gate and merge-safety invariants (`nectr.devtools.pr_lifecycle`).
-- [x] **TL4:** Dual-track decision governance tooling (`nectr-decisions` and `adrlint`).
-- [ ] **TL5:** Local developer CLI (`nectr`) commands for node initialization, invariant checks, and simulation execution.
+- [x] **TL1:** Keep pre-commit fast and move test suites (`mypy`, `pytest`, `behave --tags=-red`, `mkdocs build --strict`) to `.githooks/pre-push` with CI parity.
+- [x] **TL2:** Remove `--check-stale` step from `.github/workflows/pr-lifecycle.yml`.
+- [x] **TL3:** Set MIT license metadata and author in `pyproject.toml`.
+- [x] **TL4:** Trim runtime dependencies: drop `numpy` and `rich`, move `httpx` to test dependency and `uvicorn` to api extra in `pyproject.toml` and relock.
+- [ ] **TL5:** Local developer CLI (`nectr`) commands for node `simulate` and `serve`.
+- [ ] **TL6:** Smoke-test `nectr simulate` byte-identical run reproduction.
+- [ ] **TL7:** Spec link validation: update `spec_links` devtool to verify scenario names in Gherkin and remove `#L` line anchors.
 
 ### Track HY: Repository Hygiene, Licensing & Community Standards
 

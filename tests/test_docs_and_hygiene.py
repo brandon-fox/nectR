@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -236,7 +234,6 @@ def test_ai_generated_research_and_bee_metaphor_labeled() -> None:
     assert "| :--- | :---: | :--- |\n| :--- | :---: | :--- |" not in game_theory
 
 
-@pytest.mark.xfail(strict=True, reason="RED: roadmap.md accuracy fixes for review feedback")
 def test_roadmap_accuracy_against_plan_to_b_plus() -> None:
     """Verify roadmap.md accurately reflects workstream items and current main status."""
     roadmap_text = (REPO_ROOT / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
