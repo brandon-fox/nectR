@@ -923,6 +923,47 @@ def test_repeated_fractional_disputes_conserve_supply_with_exact_equality() -> N
     )
 
 
+@pytest.mark.xfail(strict=True, reason="RED: CA2 integer micro-unit exact conservation")
+def test_micro_unit_conservation_holds_exact_integer_equality_for_any_iteration_count() -> None:
+    engine = HiveContractEngine(hive_id="HIVE_MICRO_504")
+    engine.inject_sponsored_seed_comb(10_000.0)
+    engine.register_bee("queen_1", role=BeeRole.QUEEN)
+    engine.register_bee("tutor_1", role=BeeRole.LEARNER_BEE)
+    engine.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
+    engine.certify_worker_bee("queen_1", "tutor_1", "CS-101")
+
+    for idx in range(504):
+        engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", 0.1234567)
+        sess_id = f"micro_sess_{idx}"
+        engine.create_service_barter_escrow(
+            session_id=sess_id,
+            tutor_id="tutor_1",
+            learner_id="learner_1",
+            subject_id="CS-101",
+            duration_hours=1.0,
+            amount=0.1234567,
+            token_state=TokenState.RAW_POLLEN,
+        )
+        engine.resolve_disputed_session(
+            queen_id="queen_1",
+            session_id=sess_id,
+            tutor_share_ratio=1.0 / 3.0,
+            service_fee_rate=0.10,
+        )
+
+    pollen_units = sum(a.raw_pollen_units for a in engine.accounts.values())  # type: ignore[attr-defined]
+    liquid_units = sum(a.liquid_nectr_units for a in engine.accounts.values())  # type: ignore[attr-defined]
+    escrow_units = sum(
+        s.escrowed_units  # type: ignore[attr-defined]
+        for s in engine.sessions.values()
+        if s.status == SessionStatus.INTENT_ESCROWED
+    )
+    assert (
+        engine.comb_reserve_units + pollen_units + liquid_units + escrow_units  # type: ignore[attr-defined]
+        == engine.total_minted_supply_units  # type: ignore[attr-defined]
+    )
+
+
 @pytest.mark.xfail(strict=True, reason="review finding 4; fixed by CA4")
 def test_bridge_rejects_foreign_mover_registered_in_target_without_home_hive_id() -> None:
     hive_a = HiveContractEngine(hive_id="HIVE_A")

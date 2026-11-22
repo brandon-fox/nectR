@@ -818,5 +818,52 @@ def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
 @pytest.mark.xfail(strict=True, reason="review finding 1; fixed by CB1")
 def test_register_queen_via_service_without_queen_signed_command_rejected() -> None:
     service = HiveServiceLayer(hive_id="HIVE_AUTH", difficulty=1)
-    with pytest.raises((ContractViolationError, PermissionError, TypeError)):
+    with pytest.raises((ContractViolationError, PermissionError)):
         service.register_bee("rogue_queen", role=BeeRole.QUEEN)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: CA2 micro-unit migration 0002 and integer persistence not yet implemented",
+)
+def test_alembic_0002_upgrades_0001_and_persists_exact_micro_units(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, inspect, text
+
+    import nectr.services.persistence as persistence_mod
+    from nectr.services.persistence import SQLModelHiveRepository
+
+    db_path = tmp_path / "upgrade_0002.db"
+    db_url = f"sqlite:///{db_path}"
+    migrations_dir = Path(persistence_mod.__file__).resolve().parent / "migrations"
+
+    engine = create_engine(db_url)
+    cfg = Config()
+    cfg.set_main_option("script_location", str(migrations_dir).replace("%", "%%"))
+    cfg.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
+    with engine.begin() as conn:
+        cfg.attributes["connection"] = conn
+        command.upgrade(cfg, "0001_initial_hive_schema")
+        conn.execute(
+            text(
+                "INSERT INTO hive_states "
+                "(hive_id, difficulty, collusion_alpha, lineage_gamma, "
+                "accepted_status_peer_threshold, comb_reserve, total_minted_supply, "
+                "current_epoch, mempool_json) "
+                "VALUES ('HIVE_OLD', 1, 1.5, 0.5, 3, 100.5, 100.5, 0, '[]')"
+            )
+        )
+    engine.dispose()
+
+    repo = SQLModelHiveRepository(database_url=db_url)
+    repo.initialize()
+    inspector = inspect(repo.engine)
+    hive_cols = {col["name"] for col in inspector.get_columns("hive_states")}
+    assert "comb_reserve_units" in hive_cols
+    assert "total_minted_supply_units" in hive_cols
+
+    reloaded = HiveServiceLayer.from_repository("HIVE_OLD", repository=repo)
+    assert reloaded.contracts.comb_reserve_units == 100_500_000  # type: ignore[attr-defined]
+    assert reloaded.contracts.total_minted_supply_units == 100_500_000  # type: ignore[attr-defined]
+    repo.close()
