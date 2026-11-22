@@ -272,3 +272,63 @@ def step_then_n8n_adr_locked(context) -> None:
     summary = check_all_governance(context.target_root)
     assert summary["adrlint_ok"] is True
     assert summary["decision_log_in_sync"] is True
+
+
+@when(
+    "the Vyper py-evm, PactFlow, and JASSS ODD+D governance checks inspect ADRs, decisions, and OpenSpec proposals"
+)
+def step_when_inspect_vyper_pactflow_governance(context) -> None:
+    from nectr.devtools.decisions import load_registry
+
+    root: Path = context.target_root
+    registry = load_registry(root / "docs" / "planning" / "decisions.yaml")
+    context.vp_decisions = {entry.id: entry for entry in registry.decisions}
+    context.adr0017 = (
+        root / "docs" / "adr" / "0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md"
+    )
+    context.adr0018 = (
+        root / "docs" / "adr" / "0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md"
+    )
+    context.vyper_spec = (
+        root / "openspec" / "changes" / "adopt-vyper-and-zero-gas-pyevm" / "proposal.md"
+    )
+    context.pact_spec = (
+        root / "openspec" / "changes" / "add-pactflow-api-and-message-contracts" / "proposal.md"
+    )
+
+
+@then(
+    "ADR-0017 and ADR-0018 are accepted and locked for Vyper py-evm and PactFlow bi-directional contracts"
+)
+def step_then_adr0017_0018_locked(context) -> None:
+    from nectr.devtools.decisions import check_all_governance
+
+    assert context.adr0017.exists(), "Missing ADR-0017 for Vyper + zero-gas py-evm"
+    assert context.adr0018.exists(), "Missing ADR-0018 for Pact v4 + PactFlow"
+    assert "vyper" in context.adr0017.read_text(encoding="utf-8").lower()
+    assert "pactflow" in context.adr0018.read_text(encoding="utf-8").lower()
+    summary = check_all_governance(context.target_root)
+    assert summary["accepted_adr_count"] >= 18
+    assert summary["adrlint_ok"] is True
+
+
+@then(
+    "DEC-017 through DEC-020 lock micro_nectr integer math, direct bps learner attestations, layered secp256k1 signing, and JASSS ODD+D framing"
+)
+def step_then_dec017_to_020_locked(context) -> None:
+    for dec_id in ("DEC-017", "DEC-018", "DEC-019", "DEC-020"):
+        assert dec_id in context.vp_decisions, f"Missing {dec_id} in decisions.yaml"
+        assert context.vp_decisions[dec_id].status == "locked"
+    assert "micro_nectr" in context.vp_decisions["DEC-017"].decision
+    assert "10,000 bps" in context.vp_decisions["DEC-018"].decision
+    assert "secp256k1" in context.vp_decisions["DEC-019"].decision
+    assert "JASSS" in context.vp_decisions["DEC-020"].decision
+    assert "ODD+D" in context.vp_decisions["DEC-020"].decision
+
+
+@then("OpenSpec proposals exist for Vyper py-evm migration and PactFlow contract governance")
+def step_then_vyper_pact_openspec_exist(context) -> None:
+    assert context.vyper_spec.exists(), "Missing adopt-vyper-and-zero-gas-pyevm OpenSpec proposal"
+    assert context.pact_spec.exists(), (
+        "Missing add-pactflow-api-and-message-contracts OpenSpec proposal"
+    )

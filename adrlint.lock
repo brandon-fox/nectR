@@ -85,3 +85,13 @@ blake3 = "737c350829758ad51adcb8ff86c4503183bb595b417cc34c81da4f7556f58a8f"
 number = 16
 status = "accepted"
 blake3 = "0a612f10fcb786cf4489b97574d33948c206ae20ab45b7fc14b923284a28d6c0"
+
+[adrs."docs/adr/0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md"]
+number = 17
+status = "accepted"
+blake3 = "5c53cbb4391a912cfae573d354197981f29e59b1e5521a715396da898eebd8e5"
+
+[adrs."docs/adr/0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md"]
+number = 18
+status = "accepted"
+blake3 = "c1b1f99ae3390825c9e82f958f7fc9c94656f3de1dc94614c3a26aaa17ec3485"
