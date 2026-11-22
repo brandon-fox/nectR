@@ -116,7 +116,11 @@ def _parse_units_from_mapping(
         raw_units = _require_non_negative_int(data[units_key], units_key)
 
     if raw_units is not None and float_units is not None:
-        if raw_units != float_units:
+        roundtrip_float = from_micro_units(raw_units)
+        expected_float_units = (
+            to_micro_units(roundtrip_float, label) if math.isfinite(roundtrip_float) else raw_units
+        )
+        if float_units != expected_float_units:
             raise ContractViolationError(
                 f"Supply conservation invariant violated: {label} units ({raw_units}) != float ({float_units})."
             )
@@ -930,5 +934,28 @@ class HiveContractEngine:
             raise ContractViolationError(f"Invalid HiveContractEngine snapshot: {exc}") from exc
 
         if verify_invariants:
+            is_legacy_float_snapshot = "comb_reserve_units" not in snapshot
+            if is_legacy_float_snapshot:
+                engine._reconcile_legacy_float_drift(max_residual_units=100)
             engine.assert_supply_conservation()
         return engine
+
+    def _reconcile_legacy_float_drift(self, *, max_residual_units: int = 100) -> None:
+        """Absorb legacy pre-micro-unit 1e-4 float tolerance drift on float-only hydration."""
+        total_pollen_units = sum(a.raw_pollen_units for a in self.accounts.values())
+        total_liquid_units = sum(a.liquid_nectr_units for a in self.accounts.values())
+        total_escrow_units = sum(
+            s.escrowed_units
+            for s in self.sessions.values()
+            if s.status == SessionStatus.INTENT_ESCROWED
+        )
+        accounted_units = (
+            self.comb_reserve_units + total_pollen_units + total_liquid_units + total_escrow_units
+        )
+        residual = self.total_minted_supply_units - accounted_units
+        if residual == 0 or abs(residual) > max_residual_units:
+            return
+        if self.comb_reserve_units + residual >= 0:
+            self.comb_reserve_units += residual
+        elif self.total_minted_supply_units - residual >= 0:
+            self.total_minted_supply_units -= residual

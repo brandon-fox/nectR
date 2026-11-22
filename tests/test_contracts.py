@@ -1002,6 +1002,45 @@ def test_micro_unit_helpers_and_snapshot_mismatch_guards() -> None:
         engine.assert_supply_conservation()
 
 
+def test_legacy_float_only_snapshot_reconciles_bounded_drift_and_rejects_excess() -> None:
+    engine = _setup_basic_hive(hive_id="HIVE_LEGACY_SNAP", seed_comb=10_000.0)
+    legacy = json.loads(json.dumps(engine.to_snapshot()))
+    # Strip *_units keys to simulate a pre-CA2 float-only snapshot with 9e-5 tolerated drift
+    for key in ("comb_reserve_units", "total_minted_supply_units"):
+        legacy.pop(key, None)
+    for acct in legacy["accounts"].values():
+        for key in ("raw_pollen_units", "liquid_nectr_units", "royal_jelly_units"):
+            acct.pop(key, None)
+    for sess in legacy["sessions"].values():
+        sess.pop("escrowed_units", None)
+
+    legacy["accounts"]["worker_1"]["liquid_nectr_balance"] += 0.000090
+    rehydrated = HiveContractEngine.from_snapshot(legacy)
+    rehydrated.assert_supply_conservation()
+    assert rehydrated.total_minted_supply_units == 10_000_000_000
+
+    # Drift > 100 micro-units (1e-4) must still be rejected
+    legacy["accounts"]["worker_1"]["liquid_nectr_balance"] += 0.000020  # total +110 micro-units
+    with pytest.raises(ContractViolationError, match="Supply conservation invariant violated"):
+        HiveContractEngine.from_snapshot(legacy)
+
+
+def test_large_balance_above_2_pow_53_micro_units_round_trips_losslessly() -> None:
+    engine = HiveContractEngine(hive_id="HIVE_LARGE")
+    engine.inject_sponsored_seed_comb(1e10)
+    engine.register_bee("queen_1", role=BeeRole.QUEEN)
+    engine.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
+    engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", 0.000001)
+
+    assert engine.comb_reserve_units == 9_999_999_999_999_999
+    snap = engine.to_snapshot()
+    rehydrated = HiveContractEngine.from_snapshot(snap)
+    assert rehydrated.comb_reserve_units == 9_999_999_999_999_999
+    assert rehydrated.accounts["learner_1"].raw_pollen_units == 1
+    assert rehydrated.total_minted_supply_units == 10_000_000_000_000_000
+    rehydrated.assert_supply_conservation()
+
+
 @pytest.mark.xfail(strict=True, reason="review finding 4; fixed by CA4")
 def test_bridge_rejects_foreign_mover_registered_in_target_without_home_hive_id() -> None:
     hive_a = HiveContractEngine(hive_id="HIVE_A")
