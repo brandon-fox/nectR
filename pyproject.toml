@@ -4,9 +4,10 @@ version = "0.1.0"
 description = "nectR: Federated Biomimetic Campus Tutoring Private Blockchain, Smart Contracts, Service Layer & Agent-Based Behavioral Economy"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
-    { name = "nectR Research & Architecture" }
+    { name = "Brandon Fox", email = "32090240+brandon-fox@users.noreply.github.com" },
 ]
 dependencies = [
     "pydantic>=2.7.0",

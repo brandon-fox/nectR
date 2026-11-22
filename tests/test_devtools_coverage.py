@@ -269,10 +269,6 @@ def test_ci_parity_edge_cases(tmp_path: Path) -> None:
     assert check_no_red_scenarios(tmp_path, feature_files=[feat]) == ["sample.feature:2"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: TL3 MIT license metadata and real author not yet set in pyproject.toml",
-)
 def test_pyproject_license_and_author_metadata() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = pyproject["project"]
