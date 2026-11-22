@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -266,3 +267,18 @@ def test_ci_parity_edge_cases(tmp_path: Path) -> None:
     feat = tmp_path / "sample.feature"
     feat.write_text("Feature: X\n  @red\n  Scenario: S\n    Given a\n", encoding="utf-8")
     assert check_no_red_scenarios(tmp_path, feature_files=[feat]) == ["sample.feature:2"]
+
+
+def test_pyproject_license_and_author_metadata() -> None:
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    project = pyproject["project"]
+    assert project.get("license") == "MIT"
+    assert project.get("license-files") == ["LICENSE"]
+    assert (REPO_ROOT / "LICENSE").is_file()
+    authors = project.get("authors", [])
+    assert any(
+        isinstance(author, dict)
+        and author.get("name") == "Brandon Fox"
+        and author.get("email") == "32090240+brandon-fox@users.noreply.github.com"
+        for author in authors
+    )
