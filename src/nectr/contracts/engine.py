@@ -6,8 +6,11 @@ import copy
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from typing import Any
+
+MICRO_UNITS_PER_NECTR: int = 1_000_000
 
 
 class TokenState(StrEnum):
@@ -40,10 +43,89 @@ class ContractViolationError(ValueError):
     """Raised when a transaction violates a nectR smart contract or game-theory invariant."""
 
 
+def to_micro_units(value: float | Decimal, label: str = "amount") -> int:
+    """Convert a finite non-negative nectR value into exact integer micro-units (10^-6)."""
+    if isinstance(value, bool):
+        raise ContractViolationError(f"{label} must be a finite non-negative number.")
+    if isinstance(value, Decimal):
+        if not value.is_finite() or value < 0:
+            raise ContractViolationError(f"{label} must be a finite non-negative number.")
+        dec = value
+    elif isinstance(value, int):
+        if value < 0:
+            raise ContractViolationError(f"{label} must be a finite non-negative number.")
+        dec = Decimal(value)
+    elif isinstance(value, float):
+        if not math.isfinite(value) or value < 0.0:
+            raise ContractViolationError(f"{label} must be a finite non-negative number.")
+        dec = Decimal(str(value))
+    else:
+        raise ContractViolationError(f"{label} must be a finite non-negative number.")
+    return int((dec * MICRO_UNITS_PER_NECTR).to_integral_value(rounding=ROUND_HALF_UP))
+
+
+def from_micro_units(units: int) -> float:
+    """Convert integer micro-units (10^-6) into floating-point nectR for display/interop."""
+    return units / MICRO_UNITS_PER_NECTR
+
+
+def _scale_micro_units(units: int, ratio: float) -> int:
+    """Multiply integer micro-units by a validated ratio using exact Decimal rounding."""
+    product = Decimal(units) * Decimal(str(ratio))
+    return int(product.to_integral_value(rounding=ROUND_HALF_UP))
+
+
+def _float_to_tamper_units(value: float) -> tuple[int, float | None]:
+    """Convert property-assigned float to integer micro-units, preserving non-finite sentinels."""
+    if not math.isfinite(value):
+        return 0, value
+    dec = Decimal(str(value))
+    return int((dec * MICRO_UNITS_PER_NECTR).to_integral_value(rounding=ROUND_HALF_UP)), None
+
+
 def _require_finite_non_negative(value: float, label: str) -> float:
     if not math.isfinite(value) or value < 0:
         raise ContractViolationError(f"{label} must be a finite non-negative number.")
     return value
+
+
+def _require_non_negative_int(value: Any, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ContractViolationError(f"{label} must be a non-negative integer.")
+    return value
+
+
+def _parse_units_from_mapping(
+    data: Mapping[str, Any],
+    units_key: str,
+    float_key: str,
+    label: str,
+) -> int:
+    has_units = units_key in data
+    has_float = float_key in data
+    if not has_units and not has_float:
+        raise KeyError(float_key)
+
+    float_units: int | None = None
+    if has_float:
+        fval = _require_finite_non_negative(float(data[float_key]), label)
+        float_units = to_micro_units(fval, label)
+
+    raw_units: int | None = None
+    if has_units:
+        raw_units = _require_non_negative_int(data[units_key], units_key)
+
+    if raw_units is not None and float_units is not None:
+        roundtrip_float = from_micro_units(raw_units)
+        expected_float_units = (
+            to_micro_units(roundtrip_float, label) if math.isfinite(roundtrip_float) else raw_units
+        )
+        if float_units != expected_float_units:
+            raise ContractViolationError(
+                f"Supply conservation invariant violated: {label} units ({raw_units}) != float ({float_units})."
+            )
+        return raw_units
+    return raw_units if raw_units is not None else int(float_units or 0)
 
 
 def _require_str_collection(value: Any, label: str) -> set[str]:
@@ -61,12 +143,60 @@ class BeeAccount:
     bee_id: str
     home_hive_id: str
     role: BeeRole = BeeRole.LEARNER_BEE
-    raw_pollen_balance: float = 0.0
-    liquid_nectr_balance: float = 0.0
+    raw_pollen_units: int = 0
+    liquid_nectr_units: int = 0
     certified_subjects: set[str] = field(default_factory=set)
     accepted_in_hives: set[str] = field(default_factory=set)
     distinct_peers_tutored_in_hive: set[str] = field(default_factory=set)
-    royal_jelly_earned: float = 0.0
+    royal_jelly_units: int = 0
+    _invalid_balances: dict[str, float] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
+
+    @property
+    def raw_pollen_balance(self) -> float:
+        return self._invalid_balances.get(
+            "raw_pollen_balance", from_micro_units(self.raw_pollen_units)
+        )
+
+    @raw_pollen_balance.setter
+    def raw_pollen_balance(self, value: float) -> None:
+        units, invalid = _float_to_tamper_units(float(value))
+        self.raw_pollen_units = units
+        if invalid is None:
+            self._invalid_balances.pop("raw_pollen_balance", None)
+        else:
+            self._invalid_balances["raw_pollen_balance"] = invalid
+
+    @property
+    def liquid_nectr_balance(self) -> float:
+        return self._invalid_balances.get(
+            "liquid_nectr_balance", from_micro_units(self.liquid_nectr_units)
+        )
+
+    @liquid_nectr_balance.setter
+    def liquid_nectr_balance(self, value: float) -> None:
+        units, invalid = _float_to_tamper_units(float(value))
+        self.liquid_nectr_units = units
+        if invalid is None:
+            self._invalid_balances.pop("liquid_nectr_balance", None)
+        else:
+            self._invalid_balances["liquid_nectr_balance"] = invalid
+
+    @property
+    def royal_jelly_earned(self) -> float:
+        return self._invalid_balances.get(
+            "royal_jelly_earned", from_micro_units(self.royal_jelly_units)
+        )
+
+    @royal_jelly_earned.setter
+    def royal_jelly_earned(self, value: float) -> None:
+        units, invalid = _float_to_tamper_units(float(value))
+        self.royal_jelly_units = units
+        if invalid is None:
+            self._invalid_balances.pop("royal_jelly_earned", None)
+        else:
+            self._invalid_balances["royal_jelly_earned"] = invalid
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize account state into canonical JSON-safe primitives."""
@@ -74,12 +204,15 @@ class BeeAccount:
             "bee_id": self.bee_id,
             "home_hive_id": self.home_hive_id,
             "role": self.role.value,
-            "raw_pollen_balance": float(self.raw_pollen_balance),
-            "liquid_nectr_balance": float(self.liquid_nectr_balance),
+            "raw_pollen_balance": self.raw_pollen_balance,
+            "raw_pollen_units": int(self.raw_pollen_units),
+            "liquid_nectr_balance": self.liquid_nectr_balance,
+            "liquid_nectr_units": int(self.liquid_nectr_units),
             "certified_subjects": sorted(self.certified_subjects),
             "accepted_in_hives": sorted(self.accepted_in_hives),
             "distinct_peers_tutored_in_hive": sorted(self.distinct_peers_tutored_in_hive),
-            "royal_jelly_earned": float(self.royal_jelly_earned),
+            "royal_jelly_earned": self.royal_jelly_earned,
+            "royal_jelly_units": int(self.royal_jelly_units),
         }
 
     @classmethod
@@ -90,11 +223,11 @@ class BeeAccount:
                 bee_id=str(data["bee_id"]),
                 home_hive_id=str(data["home_hive_id"]),
                 role=BeeRole(str(data["role"])),
-                raw_pollen_balance=_require_finite_non_negative(
-                    float(data["raw_pollen_balance"]), "raw_pollen_balance"
+                raw_pollen_units=_parse_units_from_mapping(
+                    data, "raw_pollen_units", "raw_pollen_balance", "raw_pollen_balance"
                 ),
-                liquid_nectr_balance=_require_finite_non_negative(
-                    float(data["liquid_nectr_balance"]), "liquid_nectr_balance"
+                liquid_nectr_units=_parse_units_from_mapping(
+                    data, "liquid_nectr_units", "liquid_nectr_balance", "liquid_nectr_balance"
                 ),
                 certified_subjects=_require_str_collection(
                     data["certified_subjects"], "certified_subjects"
@@ -106,8 +239,8 @@ class BeeAccount:
                     data["distinct_peers_tutored_in_hive"],
                     "distinct_peers_tutored_in_hive",
                 ),
-                royal_jelly_earned=_require_finite_non_negative(
-                    float(data["royal_jelly_earned"]), "royal_jelly_earned"
+                royal_jelly_units=_parse_units_from_mapping(
+                    data, "royal_jelly_units", "royal_jelly_earned", "royal_jelly_earned"
                 ),
             )
         except ContractViolationError:
@@ -126,13 +259,29 @@ class ServiceBarterSession:
     learner_id: str
     subject_id: str
     duration_hours: float
-    escrowed_amount: float
+    escrowed_units: int
     token_state: TokenState
     reciprocal_subject_id: str | None = None
     status: SessionStatus = SessionStatus.INTENT_ESCROWED
     learner_attestation_score: float = 0.0
     tutor_comprehension_hash: str = ""
     effective_weight: float = 0.0
+    _invalid_balances: dict[str, float] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
+
+    @property
+    def escrowed_amount(self) -> float:
+        return self._invalid_balances.get("escrowed_amount", from_micro_units(self.escrowed_units))
+
+    @escrowed_amount.setter
+    def escrowed_amount(self, value: float) -> None:
+        units, invalid = _float_to_tamper_units(float(value))
+        self.escrowed_units = units
+        if invalid is None:
+            self._invalid_balances.pop("escrowed_amount", None)
+        else:
+            self._invalid_balances["escrowed_amount"] = invalid
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize session state into canonical JSON-safe primitives."""
@@ -143,7 +292,8 @@ class ServiceBarterSession:
             "learner_id": self.learner_id,
             "subject_id": self.subject_id,
             "duration_hours": float(self.duration_hours),
-            "escrowed_amount": float(self.escrowed_amount),
+            "escrowed_amount": self.escrowed_amount,
+            "escrowed_units": int(self.escrowed_units),
             "token_state": self.token_state.value,
             "reciprocal_subject_id": self.reciprocal_subject_id,
             "status": self.status.value,
@@ -170,8 +320,8 @@ class ServiceBarterSession:
                 learner_id=str(data["learner_id"]),
                 subject_id=str(data["subject_id"]),
                 duration_hours=duration_hours,
-                escrowed_amount=_require_finite_non_negative(
-                    float(data["escrowed_amount"]), "escrowed_amount"
+                escrowed_units=_parse_units_from_mapping(
+                    data, "escrowed_units", "escrowed_amount", "escrowed_amount"
                 ),
                 token_state=TokenState(str(data["token_state"])),
                 reciprocal_subject_id=None if rec is None else str(rec),
@@ -203,8 +353,9 @@ class HiveContractEngine:
         self.lineage_gamma = lineage_gamma
         self.accepted_status_peer_threshold = accepted_status_peer_threshold
 
-        self.comb_reserve: float = 0.0
-        self.total_minted_supply: float = 0.0
+        self.comb_reserve_units: int = 0
+        self.total_minted_supply_units: int = 0
+        self._invalid_balances: dict[str, float] = {}
         self.accounts: dict[str, BeeAccount] = {}
         self.sessions: dict[str, ServiceBarterSession] = {}
 
@@ -216,6 +367,34 @@ class HiveContractEngine:
         # tutor_effectiveness[tutor_id] -> cumulative collusion-discounted effectiveness
         self.tutor_effectiveness: dict[str, float] = {}
         self.settled_tx_log: list[dict[str, Any]] = []
+
+    @property
+    def comb_reserve(self) -> float:
+        return self._invalid_balances.get("comb_reserve", from_micro_units(self.comb_reserve_units))
+
+    @comb_reserve.setter
+    def comb_reserve(self, value: float) -> None:
+        units, invalid = _float_to_tamper_units(float(value))
+        self.comb_reserve_units = units
+        if invalid is None:
+            self._invalid_balances.pop("comb_reserve", None)
+        else:
+            self._invalid_balances["comb_reserve"] = invalid
+
+    @property
+    def total_minted_supply(self) -> float:
+        return self._invalid_balances.get(
+            "total_minted_supply", from_micro_units(self.total_minted_supply_units)
+        )
+
+    @total_minted_supply.setter
+    def total_minted_supply(self, value: float) -> None:
+        units, invalid = _float_to_tamper_units(float(value))
+        self.total_minted_supply_units = units
+        if invalid is None:
+            self._invalid_balances.pop("total_minted_supply", None)
+        else:
+            self._invalid_balances["total_minted_supply"] = invalid
 
     # -------------------------------------------------------------------------
     # 1. TokenStateAndCombContract & Genesis Injection
@@ -242,13 +421,16 @@ class HiveContractEngine:
         """School sponsor injects initial fixed Seed Comb into the Hive."""
         if not math.isfinite(amount) or amount <= 0:
             raise ContractViolationError("Seed Comb injection must be positive.")
-        self.comb_reserve += amount
-        self.total_minted_supply += amount
+        amount_units = to_micro_units(amount, "Seed Comb injection")
+        if amount_units <= 0:
+            raise ContractViolationError("Seed Comb injection must be positive.")
+        self.comb_reserve_units += amount_units
+        self.total_minted_supply_units += amount_units
         return {
             "contract": "TokenStateAndCombContract",
             "action": "INJECT_SEED_COMB",
             "hive_id": self.hive_id,
-            "amount": amount,
+            "amount": from_micro_units(amount_units),
             "comb_reserve": self.comb_reserve,
         }
 
@@ -263,17 +445,20 @@ class HiveContractEngine:
         learner = self._get_account(learner_id)
         if learner.role == BeeRole.QUEEN:
             raise ContractViolationError("Queens cannot receive RAW_POLLEN learner vouchers.")
-        if not math.isfinite(amount) or amount <= 0 or amount > self.comb_reserve:
+        if not math.isfinite(amount) or amount <= 0:
             raise ContractViolationError("Insufficient Comb reserve for RAW_POLLEN draw.")
-        self.comb_reserve -= amount
-        learner.raw_pollen_balance += amount
+        amount_units = to_micro_units(amount, "RAW_POLLEN draw")
+        if amount_units <= 0 or amount_units > self.comb_reserve_units:
+            raise ContractViolationError("Insufficient Comb reserve for RAW_POLLEN draw.")
+        self.comb_reserve_units -= amount_units
+        learner.raw_pollen_units += amount_units
         self.assert_supply_conservation()
         return {
             "contract": "TokenStateAndCombContract",
             "action": "ALLOCATE_RAW_POLLEN",
             "queen_id": queen_id,
             "learner_id": learner_id,
-            "amount": amount,
+            "amount": from_micro_units(amount_units),
         }
 
     # -------------------------------------------------------------------------
@@ -292,11 +477,12 @@ class HiveContractEngine:
         if worker.role == BeeRole.QUEEN:
             raise ContractViolationError("Queens cannot be certified as Worker Tutors.")
         _require_finite_non_negative(certification_fee, "certification_fee")
-        if certification_fee > 0:
-            if worker.liquid_nectr_balance < certification_fee:
+        fee_units = to_micro_units(certification_fee, "certification_fee")
+        if fee_units > 0:
+            if worker.liquid_nectr_units < fee_units:
                 raise ContractViolationError("Insufficient LIQUID_NECTR for certification fee.")
-            worker.liquid_nectr_balance -= certification_fee
-            self.comb_reserve += certification_fee
+            worker.liquid_nectr_units -= fee_units
+            self.comb_reserve_units += fee_units
         worker.role = BeeRole.CERTIFIED_WORKER_BEE
         worker.certified_subjects.add(subject_id)
         self.assert_supply_conservation()
@@ -306,7 +492,7 @@ class HiveContractEngine:
             "queen_id": queen_id,
             "worker_id": worker_id,
             "subject_id": subject_id,
-            "fee_to_comb": certification_fee,
+            "fee_to_comb": from_micro_units(fee_units),
         }
 
     # -------------------------------------------------------------------------
@@ -341,8 +527,9 @@ class HiveContractEngine:
 
         if not math.isfinite(amount) or amount < 0:
             raise ContractViolationError("Escrow amount cannot be negative.")
+        amount_units = to_micro_units(amount, "escrow amount")
 
-        if amount == 0 and not reciprocal_subject_id:
+        if amount_units == 0 and not reciprocal_subject_id:
             raise ContractViolationError(
                 "Zero-nectR sessions must specify a reciprocal_subject_id for direct skill barter."
             )
@@ -355,13 +542,13 @@ class HiveContractEngine:
                 raise ContractViolationError(
                     "RAW_POLLEN can only be spent with a Queen-Certified Worker Bee in their certified subject."
                 )
-            if learner.raw_pollen_balance < amount:
+            if learner.raw_pollen_units < amount_units:
                 raise ContractViolationError("Insufficient RAW_POLLEN balance.")
-            learner.raw_pollen_balance -= amount
+            learner.raw_pollen_units -= amount_units
         elif token_state == TokenState.LIQUID_NECTR:
-            if learner.liquid_nectr_balance < amount:
+            if learner.liquid_nectr_units < amount_units:
                 raise ContractViolationError("Insufficient LIQUID_NECTR balance.")
-            learner.liquid_nectr_balance -= amount
+            learner.liquid_nectr_units -= amount_units
         else:
             raise ContractViolationError("Invalid token state for P2P escrow.")
 
@@ -372,7 +559,7 @@ class HiveContractEngine:
             learner_id=learner_id,
             subject_id=subject_id,
             duration_hours=duration_hours,
-            escrowed_amount=amount,
+            escrowed_units=amount_units,
             token_state=token_state,
             reciprocal_subject_id=reciprocal_subject_id,
             status=SessionStatus.INTENT_ESCROWED,
@@ -401,7 +588,7 @@ class HiveContractEngine:
 
         # Trophallaxis refinement: RAW_POLLEN refines into LIQUID_NECTR upon verified tutoring!
         # And 0% protocol fee is charged on normal P2P settlement.
-        tutor.liquid_nectr_balance += session.escrowed_amount
+        tutor.liquid_nectr_units += session.escrowed_units
 
         # Pairwise Anti-Collusion Decay & Downstream Lineage Calculation
         pair_key = frozenset({tutor.bee_id, learner.bee_id})
@@ -476,17 +663,17 @@ class HiveContractEngine:
         tutor = self._get_account(session.tutor_id)
         learner = self._get_account(session.learner_id)
 
-        fee_to_comb = round(session.escrowed_amount * service_fee_rate, 6)
-        distributable = session.escrowed_amount - fee_to_comb
-        tutor_payout = round(distributable * tutor_share_ratio, 6)
-        learner_refund = round(distributable - tutor_payout, 6)
+        fee_units = _scale_micro_units(session.escrowed_units, service_fee_rate)
+        distributable_units = session.escrowed_units - fee_units
+        tutor_units = _scale_micro_units(distributable_units, tutor_share_ratio)
+        learner_units = distributable_units - tutor_units
 
-        self.comb_reserve += fee_to_comb
-        tutor.liquid_nectr_balance += tutor_payout
+        self.comb_reserve_units += fee_units
+        tutor.liquid_nectr_units += tutor_units
         if session.token_state == TokenState.RAW_POLLEN:
-            learner.raw_pollen_balance += learner_refund
+            learner.raw_pollen_units += learner_units
         else:
-            learner.liquid_nectr_balance += learner_refund
+            learner.liquid_nectr_units += learner_units
 
         session.status = SessionStatus.DISPUTED_TO_QUEEN
         self.assert_supply_conservation()
@@ -495,9 +682,9 @@ class HiveContractEngine:
             "action": "RESOLVE_DISPUTE",
             "queen_id": queen_id,
             "session_id": session_id,
-            "fee_to_comb": fee_to_comb,
-            "tutor_payout": tutor_payout,
-            "learner_refund": learner_refund,
+            "fee_to_comb": from_micro_units(fee_units),
+            "tutor_payout": from_micro_units(tutor_units),
+            "learner_refund": from_micro_units(learner_units),
         }
 
     # -------------------------------------------------------------------------
@@ -516,7 +703,10 @@ class HiveContractEngine:
             raise ContractViolationError(
                 "Queens are bound to their Hive and cannot bridge tutoring currency."
             )
-        if not math.isfinite(amount) or amount <= 0 or source_acct.liquid_nectr_balance < amount:
+        if not math.isfinite(amount) or amount <= 0:
+            raise ContractViolationError("Insufficient LIQUID_NECTR in origin Hive to bridge.")
+        amount_units = to_micro_units(amount, "bridge amount")
+        if amount_units <= 0 or source_acct.liquid_nectr_units < amount_units:
             raise ContractViolationError("Insufficient LIQUID_NECTR in origin Hive to bridge.")
         if not math.isfinite(bridge_toll_rate) or not (0.0 <= bridge_toll_rate <= 1.0):
             raise ContractViolationError("bridge_toll_rate must be between 0 and 1.")
@@ -532,19 +722,19 @@ class HiveContractEngine:
         target_health = max(target_hive.comb_reserve / max(len(target_hive.accounts), 1), 1.0)
         exchange_rate = min(max(source_health / target_health, 0.5), 2.0)
 
-        source_toll = round(amount * bridge_toll_rate, 6)
-        net_out = amount - source_toll
+        source_toll_units = _scale_micro_units(amount_units, bridge_toll_rate)
+        net_out_units = amount_units - source_toll_units
 
         # Burn/Lock in source Hive and send toll to source Comb
-        source_acct.liquid_nectr_balance -= amount
-        self.comb_reserve += source_toll
-        self.total_minted_supply -= net_out
+        source_acct.liquid_nectr_units -= amount_units
+        self.comb_reserve_units += source_toll_units
+        self.total_minted_supply_units -= net_out_units
         self.assert_supply_conservation()
 
         # Mint equivalent in target Hive backed by cross-comb liquidity
-        minted_in_target = round(net_out * exchange_rate, 6)
-        target_acct.liquid_nectr_balance += minted_in_target
-        target_hive.total_minted_supply += minted_in_target
+        minted_in_target_units = _scale_micro_units(net_out_units, exchange_rate)
+        target_acct.liquid_nectr_units += minted_in_target_units
+        target_hive.total_minted_supply_units += minted_in_target_units
         target_hive.assert_supply_conservation()
 
         return {
@@ -553,42 +743,50 @@ class HiveContractEngine:
             "bee_id": bee_id,
             "from_hive": self.hive_id,
             "to_hive": target_hive.hive_id,
-            "amount_bridged": amount,
-            "source_comb_toll": source_toll,
+            "amount_bridged": from_micro_units(amount_units),
+            "source_comb_toll": from_micro_units(source_toll_units),
             "exchange_rate": round(exchange_rate, 4),
-            "received_in_target": minted_in_target,
+            "received_in_target": from_micro_units(minted_in_target_units),
         }
 
     # -------------------------------------------------------------------------
     # Invariant Verification
     # -------------------------------------------------------------------------
     def assert_supply_conservation(self) -> None:
-        """Assert that TotalSupply == CombReserve + Sum(RawPollen) + Sum(LiquidNectR) + Sum(Escrow)."""
-        _require_finite_non_negative(self.comb_reserve, "comb_reserve")
-        _require_finite_non_negative(self.total_minted_supply, "total_minted_supply")
-        for acct in self.accounts.values():
-            _require_finite_non_negative(acct.raw_pollen_balance, "raw_pollen_balance")
-            _require_finite_non_negative(acct.liquid_nectr_balance, "liquid_nectr_balance")
-            _require_finite_non_negative(acct.royal_jelly_earned, "royal_jelly_earned")
-        for sess in self.sessions.values():
-            _require_finite_non_negative(sess.escrowed_amount, "escrowed_amount")
+        """Assert exact integer micro-unit supply conservation with zero tolerance."""
+        if self._invalid_balances:
+            bad = ", ".join(sorted(self._invalid_balances))
+            raise ContractViolationError(f"Non-finite balance field(s): {bad}")
+        _require_non_negative_int(self.comb_reserve_units, "comb_reserve_units")
+        _require_non_negative_int(self.total_minted_supply_units, "total_minted_supply_units")
 
-        total_pollen = sum(a.raw_pollen_balance for a in self.accounts.values())
-        total_liquid = sum(a.liquid_nectr_balance for a in self.accounts.values())
-        total_escrow = sum(
-            s.escrowed_amount
+        for acct in self.accounts.values():
+            if acct._invalid_balances:
+                bad = ", ".join(sorted(acct._invalid_balances))
+                raise ContractViolationError(f"Non-finite account balance field(s): {bad}")
+            _require_non_negative_int(acct.raw_pollen_units, "raw_pollen_units")
+            _require_non_negative_int(acct.liquid_nectr_units, "liquid_nectr_units")
+            _require_non_negative_int(acct.royal_jelly_units, "royal_jelly_units")
+
+        for sess in self.sessions.values():
+            if sess._invalid_balances:
+                bad = ", ".join(sorted(sess._invalid_balances))
+                raise ContractViolationError(f"Non-finite session balance field(s): {bad}")
+            _require_non_negative_int(sess.escrowed_units, "escrowed_units")
+
+        total_pollen_units = sum(a.raw_pollen_units for a in self.accounts.values())
+        total_liquid_units = sum(a.liquid_nectr_units for a in self.accounts.values())
+        total_escrow_units = sum(
+            s.escrowed_units
             for s in self.sessions.values()
             if s.status == SessionStatus.INTENT_ESCROWED
         )
-        accounted = round(self.comb_reserve + total_pollen + total_liquid + total_escrow, 5)
-        expected = round(self.total_minted_supply, 5)
-        if (
-            not math.isfinite(accounted)
-            or not math.isfinite(expected)
-            or abs(accounted - expected) > 1e-4
-        ):
+        accounted_units = (
+            self.comb_reserve_units + total_pollen_units + total_liquid_units + total_escrow_units
+        )
+        if accounted_units != self.total_minted_supply_units:
             raise ContractViolationError(
-                f"Supply conservation invariant violated: accounted={accounted} != expected={expected}"
+                f"Supply conservation invariant violated: accounted={accounted_units} != expected={self.total_minted_supply_units}"
             )
 
     def _get_account(self, bee_id: str) -> BeeAccount:
@@ -620,8 +818,10 @@ class HiveContractEngine:
             "collusion_alpha": float(self.collusion_alpha),
             "lineage_gamma": float(self.lineage_gamma),
             "accepted_status_peer_threshold": int(self.accepted_status_peer_threshold),
-            "comb_reserve": float(self.comb_reserve),
-            "total_minted_supply": float(self.total_minted_supply),
+            "comb_reserve": self.comb_reserve,
+            "comb_reserve_units": int(self.comb_reserve_units),
+            "total_minted_supply": self.total_minted_supply,
+            "total_minted_supply_units": int(self.total_minted_supply_units),
             "accounts": {bee_id: acct.to_dict() for bee_id, acct in sorted(self.accounts.items())},
             "sessions": {
                 session_id: sess.to_dict() for session_id, sess in sorted(self.sessions.items())
@@ -675,11 +875,14 @@ class HiveContractEngine:
                 lineage_gamma=lineage_gamma,
                 accepted_status_peer_threshold=accepted_threshold,
             )
-            engine.comb_reserve = _require_finite_non_negative(
-                float(snapshot["comb_reserve"]), "comb_reserve"
+            engine.comb_reserve_units = _parse_units_from_mapping(
+                snapshot, "comb_reserve_units", "comb_reserve", "comb_reserve"
             )
-            engine.total_minted_supply = _require_finite_non_negative(
-                float(snapshot["total_minted_supply"]), "total_minted_supply"
+            engine.total_minted_supply_units = _parse_units_from_mapping(
+                snapshot,
+                "total_minted_supply_units",
+                "total_minted_supply",
+                "total_minted_supply",
             )
 
             raw_accounts = snapshot["accounts"]
@@ -731,5 +934,28 @@ class HiveContractEngine:
             raise ContractViolationError(f"Invalid HiveContractEngine snapshot: {exc}") from exc
 
         if verify_invariants:
+            is_legacy_float_snapshot = "comb_reserve_units" not in snapshot
+            if is_legacy_float_snapshot:
+                engine._reconcile_legacy_float_drift(max_residual_units=100)
             engine.assert_supply_conservation()
         return engine
+
+    def _reconcile_legacy_float_drift(self, *, max_residual_units: int = 100) -> None:
+        """Absorb legacy pre-micro-unit 1e-4 float tolerance drift on float-only hydration."""
+        total_pollen_units = sum(a.raw_pollen_units for a in self.accounts.values())
+        total_liquid_units = sum(a.liquid_nectr_units for a in self.accounts.values())
+        total_escrow_units = sum(
+            s.escrowed_units
+            for s in self.sessions.values()
+            if s.status == SessionStatus.INTENT_ESCROWED
+        )
+        accounted_units = (
+            self.comb_reserve_units + total_pollen_units + total_liquid_units + total_escrow_units
+        )
+        residual = self.total_minted_supply_units - accounted_units
+        if residual == 0 or abs(residual) > max_residual_units:
+            return
+        if self.comb_reserve_units + residual >= 0:
+            self.comb_reserve_units += residual
+        elif self.total_minted_supply_units - residual >= 0:
+            self.total_minted_supply_units -= residual

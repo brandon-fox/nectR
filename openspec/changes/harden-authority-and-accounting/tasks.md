@@ -1,7 +1,7 @@
 # Tasks: Harden Authority, Cryptographic Signing, and Deterministic Accounting
 
-- [ ] CA1: Author `openspec/changes/harden-authority-and-accounting/` and add 5 strict `xfail` tests for review findings 1, 3, 4, 5a, and 5b (`tests/test_services.py`, `tests/test_contracts.py`).
-- [ ] CA2: Migrate `HiveContractEngine` and persistence schema (`0002`) to exact integer micro-unit accounting (`10^-6` micro-nectR) with zero-tolerance `==` supply conservation (fixes Finding 3).
+- [x] CA1: Author `openspec/changes/harden-authority-and-accounting/` and add 5 strict `xfail` tests for review findings 1, 3, 4, 5a, and 5b (`tests/test_services.py`, `tests/test_contracts.py`).
+- [x] CA2: Migrate `HiveContractEngine` and persistence schema (`0002`) to exact integer micro-unit accounting (`10^-6` micro-nectR) with zero-tolerance `==` supply conservation (fixes Finding 3).
 - [ ] CA3: Enforce explicit dispute transitions, `service_fee_rate < 1.0`, and epoch-expiry learner escrow cancellation returning original `TokenState` (fixes Findings 5a & 5b).
 - [ ] CA4: Harden Guard Bee cross-hive registration so foreign Bees cannot obtain host-Hive `Accepted Status` without tutoring peers (fixes Finding 4; documents bridge target Comb-backing limit).
 - [ ] CA5: Complete protocol invariant tests, Hypothesis stateful checks, telemetry checks, and Behave BDD scenarios for hardened authority and accounting.

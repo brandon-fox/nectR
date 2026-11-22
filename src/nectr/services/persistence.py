@@ -11,10 +11,11 @@ from typing import Any
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Engine, delete, event
+from sqlalchemy import BigInteger, Engine, delete, event
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Field, Session, SQLModel, col, create_engine, select
 
+from nectr.contracts.engine import from_micro_units, to_micro_units
 from nectr.services.ports import HiveSnapshot
 
 
@@ -30,6 +31,8 @@ class HiveStateRecord(SQLModel, table=True):
     accepted_status_peer_threshold: int
     comb_reserve: float
     total_minted_supply: float
+    comb_reserve_units: int = Field(default=0, sa_type=BigInteger)
+    total_minted_supply_units: int = Field(default=0, sa_type=BigInteger)
     current_epoch: int
     mempool_json: str = Field(default="[]")
 
@@ -45,10 +48,13 @@ class BeeAccountRecord(SQLModel, table=True):
     role: str
     raw_pollen_balance: float
     liquid_nectr_balance: float
+    raw_pollen_units: int = Field(default=0, sa_type=BigInteger)
+    liquid_nectr_units: int = Field(default=0, sa_type=BigInteger)
     certified_subjects_json: str
     accepted_in_hives_json: str
     distinct_peers_tutored_json: str
     royal_jelly_earned: float
+    royal_jelly_units: int = Field(default=0, sa_type=BigInteger)
 
 
 class ServiceBarterSessionRecord(SQLModel, table=True):
@@ -63,6 +69,7 @@ class ServiceBarterSessionRecord(SQLModel, table=True):
     subject_id: str
     duration_hours: float
     escrowed_amount: float
+    escrowed_units: int = Field(default=0, sa_type=BigInteger)
     token_state: str
     reciprocal_subject_id: str | None = None
     status: str
@@ -236,6 +243,15 @@ class SQLModelHiveRepository:
         hive_id = snapshot.hive_id
         existing = active.get(HiveStateRecord, hive_id)
         mempool_json = json.dumps(snapshot.mempool, sort_keys=True)
+        comb_units = int(
+            contract.get("comb_reserve_units", to_micro_units(float(contract["comb_reserve"])))
+        )
+        supply_units = int(
+            contract.get(
+                "total_minted_supply_units",
+                to_micro_units(float(contract["total_minted_supply"])),
+            )
+        )
         if existing is None:
             active.add(
                 HiveStateRecord(
@@ -244,8 +260,10 @@ class SQLModelHiveRepository:
                     collusion_alpha=float(contract["collusion_alpha"]),
                     lineage_gamma=float(contract["lineage_gamma"]),
                     accepted_status_peer_threshold=int(contract["accepted_status_peer_threshold"]),
-                    comb_reserve=float(contract["comb_reserve"]),
-                    total_minted_supply=float(contract["total_minted_supply"]),
+                    comb_reserve=from_micro_units(comb_units),
+                    total_minted_supply=from_micro_units(supply_units),
+                    comb_reserve_units=comb_units,
+                    total_minted_supply_units=supply_units,
                     current_epoch=snapshot.current_epoch,
                     mempool_json=mempool_json,
                 )
@@ -257,8 +275,10 @@ class SQLModelHiveRepository:
             existing.accepted_status_peer_threshold = int(
                 contract["accepted_status_peer_threshold"]
             )
-            existing.comb_reserve = float(contract["comb_reserve"])
-            existing.total_minted_supply = float(contract["total_minted_supply"])
+            existing.comb_reserve = from_micro_units(comb_units)
+            existing.total_minted_supply = from_micro_units(supply_units)
+            existing.comb_reserve_units = comb_units
+            existing.total_minted_supply_units = supply_units
             existing.current_epoch = snapshot.current_epoch
             existing.mempool_json = mempool_json
         active.flush()
@@ -276,22 +296,37 @@ class SQLModelHiveRepository:
         active.flush()
 
         for acct in contract["accounts"].values():
+            pollen_units = int(
+                acct.get("raw_pollen_units", to_micro_units(float(acct["raw_pollen_balance"])))
+            )
+            liquid_units = int(
+                acct.get("liquid_nectr_units", to_micro_units(float(acct["liquid_nectr_balance"])))
+            )
+            rj_units = int(
+                acct.get("royal_jelly_units", to_micro_units(float(acct["royal_jelly_earned"])))
+            )
             active.add(
                 BeeAccountRecord(
                     hive_id=hive_id,
                     bee_id=acct["bee_id"],
                     home_hive_id=acct["home_hive_id"],
                     role=acct["role"],
-                    raw_pollen_balance=float(acct["raw_pollen_balance"]),
-                    liquid_nectr_balance=float(acct["liquid_nectr_balance"]),
+                    raw_pollen_balance=from_micro_units(pollen_units),
+                    liquid_nectr_balance=from_micro_units(liquid_units),
+                    raw_pollen_units=pollen_units,
+                    liquid_nectr_units=liquid_units,
                     certified_subjects_json=json.dumps(acct["certified_subjects"]),
                     accepted_in_hives_json=json.dumps(acct["accepted_in_hives"]),
                     distinct_peers_tutored_json=json.dumps(acct["distinct_peers_tutored_in_hive"]),
-                    royal_jelly_earned=float(acct["royal_jelly_earned"]),
+                    royal_jelly_earned=from_micro_units(rj_units),
+                    royal_jelly_units=rj_units,
                 )
             )
 
         for sess in contract["sessions"].values():
+            escrowed_units = int(
+                sess.get("escrowed_units", to_micro_units(float(sess["escrowed_amount"])))
+            )
             active.add(
                 ServiceBarterSessionRecord(
                     hive_id=hive_id,
@@ -300,7 +335,8 @@ class SQLModelHiveRepository:
                     learner_id=sess["learner_id"],
                     subject_id=sess["subject_id"],
                     duration_hours=float(sess["duration_hours"]),
-                    escrowed_amount=float(sess["escrowed_amount"]),
+                    escrowed_amount=from_micro_units(escrowed_units),
+                    escrowed_units=escrowed_units,
                     token_state=sess["token_state"],
                     reciprocal_subject_id=sess["reciprocal_subject_id"],
                     status=sess["status"],
@@ -421,8 +457,10 @@ class SQLModelHiveRepository:
                 "collusion_alpha": hive_row.collusion_alpha,
                 "lineage_gamma": hive_row.lineage_gamma,
                 "accepted_status_peer_threshold": hive_row.accepted_status_peer_threshold,
-                "comb_reserve": hive_row.comb_reserve,
-                "total_minted_supply": hive_row.total_minted_supply,
+                "comb_reserve": from_micro_units(hive_row.comb_reserve_units),
+                "comb_reserve_units": hive_row.comb_reserve_units,
+                "total_minted_supply": from_micro_units(hive_row.total_minted_supply_units),
+                "total_minted_supply_units": hive_row.total_minted_supply_units,
                 "accounts": accounts,
                 "sessions": sessions,
                 "pairwise_counts": [
@@ -521,12 +559,15 @@ def _account_row_to_dict(row: BeeAccountRecord) -> dict[str, Any]:
         "bee_id": row.bee_id,
         "home_hive_id": row.home_hive_id,
         "role": row.role,
-        "raw_pollen_balance": row.raw_pollen_balance,
-        "liquid_nectr_balance": row.liquid_nectr_balance,
+        "raw_pollen_balance": from_micro_units(row.raw_pollen_units),
+        "raw_pollen_units": row.raw_pollen_units,
+        "liquid_nectr_balance": from_micro_units(row.liquid_nectr_units),
+        "liquid_nectr_units": row.liquid_nectr_units,
         "certified_subjects": json.loads(row.certified_subjects_json),
         "accepted_in_hives": json.loads(row.accepted_in_hives_json),
         "distinct_peers_tutored_in_hive": json.loads(row.distinct_peers_tutored_json),
-        "royal_jelly_earned": row.royal_jelly_earned,
+        "royal_jelly_earned": from_micro_units(row.royal_jelly_units),
+        "royal_jelly_units": row.royal_jelly_units,
     }
 
 
@@ -538,7 +579,8 @@ def _session_row_to_dict(row: ServiceBarterSessionRecord) -> dict[str, Any]:
         "learner_id": row.learner_id,
         "subject_id": row.subject_id,
         "duration_hours": row.duration_hours,
-        "escrowed_amount": row.escrowed_amount,
+        "escrowed_amount": from_micro_units(row.escrowed_units),
+        "escrowed_units": row.escrowed_units,
         "token_state": row.token_state,
         "reciprocal_subject_id": row.reciprocal_subject_id,
         "status": row.status,

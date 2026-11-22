@@ -882,7 +882,6 @@ def test_snapshot_hydration_rejects_corrupted_fields_and_bad_types() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="review finding 3; fixed by CA2")
 def test_repeated_fractional_disputes_conserve_supply_with_exact_equality() -> None:
     engine = HiveContractEngine(hive_id="HIVE_EXACT_SUPPLY")
     engine.inject_sponsored_seed_comb(10_000.0)
@@ -921,6 +920,125 @@ def test_repeated_fractional_disputes_conserve_supply_with_exact_equality() -> N
         engine.comb_reserve + total_pollen + total_liquid + total_escrow
         == engine.total_minted_supply
     )
+
+
+def test_micro_unit_conservation_holds_exact_integer_equality_for_any_iteration_count() -> None:
+    engine = HiveContractEngine(hive_id="HIVE_MICRO_504")
+    engine.inject_sponsored_seed_comb(10_000.0)
+    engine.register_bee("queen_1", role=BeeRole.QUEEN)
+    engine.register_bee("tutor_1", role=BeeRole.LEARNER_BEE)
+    engine.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
+    engine.certify_worker_bee("queen_1", "tutor_1", "CS-101")
+
+    for idx in range(504):
+        engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", 0.1234567)
+        sess_id = f"micro_sess_{idx}"
+        engine.create_service_barter_escrow(
+            session_id=sess_id,
+            tutor_id="tutor_1",
+            learner_id="learner_1",
+            subject_id="CS-101",
+            duration_hours=1.0,
+            amount=0.1234567,
+            token_state=TokenState.RAW_POLLEN,
+        )
+        engine.resolve_disputed_session(
+            queen_id="queen_1",
+            session_id=sess_id,
+            tutor_share_ratio=1.0 / 3.0,
+            service_fee_rate=0.10,
+        )
+
+    pollen_units = sum(a.raw_pollen_units for a in engine.accounts.values())
+    liquid_units = sum(a.liquid_nectr_units for a in engine.accounts.values())
+    escrow_units = sum(
+        s.escrowed_units
+        for s in engine.sessions.values()
+        if s.status == SessionStatus.INTENT_ESCROWED
+    )
+    assert (
+        engine.comb_reserve_units + pollen_units + liquid_units + escrow_units
+        == engine.total_minted_supply_units
+    )
+
+
+def test_micro_unit_helpers_and_snapshot_mismatch_guards() -> None:
+    from decimal import Decimal
+
+    from nectr.contracts import from_micro_units, to_micro_units
+
+    assert to_micro_units(Decimal("1.5")) == 1_500_000
+    assert to_micro_units(2) == 2_000_000
+    assert from_micro_units(1_500_000) == 1.5
+
+    for bad_val in (True, Decimal("-0.1"), Decimal("NaN"), -1, "bad"):
+        with pytest.raises(ContractViolationError):
+            to_micro_units(bad_val)  # type: ignore[arg-type]
+
+    engine = _setup_basic_hive(hive_id="HIVE_MISMATCH")
+    snap = engine.to_snapshot()
+    snap["comb_reserve_units"] = snap["comb_reserve_units"] + 1
+    with pytest.raises(ContractViolationError, match="Supply conservation invariant violated"):
+        HiveContractEngine.from_snapshot(snap)
+
+    # Sub-micro-unit positive values (< 0.5e-6) round to 0 and are rejected for positive-only ops
+    with pytest.raises(ContractViolationError, match="Seed Comb injection must be positive"):
+        engine.inject_sponsored_seed_comb(1e-8)
+    with pytest.raises(ContractViolationError, match="Insufficient Comb reserve"):
+        engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", 1e-8)
+
+    # Non-finite session balance via property setter triggers assert_supply_conservation failure
+    engine.create_service_barter_escrow(
+        "s_nan_prop", "worker_1", "learner_1", "CS-101", 1.0, 5.0, TokenState.RAW_POLLEN
+    )
+    engine.sessions["s_nan_prop"].escrowed_amount = float("nan")
+    with pytest.raises(ContractViolationError, match="Non-finite session balance"):
+        engine.assert_supply_conservation()
+    engine.sessions["s_nan_prop"].escrowed_amount = 5.0
+    engine.assert_supply_conservation()
+
+    engine.accounts["learner_1"].raw_pollen_balance = float("inf")
+    with pytest.raises(ContractViolationError, match="Non-finite account balance"):
+        engine.assert_supply_conservation()
+
+
+def test_legacy_float_only_snapshot_reconciles_bounded_drift_and_rejects_excess() -> None:
+    engine = _setup_basic_hive(hive_id="HIVE_LEGACY_SNAP", seed_comb=10_000.0)
+    legacy = json.loads(json.dumps(engine.to_snapshot()))
+    # Strip *_units keys to simulate a pre-CA2 float-only snapshot with 9e-5 tolerated drift
+    for key in ("comb_reserve_units", "total_minted_supply_units"):
+        legacy.pop(key, None)
+    for acct in legacy["accounts"].values():
+        for key in ("raw_pollen_units", "liquid_nectr_units", "royal_jelly_units"):
+            acct.pop(key, None)
+    for sess in legacy["sessions"].values():
+        sess.pop("escrowed_units", None)
+
+    legacy["accounts"]["worker_1"]["liquid_nectr_balance"] += 0.000090
+    rehydrated = HiveContractEngine.from_snapshot(legacy)
+    rehydrated.assert_supply_conservation()
+    assert rehydrated.total_minted_supply_units == 10_000_000_000
+
+    # Drift > 100 micro-units (1e-4) must still be rejected
+    legacy["accounts"]["worker_1"]["liquid_nectr_balance"] += 0.000020  # total +110 micro-units
+    with pytest.raises(ContractViolationError, match="Supply conservation invariant violated"):
+        HiveContractEngine.from_snapshot(legacy)
+
+
+def test_large_balance_above_2_pow_53_micro_units_round_trips_losslessly() -> None:
+    engine = HiveContractEngine(hive_id="HIVE_LARGE")
+    engine.inject_sponsored_seed_comb(1e10)
+    engine.register_bee("queen_1", role=BeeRole.QUEEN)
+    engine.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
+    engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", 0.000001)
+
+    assert engine.comb_reserve_units == 9_999_999_999_999_999
+    snap = engine.to_snapshot()
+    rehydrated = HiveContractEngine.from_snapshot(snap)
+    assert rehydrated.comb_reserve_units == 9_999_999_999_999_999
+    assert rehydrated.accounts["learner_1"].raw_pollen_units == 1
+    assert rehydrated.total_minted_supply_units == 10_000_000_000_000_000
+    rehydrated.assert_supply_conservation()
 
 
 @pytest.mark.xfail(strict=True, reason="review finding 4; fixed by CA4")

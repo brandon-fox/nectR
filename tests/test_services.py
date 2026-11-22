@@ -818,5 +818,138 @@ def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
 @pytest.mark.xfail(strict=True, reason="review finding 1; fixed by CB1")
 def test_register_queen_via_service_without_queen_signed_command_rejected() -> None:
     service = HiveServiceLayer(hive_id="HIVE_AUTH", difficulty=1)
-    with pytest.raises((ContractViolationError, PermissionError, TypeError)):
+    with pytest.raises((ContractViolationError, PermissionError)):
         service.register_bee("rogue_queen", role=BeeRole.QUEEN)
+
+
+def test_alembic_0002_upgrades_0001_and_persists_exact_micro_units(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, inspect, text
+
+    import nectr.services.persistence as persistence_mod
+    from nectr.services.persistence import SQLModelHiveRepository
+
+    db_path = tmp_path / "upgrade_0002.db"
+    db_url = f"sqlite:///{db_path}"
+    migrations_dir = Path(persistence_mod.__file__).resolve().parent / "migrations"
+
+    engine = create_engine(db_url)
+    cfg = Config()
+    cfg.set_main_option("script_location", str(migrations_dir).replace("%", "%%"))
+    cfg.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
+    with engine.begin() as conn:
+        cfg.attributes["connection"] = conn
+        command.upgrade(cfg, "0001_initial_hive_schema")
+        conn.execute(
+            text(
+                "INSERT INTO hive_states "
+                "(hive_id, difficulty, collusion_alpha, lineage_gamma, "
+                "accepted_status_peer_threshold, comb_reserve, total_minted_supply, "
+                "current_epoch, mempool_json) "
+                "VALUES ('HIVE_OLD', 1, 1.5, 0.5, 3, 100.5, 100.5, 0, '[]')"
+            )
+        )
+    engine.dispose()
+
+    repo = SQLModelHiveRepository(database_url=db_url)
+    repo.initialize()
+    inspector = inspect(repo.engine)
+    hive_cols = {col["name"] for col in inspector.get_columns("hive_states")}
+    assert "comb_reserve_units" in hive_cols
+    assert "total_minted_supply_units" in hive_cols
+
+    reloaded = HiveServiceLayer.from_repository("HIVE_OLD", repository=repo)
+    assert reloaded.contracts.comb_reserve_units == 100_500_000
+    assert reloaded.contracts.total_minted_supply_units == 100_500_000
+
+    # Verify downgrade cleanly removes 0002 columns
+    with repo.engine.begin() as conn:
+        cfg.attributes["connection"] = conn
+        command.downgrade(cfg, "0001_initial_hive_schema")
+    inspector_after = inspect(repo.engine)
+    hive_cols_after = {col["name"] for col in inspector_after.get_columns("hive_states")}
+    assert "comb_reserve_units" not in hive_cols_after
+    repo.close()
+
+
+def test_alembic_0002_reconciles_legacy_tolerated_drift_and_rejects_excess(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, text
+
+    import nectr.services.persistence as persistence_mod
+    from nectr.services.persistence import SQLModelHiveRepository
+
+    migrations_dir = Path(persistence_mod.__file__).resolve().parent / "migrations"
+
+    # Case 1: 0001 DB with 9e-5 (90 micro-units) drift within old 1e-4 tolerance
+    ok_db_url = f"sqlite:///{tmp_path / 'drift_ok.db'}"
+    eng_ok = create_engine(ok_db_url)
+    cfg_ok = Config()
+    cfg_ok.set_main_option("script_location", str(migrations_dir).replace("%", "%%"))
+    cfg_ok.set_main_option("sqlalchemy.url", ok_db_url.replace("%", "%%"))
+    with eng_ok.begin() as conn:
+        cfg_ok.attributes["connection"] = conn
+        command.upgrade(cfg_ok, "0001_initial_hive_schema")
+        conn.execute(
+            text(
+                "INSERT INTO hive_states "
+                "(hive_id, difficulty, collusion_alpha, lineage_gamma, "
+                "accepted_status_peer_threshold, comb_reserve, total_minted_supply, "
+                "current_epoch, mempool_json) "
+                "VALUES ('HIVE_DRIFT', 1, 1.5, 0.5, 3, 9900.0, 10000.0, 0, '[]')"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO bee_accounts "
+                "(hive_id, bee_id, home_hive_id, role, raw_pollen_balance, liquid_nectr_balance, "
+                "certified_subjects_json, accepted_in_hives_json, distinct_peers_tutored_json, "
+                "royal_jelly_earned) "
+                "VALUES ('HIVE_DRIFT', 'worker_1', 'HIVE_DRIFT', 'CERTIFIED_WORKER_BEE', "
+                "0.0, 100.00009, '[\"CS-101\"]', '[\"HIVE_DRIFT\"]', '[]', 0.0)"
+            )
+        )
+    eng_ok.dispose()
+
+    repo_ok = SQLModelHiveRepository(database_url=ok_db_url)
+    reloaded = HiveServiceLayer.from_repository("HIVE_DRIFT", repository=repo_ok)
+    reloaded.contracts.assert_supply_conservation()
+    assert reloaded.contracts.comb_reserve_units == 9_899_999_910
+    repo_ok.close()
+
+    # Case 2: 0001 DB with 150 micro-units drift (> 1e-4) must be rejected on upgrade
+    bad_db_url = f"sqlite:///{tmp_path / 'drift_bad.db'}"
+    eng_bad = create_engine(bad_db_url)
+    cfg_bad = Config()
+    cfg_bad.set_main_option("script_location", str(migrations_dir).replace("%", "%%"))
+    cfg_bad.set_main_option("sqlalchemy.url", bad_db_url.replace("%", "%%"))
+    with eng_bad.begin() as conn:
+        cfg_bad.attributes["connection"] = conn
+        command.upgrade(cfg_bad, "0001_initial_hive_schema")
+        conn.execute(
+            text(
+                "INSERT INTO hive_states "
+                "(hive_id, difficulty, collusion_alpha, lineage_gamma, "
+                "accepted_status_peer_threshold, comb_reserve, total_minted_supply, "
+                "current_epoch, mempool_json) "
+                "VALUES ('HIVE_BAD', 1, 1.5, 0.5, 3, 9900.0, 10000.0, 0, '[]')"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO bee_accounts "
+                "(hive_id, bee_id, home_hive_id, role, raw_pollen_balance, liquid_nectr_balance, "
+                "certified_subjects_json, accepted_in_hives_json, distinct_peers_tutored_json, "
+                "royal_jelly_earned) "
+                "VALUES ('HIVE_BAD', 'worker_1', 'HIVE_BAD', 'CERTIFIED_WORKER_BEE', "
+                "0.0, 100.00015, '[\"CS-101\"]', '[\"HIVE_BAD\"]', '[]', 0.0)"
+            )
+        )
+    eng_bad.dispose()
+
+    repo_bad = SQLModelHiveRepository(database_url=bad_db_url)
+    with pytest.raises(ValueError, match="exceeds legacy 1e-4 tolerance"):
+        repo_bad.initialize()
+    repo_bad.close()
