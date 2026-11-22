@@ -815,7 +815,6 @@ def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="review finding 1; fixed by CB1")
 def test_register_queen_via_service_without_queen_signed_command_rejected() -> None:
     service = HiveServiceLayer(hive_id="HIVE_AUTH", difficulty=1)
     with pytest.raises((ContractViolationError, PermissionError)):
