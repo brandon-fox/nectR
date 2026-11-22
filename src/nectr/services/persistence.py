@@ -57,6 +57,17 @@ class BeeAccountRecord(SQLModel, table=True):
     royal_jelly_units: int = Field(default=0, sa_type=BigInteger)
 
 
+class BeeKeyRecord(SQLModel, table=True):
+    """Persisted Ed25519 public key and monotonic nonce per Bee in a Hive."""
+
+    __tablename__ = "bee_keys"
+
+    hive_id: str = Field(primary_key=True, foreign_key="hive_states.hive_id")
+    bee_id: str = Field(primary_key=True)
+    public_key: str
+    last_nonce: int = Field(default=0, sa_type=BigInteger)
+
+
 class ServiceBarterSessionRecord(SQLModel, table=True):
     """Persisted DirectionalServiceBarterContract session state."""
 
@@ -290,10 +301,21 @@ class SQLModelHiveRepository:
             SubjectLineageRecord,
             PairwiseCountRecord,
             ServiceBarterSessionRecord,
+            BeeKeyRecord,
             BeeAccountRecord,
         ):
             active.exec(delete(model).where(col(model.hive_id) == hive_id))
         active.flush()
+
+        for bee_id, public_key in sorted(snapshot.bee_public_keys.items()):
+            active.add(
+                BeeKeyRecord(
+                    hive_id=hive_id,
+                    bee_id=bee_id,
+                    public_key=public_key,
+                    last_nonce=int(snapshot.bee_nonces.get(bee_id, 0)),
+                )
+            )
 
         for acct in contract["accounts"].values():
             pollen_units = int(
@@ -448,6 +470,11 @@ class SQLModelHiveRepository:
                 .where(col(BlockRecord.hive_id) == hive_id)
                 .order_by(col(BlockRecord.height))
             ).all()
+            key_rows = session.exec(
+                select(BeeKeyRecord)
+                .where(col(BeeKeyRecord.hive_id) == hive_id)
+                .order_by(col(BeeKeyRecord.bee_id))
+            ).all()
 
             accounts = {row.bee_id: _account_row_to_dict(row) for row in account_rows}
             sessions = {row.session_id: _session_row_to_dict(row) for row in session_rows}
@@ -479,6 +506,8 @@ class SQLModelHiveRepository:
             }
             blocks = [json.loads(row.block_json) for row in block_rows]
             mempool: list[dict[str, Any]] = json.loads(hive_row.mempool_json)
+            bee_public_keys = {row.bee_id: row.public_key for row in key_rows}
+            bee_nonces = {row.bee_id: row.last_nonce for row in key_rows}
             return HiveSnapshot(
                 hive_id=hive_row.hive_id,
                 difficulty=hive_row.difficulty,
@@ -486,6 +515,8 @@ class SQLModelHiveRepository:
                 contract_state=contract_state,
                 blocks=blocks,
                 mempool=mempool,
+                bee_public_keys=bee_public_keys,
+                bee_nonces=bee_nonces,
             )
 
         res: HiveSnapshot | None = self._run_with_session(_load)

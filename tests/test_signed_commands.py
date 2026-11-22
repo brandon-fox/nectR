@@ -460,11 +460,21 @@ def test_blockchain_rejects_dicts_in_submit_transaction_and_block_transactions()
     )
     assert all(isinstance(item, SignedTransaction) for item in block.transactions)
     assert chain.verify_chain() is True
+    assert isinstance(Block.model_validate(block.model_dump(mode="json")), Block)
 
-    # Manually injecting a dict into Block.transactions must fail verify_chain()
+    # Manually injecting a dict into Block.transactions must fail verify_chain() and model_validate()
+    from pydantic import ValidationError
+
     cast(list[Any], block.transactions).append({"injected": True})
     assert chain.verify_chain() is False
-    assert isinstance(Block.model_validate(block.model_dump(mode="json")), Block)
+    with pytest.raises(ValidationError):
+        Block.model_validate(
+            {
+                "header": block.header,
+                "useful_compute_proof": block.useful_compute_proof,
+                "transactions": [{"injected": True}],
+            }
+        )
 
 
 def test_api_enforces_401_bad_sig_and_403_wrong_actor_or_role() -> None:
@@ -553,3 +563,502 @@ def test_simulator_is_deterministic_with_epoch_timestamps_and_bee_id_keys() -> N
     assert telemetry_a.hive_a_chain_valid is True
     assert telemetry_a.pollinator_accepted_in_hive_b is True
     assert telemetry_a.pollinator_bridged_nectr > 0
+
+
+def test_signed_command_validation_and_error_branches() -> None:
+    from nectr.services.hive_service import CommandAuthorizationError, InvalidSignatureError
+
+    q_s = _test_signer("ERR:queen_1")
+    w_s = _test_signer("ERR:worker_1")
+    l_s = _test_signer("ERR:learner_1")
+    other_s = _test_signer("ERR:other")
+
+    # Bootstrap validation branches
+    svc_bad = HiveServiceLayer(hive_id="HIVE_BOOT_ERR", difficulty=1)
+    with pytest.raises(InvalidSignatureError):
+        svc_bad.bootstrap_sponsored_hive(cast(Any, {"not": "signed"}))
+    with pytest.raises(InvalidSignatureError, match="signer_id"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create({"action": "BOOTSTRAP_HIVE"}, signer=q_s)
+        )
+    with pytest.raises(ContractViolationError, match="Expected action"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {"action": "WRONG", "hive_id": "HIVE_BOOT_ERR", "nonce": 1},
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="hive_id"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {"action": "BOOTSTRAP_HIVE", "hive_id": "OTHER", "nonce": 1},
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="nonce"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {"action": "BOOTSTRAP_HIVE", "hive_id": "HIVE_BOOT_ERR", "nonce": True},
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="queen_public_keys"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="Invalid Ed25519"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": "bad_hex"},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="Public key"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": 123},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="certified_workers"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": "bad",
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="Subjects for worker"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {"w1": "CS-101"},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="worker_public_keys"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {},
+                    "worker_public_keys": "bad",
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="both Queen and Worker"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {"queen_1": ["CS-101"]},
+                    "worker_public_keys": {"queen_1": q_s.public_key_hex},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="Missing public keys"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {"worker_1": ["CS-101"]},
+                    "worker_public_keys": {},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(CommandAuthorizationError, match="listed in queen_public_keys"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {},
+                    "worker_public_keys": {},
+                    "nonce": 1,
+                },
+                signer=other_s,
+                signer_id="other_queen",
+            )
+        )
+    with pytest.raises(CommandAuthorizationError, match="queen_id"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_id": "queen_other",
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {},
+                    "worker_public_keys": {},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(InvalidSignatureError, match="queen_public_keys"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "queen_public_keys": {"queen_1": other_s.public_key_hex},
+                    "certified_workers": {},
+                    "worker_public_keys": {},
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="queen_dividend_beta"):
+        svc_bad.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_BOOT_ERR",
+                    "seed_comb_amount": 100.0,
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {},
+                    "worker_public_keys": {},
+                    "queen_dividend_beta": -0.1,
+                    "nonce": 1,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+
+    # Bootstrapped hive tests for command-level errors
+    svc = HiveServiceLayer(hive_id="HIVE_CMD_ERR", difficulty=1)
+    svc.bootstrap_sponsored_hive(
+        SignedTransaction.create(
+            {
+                "action": "BOOTSTRAP_HIVE",
+                "hive_id": "HIVE_CMD_ERR",
+                "seed_comb_amount": 200.0,
+                "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                "certified_workers": {"worker_1": ["CS-101"]},
+                "worker_public_keys": {"worker_1": w_s.public_key_hex},
+                "nonce": 1,
+            },
+            signer=q_s,
+            signer_id="queen_1",
+        )
+    )
+    with pytest.raises(ContractViolationError, match="already bootstrapped"):
+        svc.bootstrap_sponsored_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_CMD_ERR",
+                    "seed_comb_amount": 100.0,
+                    "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                    "certified_workers": {},
+                    "worker_public_keys": {},
+                    "nonce": 2,
+                },
+                signer=q_s,
+                signer_id="queen_1",
+            )
+        )
+
+    # Register errors
+    with pytest.raises(ContractViolationError, match="non-empty bee_id"):
+        svc.register_bee(
+            SignedTransaction.create(
+                {"action": "REGISTER_BEE", "hive_id": "HIVE_CMD_ERR", "bee_id": "", "nonce": 1},
+                signer=l_s,
+                signer_id="learner_1",
+            )
+        )
+    with pytest.raises(ContractViolationError, match="Invalid role"):
+        svc.register_bee(
+            SignedTransaction.create(
+                {
+                    "action": "REGISTER_BEE",
+                    "hive_id": "HIVE_CMD_ERR",
+                    "bee_id": "learner_1",
+                    "role": "NOPE",
+                    "nonce": 1,
+                },
+                signer=l_s,
+                signer_id="learner_1",
+            )
+        )
+    svc.register_bee(
+        SignedTransaction.create(
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": "HIVE_CMD_ERR",
+                "bee_id": "learner_1",
+                "nonce": 1,
+            },
+            signer=l_s,
+            signer_id="learner_1",
+        )
+    )
+    svc.allocate_raw_pollen(
+        SignedTransaction.create(
+            {
+                "action": "ALLOCATE_RAW_POLLEN",
+                "hive_id": "HIVE_CMD_ERR",
+                "queen_id": "queen_1",
+                "learner_id": "learner_1",
+                "amount": 20.0,
+                "nonce": 2,
+            },
+            signer=q_s,
+            signer_id="queen_1",
+        )
+    )
+
+    # Unregistered signer rejected
+    with pytest.raises(InvalidSignatureError, match="no registered public key"):
+        svc.allocate_raw_pollen(
+            SignedTransaction.create(
+                {
+                    "action": "ALLOCATE_RAW_POLLEN",
+                    "hive_id": "HIVE_CMD_ERR",
+                    "queen_id": "ghost_q",
+                    "learner_id": "learner_1",
+                    "amount": 5.0,
+                    "nonce": 1,
+                },
+                signer=other_s,
+                signer_id="ghost_q",
+            )
+        )
+
+    # Settlement error branches
+    svc.create_barter_escrow(
+        SignedTransaction.create(
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": "HIVE_CMD_ERR",
+                "session_id": "s_err",
+                "tutor_id": "worker_1",
+                "learner_id": "learner_1",
+                "subject_id": "CS-101",
+                "duration_hours": 1.0,
+                "amount": 10.0,
+                "token_state": TokenState.RAW_POLLEN.value,
+                "nonce": 2,
+            },
+            signer=l_s,
+            signer_id="learner_1",
+        )
+    )
+    wrong_act = {"action": "WRONG", "hive_id": "HIVE_CMD_ERR", "session_id": "s_err"}
+    with pytest.raises(ContractViolationError, match="Expected action"):
+        svc.settle_session(
+            SignedTransaction.create(wrong_act, signer=l_s, signer_id="learner_1"),
+            SignedTransaction.create(wrong_act, signer=w_s, signer_id="worker_1"),
+        )
+    wrong_hive = {"action": "SETTLE_SESSION", "hive_id": "OTHER", "session_id": "s_err"}
+    with pytest.raises(ContractViolationError, match="hive_id"):
+        svc.settle_session(
+            SignedTransaction.create(wrong_hive, signer=l_s, signer_id="learner_1"),
+            SignedTransaction.create(wrong_hive, signer=w_s, signer_id="worker_1"),
+        )
+    unreg_settle = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_CMD_ERR",
+        "session_id": "s_err",
+        "learner_nonce": 3,
+        "tutor_nonce": 1,
+    }
+    with pytest.raises(InvalidSignatureError, match="no registered public key"):
+        svc.settle_session(
+            SignedTransaction.create(unreg_settle, signer=other_s, signer_id="ghost"),
+            SignedTransaction.create(unreg_settle, signer=w_s, signer_id="worker_1"),
+        )
+    with pytest.raises(InvalidSignatureError, match="does not match registered key"):
+        svc.settle_session(
+            SignedTransaction.create(unreg_settle, signer=other_s, signer_id="learner_1"),
+            SignedTransaction.create(unreg_settle, signer=w_s, signer_id="worker_1"),
+        )
+    with pytest.raises(CommandAuthorizationError, match="Learner signature"):
+        svc.settle_session(
+            SignedTransaction.create(unreg_settle, signer=w_s, signer_id="worker_1"),
+            SignedTransaction.create(unreg_settle, signer=w_s, signer_id="worker_1"),
+        )
+    stale_l = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_CMD_ERR",
+        "session_id": "s_err",
+        "learner_attestation_score": 0.9,
+        "tutor_comprehension_hash": "h",
+        "learner_nonce": 1,
+        "tutor_nonce": 1,
+    }
+    with pytest.raises(ContractViolationError, match="stale learner nonce"):
+        svc.settle_session(
+            SignedTransaction.create(stale_l, signer=l_s, signer_id="learner_1"),
+            SignedTransaction.create(stale_l, signer=w_s, signer_id="worker_1"),
+        )
+    # Valid settle at learner_nonce=3, tutor_nonce=1; then test stale tutor_nonce=1 on second session
+    ok_s = {**stale_l, "learner_nonce": 3}
+    svc.settle_session(
+        SignedTransaction.create(ok_s, signer=l_s, signer_id="learner_1"),
+        SignedTransaction.create(ok_s, signer=w_s, signer_id="worker_1"),
+    )
+    svc.create_barter_escrow(
+        SignedTransaction.create(
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": "HIVE_CMD_ERR",
+                "session_id": "s_err2",
+                "tutor_id": "worker_1",
+                "learner_id": "learner_1",
+                "subject_id": "CS-101",
+                "duration_hours": 1.0,
+                "amount": 5.0,
+                "token_state": TokenState.RAW_POLLEN.value,
+                "nonce": 4,
+            },
+            signer=l_s,
+            signer_id="learner_1",
+        )
+    )
+    stale_t = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_CMD_ERR",
+        "session_id": "s_err2",
+        "learner_attestation_score": 0.9,
+        "tutor_comprehension_hash": "h",
+        "learner_nonce": 5,
+        "tutor_nonce": 1,
+    }
+    with pytest.raises(ContractViolationError, match="stale tutor nonce"):
+        svc.settle_session(
+            SignedTransaction.create(stale_t, signer=l_s, signer_id="learner_1"),
+            SignedTransaction.create(stale_t, signer=w_s, signer_id="worker_1"),
+        )
+
+    # Handshake mismatched session_id
+    with pytest.raises(ContractViolationError, match="session_id"):
+        svc.execute_tutoring_handshake(
+            escrow_tx=SignedTransaction.create(
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_CMD_ERR",
+                    "session_id": "s_hs_a",
+                    "tutor_id": "worker_1",
+                    "learner_id": "learner_1",
+                    "subject_id": "CS-101",
+                    "duration_hours": 1.0,
+                    "amount": 5.0,
+                    "token_state": TokenState.RAW_POLLEN.value,
+                    "nonce": 5,
+                },
+                signer=l_s,
+                signer_id="learner_1",
+            ),
+            learner_settle_tx=SignedTransaction.create(stale_t, signer=l_s, signer_id="learner_1"),
+            tutor_settle_tx=SignedTransaction.create(stale_t, signer=w_s, signer_id="worker_1"),
+        )
+
+    # Bridge error branches
+    svc_target = HiveServiceLayer(hive_id="HIVE_CMD_TGT", difficulty=1)
+    with pytest.raises(TypeError, match="HiveServiceLayer"):
+        svc.bridge_nectr_to_target_hive(
+            SignedTransaction.create({"action": "BRIDGE_NECTR"}, signer=w_s, signer_id="worker_1"),
+            cast(Any, svc_target.contracts),
+        )
+    with pytest.raises(ContractViolationError, match="Target hive"):
+        svc.bridge_nectr_to_target_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BRIDGE_NECTR",
+                    "hive_id": "HIVE_CMD_ERR",
+                    "bee_id": "worker_1",
+                    "target_hive_id": "WRONG",
+                    "amount": 1.0,
+                    "nonce": 2,
+                },
+                signer=w_s,
+                signer_id="worker_1",
+            ),
+            svc_target,
+        )
+    svc_target.register_bee(
+        SignedTransaction.create(
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": "HIVE_CMD_TGT",
+                "bee_id": "worker_1",
+                "nonce": 1,
+            },
+            signer=other_s,
+            signer_id="worker_1",
+        )
+    )
+    with pytest.raises(InvalidSignatureError, match="Public key mismatch"):
+        svc.bridge_nectr_to_target_hive(
+            SignedTransaction.create(
+                {
+                    "action": "BRIDGE_NECTR",
+                    "hive_id": "HIVE_CMD_ERR",
+                    "bee_id": "worker_1",
+                    "target_hive_id": "HIVE_CMD_TGT",
+                    "amount": 1.0,
+                    "nonce": 2,
+                },
+                signer=w_s,
+                signer_id="worker_1",
+            ),
+            svc_target,
+        )

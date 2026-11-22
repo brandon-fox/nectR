@@ -2,13 +2,65 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
+from nectr.chain import Ed25519Signer, SignedTransaction, compute_sha256
 from nectr.contracts import BeeRole, ContractViolationError, SessionStatus, TokenState
 from nectr.services import HiveServiceLayer
+
+
+def _signer(label: str) -> Ed25519Signer:
+    return Ed25519Signer.from_seed(hashlib.sha256(f"svc_test:{label}".encode()).digest())
+
+
+def _sign(
+    signer: Ed25519Signer,
+    signer_id: str,
+    payload: dict[str, Any],
+) -> SignedTransaction:
+    return SignedTransaction.create(payload, signer=signer, signer_id=signer_id)
+
+
+def _bootstrap(
+    service: HiveServiceLayer,
+    *,
+    seed_comb_amount: float,
+    queen_ids: list[str],
+    certified_workers: dict[str, list[str]],
+) -> dict[str, Ed25519Signer]:
+    signers: dict[str, Ed25519Signer] = {}
+    queen_pks: dict[str, str] = {}
+    for qid in queen_ids:
+        s = _signer(f"{service.hive_id}:{qid}")
+        signers[qid] = s
+        queen_pks[qid] = s.public_key_hex
+    worker_pks: dict[str, str] = {}
+    for wid in certified_workers:
+        s = _signer(f"{service.hive_id}:{wid}")
+        signers[wid] = s
+        worker_pks[wid] = s.public_key_hex
+    lead_q = queen_ids[0]
+    boot_tx = _sign(
+        signers[lead_q],
+        lead_q,
+        {
+            "action": "BOOTSTRAP_HIVE",
+            "hive_id": service.hive_id,
+            "queen_id": lead_q,
+            "seed_comb_amount": seed_comb_amount,
+            "queen_public_keys": queen_pks,
+            "certified_workers": certified_workers,
+            "worker_public_keys": worker_pks,
+            "nonce": 1,
+        },
+    )
+    service.bootstrap_sponsored_hive(boot_tx)
+    return signers
 
 
 def test_backward_compatible_in_memory_hive_service_layer() -> None:
@@ -19,10 +71,23 @@ def test_backward_compatible_in_memory_hive_service_layer() -> None:
         repository=None,
         telemetry=None,
     )
+    q_s = _signer("HIVE_MEM:queen_1")
+    w_s = _signer("HIVE_MEM:worker_1")
     boot = service.bootstrap_sponsored_hive(
-        seed_comb_amount=150.0,
-        queen_ids=["queen_1"],
-        certified_workers={"worker_1": ["CS-101"]},
+        _sign(
+            q_s,
+            "queen_1",
+            {
+                "action": "BOOTSTRAP_HIVE",
+                "hive_id": "HIVE_MEM",
+                "queen_id": "queen_1",
+                "seed_comb_amount": 150.0,
+                "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                "certified_workers": {"worker_1": ["CS-101"]},
+                "worker_public_keys": {"worker_1": w_s.public_key_hex},
+                "nonce": 1,
+            },
+        )
     )
     assert boot["genesis_comb"] == pytest.approx(150.0)
     assert service.blockchain.verify_chain() is True
@@ -45,38 +110,130 @@ def test_alembic_migrations_and_sqlmodel_repository_reload(tmp_path: Path) -> No
         accepted_status_peer_threshold=2,
         repository=repo,
     )
-    service.bootstrap_sponsored_hive(
+    signers = _bootstrap(
+        service,
         seed_comb_amount=500.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
     )
-    service.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
-    service.register_bee("learner_2", role=BeeRole.LEARNER_BEE)
-    service.allocate_raw_pollen("queen_1", "learner_1", 30.0)
-    service.allocate_raw_pollen("queen_1", "learner_2", 20.0)
+    l1_s = _signer("HIVE_PERSIST:learner_1")
+    l2_s = _signer("HIVE_PERSIST:learner_2")
+    service.register_bee(
+        _sign(
+            l1_s,
+            "learner_1",
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": "HIVE_PERSIST",
+                "bee_id": "learner_1",
+                "role": BeeRole.LEARNER_BEE.value,
+                "nonce": 1,
+            },
+        )
+    )
+    service.register_bee(
+        _sign(
+            l2_s,
+            "learner_2",
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": "HIVE_PERSIST",
+                "bee_id": "learner_2",
+                "role": BeeRole.LEARNER_BEE.value,
+                "nonce": 1,
+            },
+        )
+    )
+    service.allocate_raw_pollen(
+        _sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "ALLOCATE_RAW_POLLEN",
+                "hive_id": "HIVE_PERSIST",
+                "queen_id": "queen_1",
+                "learner_id": "learner_1",
+                "amount": 30.0,
+                "nonce": 2,
+            },
+        )
+    )
+    service.allocate_raw_pollen(
+        _sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "ALLOCATE_RAW_POLLEN",
+                "hive_id": "HIVE_PERSIST",
+                "queen_id": "queen_1",
+                "learner_id": "learner_2",
+                "amount": 20.0,
+                "nonce": 3,
+            },
+        )
+    )
 
     # Settled session
+    settle_p = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_PERSIST",
+        "session_id": "sess_1",
+        "learner_attestation_score": 0.95,
+        "tutor_comprehension_hash": compute_sha256("sess_1"),
+        "learner_nonce": 3,
+        "tutor_nonce": 1,
+    }
     service.execute_tutoring_handshake(
-        session_id="sess_1",
-        tutor_id="worker_1",
-        learner_id="learner_1",
-        subject_id="CS-101",
-        duration_hours=1.0,
-        amount=12.0,
-        token_state=TokenState.RAW_POLLEN,
-        learner_attestation_score=0.95,
+        escrow_tx=_sign(
+            l1_s,
+            "learner_1",
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": "HIVE_PERSIST",
+                "session_id": "sess_1",
+                "tutor_id": "worker_1",
+                "learner_id": "learner_1",
+                "subject_id": "CS-101",
+                "duration_hours": 1.0,
+                "amount": 12.0,
+                "token_state": TokenState.RAW_POLLEN.value,
+                "nonce": 2,
+            },
+        ),
+        learner_settle_tx=_sign(l1_s, "learner_1", settle_p),
+        tutor_settle_tx=_sign(signers["worker_1"], "worker_1", settle_p),
     )
     # Open INTENT_ESCROWED session
     service.create_barter_escrow(
-        session_id="sess_open",
-        tutor_id="worker_1",
-        learner_id="learner_2",
-        subject_id="CS-101",
-        duration_hours=1.0,
-        amount=8.0,
-        token_state=TokenState.RAW_POLLEN,
+        _sign(
+            l2_s,
+            "learner_2",
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": "HIVE_PERSIST",
+                "session_id": "sess_open",
+                "tutor_id": "worker_1",
+                "learner_id": "learner_2",
+                "subject_id": "CS-101",
+                "duration_hours": 1.0,
+                "amount": 8.0,
+                "token_state": TokenState.RAW_POLLEN.value,
+                "nonce": 2,
+            },
+        )
     )
-    service.mine_epoch_block()
+    service.mine_epoch_block(
+        _sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "MINE_EPOCH_BLOCK",
+                "hive_id": "HIVE_PERSIST",
+                "queen_id": "queen_1",
+                "nonce": 4,
+            },
+        )
+    )
 
     expected_comb = service.contracts.comb_reserve
     expected_worker_liquid = service.contracts.accounts["worker_1"].liquid_nectr_balance
@@ -99,6 +256,8 @@ def test_alembic_migrations_and_sqlmodel_repository_reload(tmp_path: Path) -> No
     )
     assert reloaded.contracts.sessions["sess_open"].status == SessionStatus.INTENT_ESCROWED
     assert reloaded.current_epoch == 2
+    assert reloaded.bee_nonces["queen_1"] == 4
+    assert reloaded.bee_public_keys["learner_1"] == l1_s.public_key_hex
     assert len(reloaded.blockchain.chain) == expected_blocks
     assert reloaded.blockchain.verify_chain() is True
     assert reloaded.contracts.pairwise_counts[frozenset({"worker_1", "learner_1"})] == 1
@@ -131,36 +290,83 @@ def test_atomic_rollback_on_contract_violation_error(tmp_path: Path) -> None:
     db_url = f"sqlite:///{tmp_path / 'rollback.db'}"
     repo = SQLModelHiveRepository(database_url=db_url)
     service = HiveServiceLayer(hive_id="HIVE_ROLLBACK", difficulty=1, repository=repo)
-    service.bootstrap_sponsored_hive(
+    signers = _bootstrap(
+        service,
         seed_comb_amount=200.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
     )
-    service.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
-    service.allocate_raw_pollen("queen_1", "learner_1", 25.0)
+    l1_s = _signer("HIVE_ROLLBACK:learner_1")
+    service.register_bee(
+        _sign(
+            l1_s,
+            "learner_1",
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": "HIVE_ROLLBACK",
+                "bee_id": "learner_1",
+                "nonce": 1,
+            },
+        )
+    )
+    service.allocate_raw_pollen(
+        _sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "ALLOCATE_RAW_POLLEN",
+                "hive_id": "HIVE_ROLLBACK",
+                "queen_id": "queen_1",
+                "learner_id": "learner_1",
+                "amount": 25.0,
+                "nonce": 2,
+            },
+        )
+    )
 
     # Step 1 (escrow) deducts 15.0, then step 2 (attestation=1.5) raises ContractViolationError
     mempool_before = len(service.blockchain.mempool)
+    bad_settle_p = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_ROLLBACK",
+        "session_id": "sess_fail",
+        "learner_attestation_score": 1.5,
+        "tutor_comprehension_hash": "h_bad",
+        "learner_nonce": 3,
+        "tutor_nonce": 1,
+    }
     with pytest.raises(ContractViolationError):
         service.execute_tutoring_handshake(
-            session_id="sess_fail",
-            tutor_id="worker_1",
-            learner_id="learner_1",
-            subject_id="CS-101",
-            duration_hours=1.0,
-            amount=15.0,
-            token_state=TokenState.RAW_POLLEN,
-            learner_attestation_score=1.5,
+            escrow_tx=_sign(
+                l1_s,
+                "learner_1",
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_ROLLBACK",
+                    "session_id": "sess_fail",
+                    "tutor_id": "worker_1",
+                    "learner_id": "learner_1",
+                    "subject_id": "CS-101",
+                    "duration_hours": 1.0,
+                    "amount": 15.0,
+                    "token_state": TokenState.RAW_POLLEN.value,
+                    "nonce": 2,
+                },
+            ),
+            learner_settle_tx=_sign(l1_s, "learner_1", bad_settle_p),
+            tutor_settle_tx=_sign(signers["worker_1"], "worker_1", bad_settle_p),
         )
 
-    # Both in-memory and DB state must remain unchanged
+    # Both in-memory and DB state (including nonces) must remain unchanged
     assert service.contracts.accounts["learner_1"].raw_pollen_balance == pytest.approx(25.0)
     assert "sess_fail" not in service.contracts.sessions
     assert len(service.blockchain.mempool) == mempool_before
+    assert service.bee_nonces["learner_1"] == 1
 
     reloaded = HiveServiceLayer.from_repository("HIVE_ROLLBACK", repository=repo)
     assert reloaded.contracts.accounts["learner_1"].raw_pollen_balance == pytest.approx(25.0)
     assert "sess_fail" not in reloaded.contracts.sessions
+    assert reloaded.bee_nonces["learner_1"] == 1
     repo.close()
 
 
@@ -176,7 +382,8 @@ def test_telemetry_adapter_binds_context_records_spans_and_redacts_secrets() -> 
         repository=repo,
         telemetry=telemetry,
     )
-    service.bootstrap_sponsored_hive(
+    _bootstrap(
+        service,
         seed_comb_amount=100.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
@@ -231,7 +438,8 @@ def test_in_memory_repository_and_api_error_branches() -> None:
     assert mem_repo.list_blocks("NONE") == []
 
     service = HiveServiceLayer(hive_id="HIVE_ERR", difficulty=1, repository=mem_repo)
-    service.bootstrap_sponsored_hive(
+    signers = _bootstrap(
+        service,
         seed_comb_amount=100.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
@@ -242,53 +450,124 @@ def test_in_memory_repository_and_api_error_branches() -> None:
 
     app = create_app(service)
     client = TestClient(app)
+    q2_s = _signer("HIVE_ERR:q2")
     assert (
         client.post(
             "/hive/bootstrap",
-            json={"seed_comb_amount": -5.0, "queen_ids": ["q2"], "certified_workers": {}},
+            json=_sign(
+                q2_s,
+                "q2",
+                {
+                    "action": "BOOTSTRAP_HIVE",
+                    "hive_id": "HIVE_ERR",
+                    "queen_id": "q2",
+                    "seed_comb_amount": -5.0,
+                    "queen_public_keys": {"q2": q2_s.public_key_hex},
+                    "certified_workers": {},
+                    "nonce": 1,
+                },
+            ).model_dump(mode="json"),
         ).status_code
         == 400
     )
+    # Non-queen worker_1 attempting pollen allocation or certification returns 403
     assert (
         client.post(
             "/pollen/allocate",
-            json={"queen_id": "worker_1", "learner_id": "worker_1", "amount": 5.0},
+            json=_sign(
+                signers["worker_1"],
+                "worker_1",
+                {
+                    "action": "ALLOCATE_RAW_POLLEN",
+                    "hive_id": "HIVE_ERR",
+                    "queen_id": "worker_1",
+                    "learner_id": "worker_1",
+                    "amount": 5.0,
+                    "nonce": 1,
+                },
+            ).model_dump(mode="json"),
         ).status_code
-        == 400
+        == 403
     )
     assert (
         client.post(
             "/workers/certify",
-            json={"queen_id": "worker_1", "worker_id": "worker_1", "subject_id": "BIO-101"},
+            json=_sign(
+                signers["worker_1"],
+                "worker_1",
+                {
+                    "action": "CERTIFY_WORKER_BEE",
+                    "hive_id": "HIVE_ERR",
+                    "queen_id": "worker_1",
+                    "worker_id": "worker_1",
+                    "subject_id": "BIO-101",
+                    "nonce": 1,
+                },
+            ).model_dump(mode="json"),
         ).status_code
-        == 400
+        == 403
     )
     assert (
         client.post(
             "/sessions/escrow",
+            json=_sign(
+                signers["worker_1"],
+                "worker_1",
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_ERR",
+                    "session_id": "bad_e",
+                    "tutor_id": "worker_1",
+                    "learner_id": "worker_1",
+                    "subject_id": "CS-101",
+                    "duration_hours": 1.0,
+                    "amount": 5.0,
+                    "token_state": "LIQUID_NECTR",
+                    "nonce": 1,
+                },
+            ).model_dump(mode="json"),
+        ).status_code
+        == 400
+    )
+    missing_settle_p = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_ERR",
+        "session_id": "missing_s",
+        "learner_attestation_score": 0.9,
+        "tutor_comprehension_hash": "h",
+        "learner_nonce": 1,
+        "tutor_nonce": 2,
+    }
+    assert (
+        client.post(
+            "/sessions/missing_s/settle",
             json={
-                "session_id": "bad_e",
-                "tutor_id": "worker_1",
-                "learner_id": "worker_1",
-                "subject_id": "CS-101",
-                "duration_hours": 1.0,
-                "amount": 5.0,
-                "token_state": "LIQUID_NECTR",
+                "learner_tx": _sign(signers["worker_1"], "worker_1", missing_settle_p).model_dump(
+                    mode="json"
+                ),
+                "tutor_tx": _sign(signers["worker_1"], "worker_1", missing_settle_p).model_dump(
+                    mode="json"
+                ),
             },
         ).status_code
         == 400
     )
     assert (
         client.post(
-            "/sessions/missing_s/settle",
-            json={"learner_attestation_score": 0.9, "tutor_comprehension_hash": "h"},
-        ).status_code
-        == 400
-    )
-    assert (
-        client.post(
             "/sessions/missing_s/dispute",
-            json={"queen_id": "queen_1", "tutor_share_ratio": 0.5, "service_fee_rate": 0.1},
+            json=_sign(
+                signers["queen_1"],
+                "queen_1",
+                {
+                    "action": "RESOLVE_DISPUTED_SESSION",
+                    "hive_id": "HIVE_ERR",
+                    "queen_id": "queen_1",
+                    "session_id": "missing_s",
+                    "tutor_share_ratio": 0.5,
+                    "service_fee_rate": 0.1,
+                    "nonce": 2,
+                },
+            ).model_dump(mode="json"),
         ).status_code
         == 400
     )
@@ -315,57 +594,133 @@ def test_fastapi_hive_router_endpoints_and_error_rollback(tmp_path: Path) -> Non
 
     assert client.get("/health").status_code == 200
 
+    q_s = _signer("HIVE_API:queen_1")
+    w_s = _signer("HIVE_API:worker_1")
+    l_s = _signer("HIVE_API:learner_1")
+
     boot_res = client.post(
         "/hive/bootstrap",
-        json={
-            "seed_comb_amount": 250.0,
-            "queen_ids": ["queen_1"],
-            "certified_workers": {"worker_1": ["CS-101"]},
-        },
+        json=_sign(
+            q_s,
+            "queen_1",
+            {
+                "action": "BOOTSTRAP_HIVE",
+                "hive_id": "HIVE_API",
+                "queen_id": "queen_1",
+                "seed_comb_amount": 250.0,
+                "queen_public_keys": {"queen_1": q_s.public_key_hex},
+                "certified_workers": {"worker_1": ["CS-101"]},
+                "worker_public_keys": {"worker_1": w_s.public_key_hex},
+                "nonce": 1,
+            },
+        ).model_dump(mode="json"),
     )
     assert boot_res.status_code == 200
     assert boot_res.json()["genesis_comb"] == pytest.approx(250.0)
 
     assert (
-        client.post("/bees", json={"bee_id": "learner_1", "role": "LEARNER_BEE"}).status_code == 200
+        client.post(
+            "/bees",
+            json=_sign(
+                l_s,
+                "learner_1",
+                {
+                    "action": "REGISTER_BEE",
+                    "hive_id": "HIVE_API",
+                    "bee_id": "learner_1",
+                    "role": "LEARNER_BEE",
+                    "nonce": 1,
+                },
+            ).model_dump(mode="json"),
+        ).status_code
+        == 200
     )
     assert client.get("/bees/missing_bee").status_code == 404
     assert (
         client.post(
             "/pollen/allocate",
-            json={"queen_id": "queen_1", "learner_id": "learner_1", "amount": 20.0},
+            json=_sign(
+                q_s,
+                "queen_1",
+                {
+                    "action": "ALLOCATE_RAW_POLLEN",
+                    "hive_id": "HIVE_API",
+                    "queen_id": "queen_1",
+                    "learner_id": "learner_1",
+                    "amount": 20.0,
+                    "nonce": 2,
+                },
+            ).model_dump(mode="json"),
         ).status_code
         == 200
     )
 
+    hs1_settle = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_API",
+        "session_id": "api_sess_1",
+        "learner_attestation_score": 0.9,
+        "tutor_comprehension_hash": "hash_1",
+        "learner_nonce": 3,
+        "tutor_nonce": 1,
+    }
     hs_res = client.post(
         "/sessions/handshake",
         json={
-            "session_id": "api_sess_1",
-            "tutor_id": "worker_1",
-            "learner_id": "learner_1",
-            "subject_id": "CS-101",
-            "duration_hours": 1.0,
-            "amount": 10.0,
-            "token_state": "RAW_POLLEN",
-            "learner_attestation_score": 0.9,
+            "escrow_tx": _sign(
+                l_s,
+                "learner_1",
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_API",
+                    "session_id": "api_sess_1",
+                    "tutor_id": "worker_1",
+                    "learner_id": "learner_1",
+                    "subject_id": "CS-101",
+                    "duration_hours": 1.0,
+                    "amount": 10.0,
+                    "token_state": "RAW_POLLEN",
+                    "nonce": 2,
+                },
+            ).model_dump(mode="json"),
+            "learner_settle_tx": _sign(l_s, "learner_1", hs1_settle).model_dump(mode="json"),
+            "tutor_settle_tx": _sign(w_s, "worker_1", hs1_settle).model_dump(mode="json"),
         },
     )
     assert hs_res.status_code == 200
     assert hs_res.json()["amount"] == pytest.approx(10.0)
 
-    # Invalid attestation must return 400 and roll back
+    # Invalid attestation must return 400 and roll back (including learner_1 nonce=3)
+    bad_hs_settle = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_API",
+        "session_id": "api_sess_bad",
+        "learner_attestation_score": 1.5,
+        "tutor_comprehension_hash": "hash_bad",
+        "learner_nonce": 5,
+        "tutor_nonce": 2,
+    }
     bad_hs = client.post(
         "/sessions/handshake",
         json={
-            "session_id": "api_sess_bad",
-            "tutor_id": "worker_1",
-            "learner_id": "learner_1",
-            "subject_id": "CS-101",
-            "duration_hours": 1.0,
-            "amount": 5.0,
-            "token_state": "RAW_POLLEN",
-            "learner_attestation_score": 1.5,
+            "escrow_tx": _sign(
+                l_s,
+                "learner_1",
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_API",
+                    "session_id": "api_sess_bad",
+                    "tutor_id": "worker_1",
+                    "learner_id": "learner_1",
+                    "subject_id": "CS-101",
+                    "duration_hours": 1.0,
+                    "amount": 5.0,
+                    "token_state": "RAW_POLLEN",
+                    "nonce": 4,
+                },
+            ).model_dump(mode="json"),
+            "learner_settle_tx": _sign(l_s, "learner_1", bad_hs_settle).model_dump(mode="json"),
+            "tutor_settle_tx": _sign(w_s, "worker_1", bad_hs_settle).model_dump(mode="json"),
         },
     )
     assert bad_hs.status_code == 400
@@ -376,30 +731,60 @@ def test_fastapi_hive_router_endpoints_and_error_rollback(tmp_path: Path) -> Non
     assert (
         client.post(
             "/workers/certify",
-            json={"queen_id": "queen_1", "worker_id": "worker_1", "subject_id": "MATH-101"},
+            json=_sign(
+                q_s,
+                "queen_1",
+                {
+                    "action": "CERTIFY_WORKER_BEE",
+                    "hive_id": "HIVE_API",
+                    "queen_id": "queen_1",
+                    "worker_id": "worker_1",
+                    "subject_id": "MATH-101",
+                    "nonce": 3,
+                },
+            ).model_dump(mode="json"),
         ).status_code
         == 200
     )
     assert (
         client.post(
             "/sessions/escrow",
-            json={
-                "session_id": "api_settle_sep",
-                "tutor_id": "worker_1",
-                "learner_id": "learner_1",
-                "subject_id": "MATH-101",
-                "duration_hours": 1.0,
-                "amount": 5.0,
-                "token_state": "RAW_POLLEN",
-            },
+            json=_sign(
+                l_s,
+                "learner_1",
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_API",
+                    "session_id": "api_settle_sep",
+                    "tutor_id": "worker_1",
+                    "learner_id": "learner_1",
+                    "subject_id": "MATH-101",
+                    "duration_hours": 1.0,
+                    "amount": 5.0,
+                    "token_state": "RAW_POLLEN",
+                    "nonce": 4,
+                },
+            ).model_dump(mode="json"),
         ).status_code
         == 200
     )
     assert client.get("/sessions/api_settle_sep").status_code == 200
+    sep_settle = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_API",
+        "session_id": "api_settle_sep",
+        "learner_attestation_score": 0.9,
+        "tutor_comprehension_hash": "hash_ok",
+        "learner_nonce": 5,
+        "tutor_nonce": 2,
+    }
     assert (
         client.post(
             "/sessions/api_settle_sep/settle",
-            json={"learner_attestation_score": 0.9, "tutor_comprehension_hash": "hash_ok"},
+            json={
+                "learner_tx": _sign(l_s, "learner_1", sep_settle).model_dump(mode="json"),
+                "tutor_tx": _sign(w_s, "worker_1", sep_settle).model_dump(mode="json"),
+            },
         ).status_code
         == 200
     )
@@ -408,26 +793,58 @@ def test_fastapi_hive_router_endpoints_and_error_rollback(tmp_path: Path) -> Non
     assert (
         client.post(
             "/sessions/escrow",
-            json={
-                "session_id": "api_disp",
-                "tutor_id": "worker_1",
-                "learner_id": "learner_1",
-                "subject_id": "CS-101",
-                "duration_hours": 1.0,
-                "amount": 5.0,
-                "token_state": "RAW_POLLEN",
-            },
+            json=_sign(
+                l_s,
+                "learner_1",
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_API",
+                    "session_id": "api_disp",
+                    "tutor_id": "worker_1",
+                    "learner_id": "learner_1",
+                    "subject_id": "CS-101",
+                    "duration_hours": 1.0,
+                    "amount": 5.0,
+                    "token_state": "RAW_POLLEN",
+                    "nonce": 6,
+                },
+            ).model_dump(mode="json"),
         ).status_code
         == 200
     )
     disp_res = client.post(
         "/sessions/api_disp/dispute",
-        json={"queen_id": "queen_1", "tutor_share_ratio": 0.5, "service_fee_rate": 0.1},
+        json=_sign(
+            q_s,
+            "queen_1",
+            {
+                "action": "RESOLVE_DISPUTED_SESSION",
+                "hive_id": "HIVE_API",
+                "queen_id": "queen_1",
+                "session_id": "api_disp",
+                "tutor_share_ratio": 0.5,
+                "service_fee_rate": 0.1,
+                "nonce": 4,
+            },
+        ).model_dump(mode="json"),
     )
     assert disp_res.status_code == 200
     assert disp_res.json()["fee_to_comb"] == pytest.approx(0.5)
 
-    mine_res = client.post("/epochs/mine", json={"queen_dividend_beta": 0.05})
+    mine_res = client.post(
+        "/epochs/mine",
+        json=_sign(
+            q_s,
+            "queen_1",
+            {
+                "action": "MINE_EPOCH_BLOCK",
+                "hive_id": "HIVE_API",
+                "queen_id": "queen_1",
+                "queen_dividend_beta": 0.05,
+                "nonce": 5,
+            },
+        ).model_dump(mode="json"),
+    )
     assert mine_res.status_code == 200
     tel_res = client.get("/telemetry")
     assert tel_res.status_code == 200
@@ -449,81 +866,178 @@ def test_api_and_service_reject_nan_inf_negative_duration_fee_and_beta() -> None
 
     repo = InMemoryHiveRepository()
     service = HiveServiceLayer(hive_id="HIVE_VAL", difficulty=1, repository=repo)
-    service.bootstrap_sponsored_hive(
+    signers = _bootstrap(
+        service,
         seed_comb_amount=100.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
     )
-    service.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
-    service.allocate_raw_pollen("queen_1", "learner_1", 20.0)
+    l_s = _signer("HIVE_VAL:learner_1")
+    service.register_bee(
+        _sign(
+            l_s,
+            "learner_1",
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": "HIVE_VAL",
+                "bee_id": "learner_1",
+                "nonce": 1,
+            },
+        )
+    )
+    service.allocate_raw_pollen(
+        _sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "ALLOCATE_RAW_POLLEN",
+                "hive_id": "HIVE_VAL",
+                "queen_id": "queen_1",
+                "learner_id": "learner_1",
+                "amount": 20.0,
+                "nonce": 2,
+            },
+        )
+    )
     app = create_app(service)
     client = TestClient(app)
 
     # BUG-5: NaN in JSON body must return 422
     nan_res = client.post(
         "/pollen/allocate",
-        content='{"queen_id": "queen_1", "learner_id": "learner_1", "amount": NaN}',
+        content=(
+            '{"payload": {"action": "ALLOCATE_RAW_POLLEN", "hive_id": "HIVE_VAL", '
+            '"queen_id": "queen_1", "learner_id": "learner_1", "amount": NaN, "nonce": 3}, '
+            f'"signer_public_key": "{signers["queen_1"].public_key_hex}", '
+            f'"signature": "{"00" * 64}", "signer_id": "queen_1"}}'
+        ),
         headers={"Content-Type": "application/json"},
     )
     assert nan_res.status_code == 422
 
-    # BUG-3: duration_hours <= 0 must return 422
+    # BUG-3: duration_hours <= 0 must be rejected (400)
+    next_l_nonce = 2
     for bad_dur in (0.0, -5.0):
         dur_res = client.post(
             "/sessions/escrow",
-            json={
-                "session_id": f"dur_{bad_dur}",
+            json=_sign(
+                l_s,
+                "learner_1",
+                {
+                    "action": "CREATE_BARTER_ESCROW",
+                    "hive_id": "HIVE_VAL",
+                    "session_id": f"dur_{bad_dur}",
+                    "tutor_id": "worker_1",
+                    "learner_id": "learner_1",
+                    "subject_id": "CS-101",
+                    "duration_hours": bad_dur,
+                    "amount": 5.0,
+                    "token_state": "RAW_POLLEN",
+                    "nonce": next_l_nonce,
+                },
+            ).model_dump(mode="json"),
+        )
+        next_l_nonce += 1
+        assert dur_res.status_code == 400
+
+    # BUG-2: service_fee_rate out of [0, 1] must be rejected (400)
+    esc_res = client.post(
+        "/sessions/escrow",
+        json=_sign(
+            l_s,
+            "learner_1",
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": "HIVE_VAL",
+                "session_id": "disp_bounds",
                 "tutor_id": "worker_1",
                 "learner_id": "learner_1",
                 "subject_id": "CS-101",
-                "duration_hours": bad_dur,
+                "duration_hours": 1.0,
                 "amount": 5.0,
                 "token_state": "RAW_POLLEN",
+                "nonce": next_l_nonce,
             },
-        )
-        assert dur_res.status_code == 422
-
-    hs_dur_res = client.post(
-        "/sessions/handshake",
-        json={
-            "session_id": "hs_zero_dur",
-            "tutor_id": "worker_1",
-            "learner_id": "learner_1",
-            "subject_id": "CS-101",
-            "duration_hours": 0.0,
-            "amount": 5.0,
-            "token_state": "RAW_POLLEN",
-        },
-    )
-    assert hs_dur_res.status_code == 422
-
-    # BUG-2: service_fee_rate out of [0, 1] must return 422
-    esc_res = client.post(
-        "/sessions/escrow",
-        json={
-            "session_id": "disp_bounds",
-            "tutor_id": "worker_1",
-            "learner_id": "learner_1",
-            "subject_id": "CS-101",
-            "duration_hours": 1.0,
-            "amount": 5.0,
-            "token_state": "RAW_POLLEN",
-        },
+        ).model_dump(mode="json"),
     )
     assert esc_res.status_code == 200
+    q_nonce = 3
     for bad_fee in (-0.1, 2.0):
         disp_res = client.post(
             "/sessions/disp_bounds/dispute",
-            json={"queen_id": "queen_1", "tutor_share_ratio": 0.5, "service_fee_rate": bad_fee},
+            json=_sign(
+                signers["queen_1"],
+                "queen_1",
+                {
+                    "action": "RESOLVE_DISPUTED_SESSION",
+                    "hive_id": "HIVE_VAL",
+                    "queen_id": "queen_1",
+                    "session_id": "disp_bounds",
+                    "tutor_share_ratio": 0.5,
+                    "service_fee_rate": bad_fee,
+                    "nonce": q_nonce,
+                },
+            ).model_dump(mode="json"),
         )
-        assert disp_res.status_code == 422
+        q_nonce += 1
+        assert disp_res.status_code == 400
 
     # BUG-4: negative / non-finite queen_dividend_beta must be rejected
-    mine_bad = client.post("/epochs/mine", json={"queen_dividend_beta": -1.0})
-    assert mine_bad.status_code == 422
+    mine_bad = client.post(
+        "/epochs/mine",
+        json=_sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "MINE_EPOCH_BLOCK",
+                "hive_id": "HIVE_VAL",
+                "queen_id": "queen_1",
+                "queen_dividend_beta": -1.0,
+                "nonce": q_nonce,
+            },
+        ).model_dump(mode="json"),
+    )
+    assert mine_bad.status_code == 400
     for bad_beta in (-1.0, float("nan"), float("inf")):
-        with pytest.raises(ContractViolationError, match="queen_dividend_beta"):
-            service.mine_epoch_block(queen_dividend_beta=bad_beta)
+        bad_tx = SignedTransaction(
+            payload={
+                "action": "MINE_EPOCH_BLOCK",
+                "hive_id": "HIVE_VAL",
+                "queen_id": "queen_1",
+                "queen_dividend_beta": 0.05,
+                "nonce": q_nonce,
+            },
+            signer_public_key=signers["queen_1"].public_key_hex,
+            signature="00" * 64,
+            signer_id="queen_1",
+        )
+        if bad_beta == -1.0:
+            bad_tx = _sign(
+                signers["queen_1"],
+                "queen_1",
+                {
+                    "action": "MINE_EPOCH_BLOCK",
+                    "hive_id": "HIVE_VAL",
+                    "queen_id": "queen_1",
+                    "queen_dividend_beta": bad_beta,
+                    "nonce": q_nonce,
+                },
+            )
+            with pytest.raises(ContractViolationError, match="queen_dividend_beta"):
+                service.mine_epoch_block(bad_tx)
+        else:
+            with pytest.raises(ValueError):
+                SignedTransaction.create(
+                    {
+                        "action": "MINE_EPOCH_BLOCK",
+                        "hive_id": "HIVE_VAL",
+                        "queen_id": "queen_1",
+                        "queen_dividend_beta": bad_beta,
+                        "nonce": q_nonce,
+                    },
+                    signer=signers["queen_1"],
+                    signer_id="queen_1",
+                )
 
 
 def test_commit_phase_failure_rolls_back_in_memory_state(tmp_path: Path) -> None:
@@ -552,17 +1066,32 @@ def test_commit_phase_failure_rolls_back_in_memory_state(tmp_path: Path) -> None
         repository=repo,
         telemetry=telemetry,
     )
-    service.bootstrap_sponsored_hive(
+    _bootstrap(
+        service,
         seed_comb_amount=100.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
     )
 
+    ghost_s = _signer("HIVE_COMMIT_RB:bee_ghost")
     repo.fail_next_commit = True
     with pytest.raises(RuntimeError, match="simulated commit failure"):
-        service.register_bee("bee_ghost")
+        service.register_bee(
+            _sign(
+                ghost_s,
+                "bee_ghost",
+                {
+                    "action": "REGISTER_BEE",
+                    "hive_id": "HIVE_COMMIT_RB",
+                    "bee_id": "bee_ghost",
+                    "nonce": 1,
+                },
+            )
+        )
 
     assert "bee_ghost" not in service.contracts.accounts
+    assert "bee_ghost" not in service.bee_public_keys
+    assert "bee_ghost" not in service.bee_nonces
     assert repo.get_account("HIVE_COMMIT_RB", "bee_ghost") is None
     events = telemetry.get_recorded_events()
     assert any(e.get("event") == "register_bee.rollback" for e in events)
@@ -579,21 +1108,67 @@ def test_repository_reload_rejects_corrupted_negative_or_duplicate_pairwise_coun
     db_url = f"sqlite:///{tmp_path / 'corrupt_pairs.db'}"
     repo = SQLModelHiveRepository(database_url=db_url)
     service = HiveServiceLayer(hive_id="HIVE_PAIR_DB", difficulty=1, repository=repo)
-    service.bootstrap_sponsored_hive(
+    signers = _bootstrap(
+        service,
         seed_comb_amount=200.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
     )
-    service.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
-    service.allocate_raw_pollen("queen_1", "learner_1", 20.0)
+    l_s = _signer("HIVE_PAIR_DB:learner_1")
+    service.register_bee(
+        _sign(
+            l_s,
+            "learner_1",
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": "HIVE_PAIR_DB",
+                "bee_id": "learner_1",
+                "nonce": 1,
+            },
+        )
+    )
+    service.allocate_raw_pollen(
+        _sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "ALLOCATE_RAW_POLLEN",
+                "hive_id": "HIVE_PAIR_DB",
+                "queen_id": "queen_1",
+                "learner_id": "learner_1",
+                "amount": 20.0,
+                "nonce": 2,
+            },
+        )
+    )
+    settle_p = {
+        "action": "SETTLE_SESSION",
+        "hive_id": "HIVE_PAIR_DB",
+        "session_id": "s_pair",
+        "learner_attestation_score": 0.95,
+        "tutor_comprehension_hash": "h_pair",
+        "learner_nonce": 3,
+        "tutor_nonce": 1,
+    }
     service.execute_tutoring_handshake(
-        session_id="s_pair",
-        tutor_id="worker_1",
-        learner_id="learner_1",
-        subject_id="CS-101",
-        duration_hours=1.0,
-        amount=10.0,
-        token_state=TokenState.RAW_POLLEN,
+        escrow_tx=_sign(
+            l_s,
+            "learner_1",
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": "HIVE_PAIR_DB",
+                "session_id": "s_pair",
+                "tutor_id": "worker_1",
+                "learner_id": "learner_1",
+                "subject_id": "CS-101",
+                "duration_hours": 1.0,
+                "amount": 10.0,
+                "token_state": TokenState.RAW_POLLEN.value,
+                "nonce": 2,
+            },
+        ),
+        learner_settle_tx=_sign(l_s, "learner_1", settle_p),
+        tutor_settle_tx=_sign(signers["worker_1"], "worker_1", settle_p),
     )
 
     with repo.engine.begin() as conn:
@@ -670,122 +1245,88 @@ def test_telemetry_redacts_tuple_set_and_exception_pem() -> None:
     assert marker_span.status.description == "[REDACTED]"
 
 
-def test_sqlmodel_repository_round_trips_polymorphic_mempool_and_block_transactions(
+def test_sqlmodel_repository_round_trips_signed_mempool_and_block_transactions(
     tmp_path: Path,
 ) -> None:
-    from typing import Any, cast
+    from pydantic import ValidationError
 
-    from pydantic import BaseModel
-
-    import nectr.chain as nectr_chain
+    from nectr.services.hive_service import _deserialize_mempool_entry
     from nectr.services.persistence import SQLModelHiveRepository
 
-    class _SignedTxStub(BaseModel):
-        payload: dict[str, Any]
-        signer_public_key: str
-        signature: str
-        signer_id: str | None = None
-
-    db_url = f"sqlite:///{tmp_path / 'poly_mempool.db'}"
+    db_url = f"sqlite:///{tmp_path / 'signed_mempool.db'}"
     repo = SQLModelHiveRepository(database_url=db_url)
-    service = HiveServiceLayer(hive_id="HIVE_POLY", difficulty=1, repository=repo)
-    service.bootstrap_sponsored_hive(
+    service = HiveServiceLayer(hive_id="HIVE_SIGNED_MEMPOOL", difficulty=1, repository=repo)
+    signers = _bootstrap(
+        service,
         seed_comb_amount=150.0,
         queen_ids=["queen_1"],
         certified_workers={"worker_1": ["CS-101"]},
     )
 
-    signed_tx_cls = getattr(nectr_chain, "SignedTransaction", None)
-    signer_cls = getattr(nectr_chain, "Ed25519Signer", None)
-
-    # Queue a transaction (real SignedTransaction when M1 is present, else signed-shaped dict)
-    # plus a plain dict transaction, and mine them into a block.
-    mempool_list = cast(list[Any], service.blockchain.mempool)
-    mined_signed_tx: Any = None
-    if signed_tx_cls is not None and signer_cls is not None:
-        signer = signer_cls.generate()
-        mined_signed_tx = signed_tx_cls.create(
-            payload={"action": "REAL_MINED", "amount": 5.0},
-            signer=signer,
-            signer_id="worker_1",
-        )
-        mempool_list.append(mined_signed_tx)
-    else:
-        mempool_list.append(
-            {
-                "payload": {"action": "SHAPED_MINED", "amount": 5.0},
-                "signer_public_key": "a" * 64,
-                "signature": "b" * 128,
-                "signer_id": "worker_1",
-            }
-        )
-    mempool_list.append({"action": "DICT_MINED", "amount": 2.0})
-    service.mine_epoch_block()
-
-    # Queue a BaseModel transaction + dict (+ real SignedTransaction on M1) into pending mempool
-    stub_pending = _SignedTxStub(
-        payload={"action": "STUB_PENDING", "amount": 7.5},
-        signer_public_key="c" * 64,
-        signature="d" * 128,
-        signer_id="learner_1",
+    mined_signed_tx = _sign(
+        signers["worker_1"],
+        "worker_1",
+        {"action": "REAL_MINED", "amount": 5.0},
     )
-    mempool_list = cast(list[Any], service.blockchain.mempool)
-    mempool_list.append(stub_pending)
-    mempool_list.append({"action": "DICT_PENDING", "amount": 3.0})
-
-    pending_signed_tx: Any = None
-    if signed_tx_cls is not None and signer_cls is not None:
-        signer2 = signer_cls.generate()
-        pending_signed_tx = signed_tx_cls.create(
-            payload={"action": "REAL_PENDING", "amount": 9.0},
-            signer=signer2,
-            signer_id="worker_1",
+    service.blockchain.submit_transaction(mined_signed_tx)
+    service.mine_epoch_block(
+        _sign(
+            signers["queen_1"],
+            "queen_1",
+            {
+                "action": "MINE_EPOCH_BLOCK",
+                "hive_id": "HIVE_SIGNED_MEMPOOL",
+                "queen_id": "queen_1",
+                "nonce": 2,
+            },
         )
-        mempool_list.append(pending_signed_tx)
+    )
 
-    service.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
+    pending_signed_tx = _sign(
+        signers["worker_1"],
+        "worker_1",
+        {"action": "REAL_PENDING", "amount": 9.0},
+    )
+    service.blockchain.submit_transaction(pending_signed_tx)
+
+    l_s = _signer("HIVE_SIGNED_MEMPOOL:learner_1")
+    reg_tx = _sign(
+        l_s,
+        "learner_1",
+        {
+            "action": "REGISTER_BEE",
+            "hive_id": "HIVE_SIGNED_MEMPOOL",
+            "bee_id": "learner_1",
+            "nonce": 1,
+        },
+    )
+    service.register_bee(reg_tx)
     repo.close()
 
     reloaded_repo = SQLModelHiveRepository(database_url=db_url)
-    reloaded = HiveServiceLayer.from_repository("HIVE_POLY", repository=reloaded_repo)
+    reloaded = HiveServiceLayer.from_repository("HIVE_SIGNED_MEMPOOL", repository=reloaded_repo)
 
     assert reloaded.blockchain.verify_chain() is True
-    assert len(reloaded.blockchain.mempool) == (3 if pending_signed_tx is not None else 2)
-    if signed_tx_cls is not None:
-        assert isinstance(reloaded.blockchain.mempool[0], signed_tx_cls)
-        assert reloaded.blockchain.mempool[0].model_dump(mode="json") == stub_pending.model_dump(
-            mode="json"
-        )
-        assert reloaded.blockchain.mempool[1] == {"action": "DICT_PENDING", "amount": 3.0}
-        if pending_signed_tx is not None:
-            reloaded_real = reloaded.blockchain.mempool[2]
-            assert isinstance(reloaded_real, signed_tx_cls)
-            assert reloaded_real.verify_signature() is True
-            assert reloaded_real == pending_signed_tx
-    else:
-        assert reloaded.blockchain.mempool[0] == stub_pending.model_dump(mode="json")
-        assert reloaded.blockchain.mempool[1] == {"action": "DICT_PENDING", "amount": 3.0}
+    assert reloaded.blockchain.mempool == [pending_signed_tx, reg_tx]
+    assert all(
+        isinstance(tx, SignedTransaction) and tx.verify_signature()
+        for tx in reloaded.blockchain.mempool
+    )
 
     mined_block = reloaded.blockchain.chain[-1]
-    assert len(mined_block.transactions) == 2
-    if signed_tx_cls is not None and mined_signed_tx is not None:
-        assert isinstance(mined_block.transactions[0], signed_tx_cls)
-        assert mined_block.transactions[0].verify_signature() is True
-        assert mined_block.transactions[0] == mined_signed_tx
-    else:
-        assert mined_block.transactions[0] == {
-            "payload": {"action": "SHAPED_MINED", "amount": 5.0},
-            "signer_public_key": "a" * 64,
-            "signature": "b" * 128,
-            "signer_id": "worker_1",
-        }
-    assert mined_block.transactions[1] == {"action": "DICT_MINED", "amount": 2.0}
+    assert all(
+        isinstance(tx, SignedTransaction) and tx.verify_signature()
+        for tx in mined_block.transactions
+    )
+    assert mined_signed_tx in mined_block.transactions
+
+    with pytest.raises(ValidationError):
+        _deserialize_mempool_entry({"action": "UNSIGNED_DICT", "amount": 1.0})
     reloaded_repo.close()
 
 
 def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
     from types import MappingProxyType
-    from typing import Any, cast
 
     from pydantic import BaseModel
 
@@ -807,18 +1348,28 @@ def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
         _serialize_tx_entry(12345)
 
     service = HiveServiceLayer(hive_id="HIVE_SNAP", difficulty=1)
-    cast(list[Any], service.blockchain.mempool).extend([model_tx, proxy_tx])
+    s_tx = _sign(_signer("HIVE_SNAP:bee_1"), "bee_1", {"action": "PING", "nonce": 1})
+    service.blockchain.submit_transaction(s_tx)
     snapshot = service._build_snapshot()
-    assert snapshot.mempool == [
-        {"kind": "BARTER", "amount": 4.5},
-        {"kind": "PROXY", "nested": {"x": 1}},
-    ]
+    assert snapshot.mempool == [s_tx.model_dump(mode="json")]
 
 
 def test_register_queen_via_service_without_queen_signed_command_rejected() -> None:
     service = HiveServiceLayer(hive_id="HIVE_AUTH", difficulty=1)
+    rogue_signer = _signer("HIVE_AUTH:rogue_queen")
+    tx = _sign(
+        rogue_signer,
+        "rogue_queen",
+        {
+            "action": "REGISTER_BEE",
+            "hive_id": "HIVE_AUTH",
+            "bee_id": "rogue_queen",
+            "role": BeeRole.QUEEN.value,
+            "nonce": 1,
+        },
+    )
     with pytest.raises((ContractViolationError, PermissionError)):
-        service.register_bee("rogue_queen", role=BeeRole.QUEEN)
+        service.register_bee(tx)
 
 
 def test_alembic_0002_upgrades_0001_and_persists_exact_micro_units(tmp_path: Path) -> None:

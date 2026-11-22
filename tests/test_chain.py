@@ -259,8 +259,18 @@ def test_hive_blockchain_dict_and_signed_tx_and_verify_chain_tamper_branches() -
         chain.submit_transaction(forged_signed)
     assert chain.mempool == []
 
-    # Mixed backward-compatible dict + SignedTransaction + proposer signature.
-    chain.submit_transaction({"type": "SEED_COMB", "amount": 100.0})
+    # Unsigned dict rejected at submit_transaction without polluting mempool.
+    with pytest.raises(TypeError):
+        chain.submit_transaction({"type": "SEED_COMB", "amount": 100.0})  # type: ignore[arg-type]
+    assert chain.mempool == []
+
+    # Verified SignedTransactions + proposer signature.
+    seed_signed = SignedTransaction.create(
+        {"type": "SEED_COMB", "amount": 100.0},
+        signer=tx_signer,
+        signer_id="queen_1",
+    )
+    chain.submit_transaction(seed_signed)
     chain.submit_signed_transaction(valid_signed)
     block2 = chain.mine_block(
         useful_compute_proof=make_proof(2),
@@ -298,9 +308,13 @@ def test_hive_blockchain_dict_and_signed_tx_and_verify_chain_tamper_branches() -
     assert chain.verify_chain() is False
     chain.chain[2] = orig_b2
 
-    # 4. Tampered dict transaction inside block
-    tampered_dict_txs = [{"type": "SEED_COMB", "amount": 9999.0}, orig_b2.transactions[1]]
-    chain.chain[2] = orig_b2.model_copy(update={"transactions": tampered_dict_txs})
+    # 4. Tampered SignedTransaction payload inside block
+    tampered_tx = orig_b2.transactions[0].model_copy(
+        update={"payload": {**orig_b2.transactions[0].payload, "amount": 9999.0}}
+    )
+    chain.chain[2] = orig_b2.model_copy(
+        update={"transactions": [tampered_tx, orig_b2.transactions[1]]}
+    )
     assert chain.verify_chain() is False
     chain.chain[2] = orig_b2
 
@@ -435,12 +449,9 @@ def test_chain_additional_edge_cases_and_json_roundtrip() -> None:
 
 
 def test_verification_paths_reject_nan_inf_bytes_without_crashing() -> None:
-    import json
-
     from pydantic import ValidationError
 
     from nectr.chain import (
-        Block,
         CanonicalPayload,
         Ed25519Signer,
         HiveBlockchain,
@@ -483,7 +494,7 @@ def test_verification_paths_reject_nan_inf_bytes_without_crashing() -> None:
     assert signer.verifier.verify({"x": b"raw-bytes"}, valid_tx.signature) is False
 
     chain = HiveBlockchain(hive_id="HIVE_NAN", difficulty=1)
-    chain.submit_transaction({"type": "DICT_TX", "val": 1.0})
+    chain.submit_transaction(valid_tx)
     block = chain.mine_block(
         useful_compute_proof=UsefulComputeProof(
             epoch=1,
@@ -495,10 +506,7 @@ def test_verification_paths_reject_nan_inf_bytes_without_crashing() -> None:
         ),
         timestamp=1700000050.0,
     )
-    nan_block_dict = block.model_dump()
-    nan_block_dict["transactions"][0]["val"] = float("nan")
-    nan_block = Block.model_validate_json(json.dumps(nan_block_dict, allow_nan=True))
-    chain.chain[1] = nan_block
+    chain.chain[1] = block.model_copy(update={"transactions": [stx_nan]})
     assert chain.verify_chain() is False
 
     # Non-finite float injected into header or UsefulComputeProof also returns False cleanly.

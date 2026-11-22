@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
-from nectr.contracts.engine import BeeRole, ContractViolationError, TokenState
-from nectr.services.hive_service import HiveServiceLayer
+from nectr.chain.crypto import SignedTransaction
+from nectr.contracts.engine import ContractViolationError
+from nectr.services.hive_service import (
+    CommandAuthorizationError,
+    HiveServiceLayer,
+    InvalidSignatureError,
+)
 from nectr.services.telemetry import TelemetryAdapter
+
+_T = TypeVar("_T")
 
 
 class HealthResponse(BaseModel):
@@ -37,22 +45,6 @@ class HiveStateResponse(BaseModel):
     chain_valid: bool
 
 
-class BootstrapHiveRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    seed_comb_amount: float
-    queen_ids: list[str] = Field(min_length=1)
-    certified_workers: dict[str, list[str]] = Field(default_factory=dict)
-
-
-class RegisterBeeRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    bee_id: str
-    role: BeeRole = BeeRole.LEARNER_BEE
-    home_hive_id: str | None = None
-
-
 class BeeAccountResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
@@ -65,65 +57,6 @@ class BeeAccountResponse(BaseModel):
     accepted_in_hives: list[str]
     distinct_peers_tutored_in_hive: list[str]
     royal_jelly_earned: float
-
-
-class AllocatePollenRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    queen_id: str
-    learner_id: str
-    amount: float
-
-
-class CertifyWorkerRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    queen_id: str
-    worker_id: str
-    subject_id: str
-    certification_fee: float = 0.0
-
-
-class TutoringHandshakeRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    session_id: str
-    tutor_id: str
-    learner_id: str
-    subject_id: str
-    duration_hours: float = Field(gt=0.0)
-    amount: float
-    token_state: TokenState = TokenState.LIQUID_NECTR
-    learner_attestation_score: float = 0.95
-    reciprocal_subject_id: str | None = None
-
-
-class CreateEscrowRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    session_id: str
-    tutor_id: str
-    learner_id: str
-    subject_id: str
-    duration_hours: float = Field(gt=0.0)
-    amount: float
-    token_state: TokenState = TokenState.LIQUID_NECTR
-    reciprocal_subject_id: str | None = None
-
-
-class SettleSessionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    learner_attestation_score: float
-    tutor_comprehension_hash: str
-
-
-class DisputeSessionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-    queen_id: str
-    tutor_share_ratio: float
-    service_fee_rate: float = Field(default=0.10, ge=0.0, le=1.0)
 
 
 class SessionResponse(BaseModel):
@@ -144,10 +77,19 @@ class SessionResponse(BaseModel):
     effective_weight: float
 
 
-class MineEpochRequest(BaseModel):
+class DualSignedSettleRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
-    queen_dividend_beta: float = Field(default=0.05, ge=0.0)
+    learner_tx: SignedTransaction
+    tutor_tx: SignedTransaction
+
+
+class SignedHandshakeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    escrow_tx: SignedTransaction
+    learner_settle_tx: SignedTransaction
+    tutor_settle_tx: SignedTransaction
 
 
 class MineEpochResponse(BaseModel):
@@ -174,8 +116,19 @@ class TelemetrySummaryResponse(BaseModel):
     span_count: int
 
 
+def _execute_command(fn: Callable[[], _T]) -> _T:
+    try:
+        return fn()
+    except InvalidSignatureError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except CommandAuthorizationError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except (ContractViolationError, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
 def create_hive_router(service: HiveServiceLayer) -> APIRouter:
-    """Build a FastAPI APIRouter delegating all domain commands to HiveServiceLayer."""
+    """Build a FastAPI APIRouter delegating all signed commands to HiveServiceLayer."""
     router = APIRouter()
 
     @router.get("/health", response_model=HealthResponse)
@@ -200,23 +153,12 @@ def create_hive_router(service: HiveServiceLayer) -> APIRouter:
         )
 
     @router.post("/hive/bootstrap")
-    def bootstrap_hive(payload: BootstrapHiveRequest) -> dict[str, Any]:
-        try:
-            return service.bootstrap_sponsored_hive(
-                seed_comb_amount=payload.seed_comb_amount,
-                queen_ids=payload.queen_ids,
-                certified_workers=payload.certified_workers,
-            )
-        except ContractViolationError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    def bootstrap_hive(payload: SignedTransaction) -> dict[str, Any]:
+        return _execute_command(lambda: service.bootstrap_sponsored_hive(payload))
 
     @router.post("/bees", response_model=BeeAccountResponse)
-    def register_bee(payload: RegisterBeeRequest) -> BeeAccountResponse:
-        acct = service.register_bee(
-            bee_id=payload.bee_id,
-            role=payload.role,
-            home_hive_id=payload.home_hive_id,
-        )
+    def register_bee(payload: SignedTransaction) -> BeeAccountResponse:
+        acct = _execute_command(lambda: service.register_bee(payload))
         return BeeAccountResponse(
             **{k: v for k, v in acct.to_dict().items() if k in BeeAccountResponse.model_fields}
         )
@@ -234,63 +176,29 @@ def create_hive_router(service: HiveServiceLayer) -> APIRouter:
         )
 
     @router.post("/pollen/allocate")
-    def allocate_pollen(payload: AllocatePollenRequest) -> dict[str, Any]:
-        try:
-            return service.allocate_raw_pollen(
-                queen_id=payload.queen_id,
-                learner_id=payload.learner_id,
-                amount=payload.amount,
-            )
-        except ContractViolationError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    def allocate_pollen(payload: SignedTransaction) -> dict[str, Any]:
+        return _execute_command(lambda: service.allocate_raw_pollen(payload))
 
     @router.post("/workers/certify")
-    def certify_worker(payload: CertifyWorkerRequest) -> dict[str, Any]:
-        try:
-            return service.certify_worker_bee(
-                queen_id=payload.queen_id,
-                worker_id=payload.worker_id,
-                subject_id=payload.subject_id,
-                certification_fee=payload.certification_fee,
-            )
-        except ContractViolationError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    def certify_worker(payload: SignedTransaction) -> dict[str, Any]:
+        return _execute_command(lambda: service.certify_worker_bee(payload))
 
     @router.post("/sessions/handshake")
-    def execute_handshake(payload: TutoringHandshakeRequest) -> dict[str, Any]:
-        try:
-            return service.execute_tutoring_handshake(
-                session_id=payload.session_id,
-                tutor_id=payload.tutor_id,
-                learner_id=payload.learner_id,
-                subject_id=payload.subject_id,
-                duration_hours=payload.duration_hours,
-                amount=payload.amount,
-                token_state=payload.token_state,
-                learner_attestation_score=payload.learner_attestation_score,
-                reciprocal_subject_id=payload.reciprocal_subject_id,
+    def execute_handshake(payload: SignedHandshakeRequest) -> dict[str, Any]:
+        return _execute_command(
+            lambda: service.execute_tutoring_handshake(
+                escrow_tx=payload.escrow_tx,
+                learner_settle_tx=payload.learner_settle_tx,
+                tutor_settle_tx=payload.tutor_settle_tx,
             )
-        except ContractViolationError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        )
 
     @router.post("/sessions/escrow", response_model=SessionResponse)
-    def create_escrow(payload: CreateEscrowRequest) -> SessionResponse:
-        try:
-            sess = service.create_barter_escrow(
-                session_id=payload.session_id,
-                tutor_id=payload.tutor_id,
-                learner_id=payload.learner_id,
-                subject_id=payload.subject_id,
-                duration_hours=payload.duration_hours,
-                amount=payload.amount,
-                token_state=payload.token_state,
-                reciprocal_subject_id=payload.reciprocal_subject_id,
-            )
-            return SessionResponse(
-                **{k: v for k, v in sess.to_dict().items() if k in SessionResponse.model_fields}
-            )
-        except ContractViolationError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    def create_escrow(payload: SignedTransaction) -> SessionResponse:
+        sess = _execute_command(lambda: service.create_barter_escrow(payload))
+        return SessionResponse(
+            **{k: v for k, v in sess.to_dict().items() if k in SessionResponse.model_fields}
+        )
 
     @router.get("/sessions/{session_id}", response_model=SessionResponse)
     def get_session(session_id: str) -> SessionResponse:
@@ -305,31 +213,29 @@ def create_hive_router(service: HiveServiceLayer) -> APIRouter:
         )
 
     @router.post("/sessions/{session_id}/settle")
-    def settle_session(session_id: str, payload: SettleSessionRequest) -> dict[str, Any]:
-        try:
+    def settle_session(session_id: str, payload: DualSignedSettleRequest) -> dict[str, Any]:
+        def _run() -> dict[str, Any]:
+            if payload.learner_tx.payload.get("session_id") != session_id:
+                raise ContractViolationError("Signed payload session_id does not match URL.")
             return service.settle_session(
-                session_id=session_id,
-                learner_attestation_score=payload.learner_attestation_score,
-                tutor_comprehension_hash=payload.tutor_comprehension_hash,
+                learner_tx=payload.learner_tx,
+                tutor_tx=payload.tutor_tx,
             )
-        except ContractViolationError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+        return _execute_command(_run)
 
     @router.post("/sessions/{session_id}/dispute")
-    def dispute_session(session_id: str, payload: DisputeSessionRequest) -> dict[str, Any]:
-        try:
-            return service.resolve_disputed_session(
-                queen_id=payload.queen_id,
-                session_id=session_id,
-                tutor_share_ratio=payload.tutor_share_ratio,
-                service_fee_rate=payload.service_fee_rate,
-            )
-        except ContractViolationError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    def dispute_session(session_id: str, payload: SignedTransaction) -> dict[str, Any]:
+        def _run() -> dict[str, Any]:
+            if payload.payload.get("session_id") != session_id:
+                raise ContractViolationError("Signed payload session_id does not match URL.")
+            return service.resolve_disputed_session(payload)
+
+        return _execute_command(_run)
 
     @router.post("/epochs/mine", response_model=MineEpochResponse)
-    def mine_epoch(payload: MineEpochRequest) -> MineEpochResponse:
-        block = service.mine_epoch_block(queen_dividend_beta=payload.queen_dividend_beta)
+    def mine_epoch(payload: SignedTransaction) -> MineEpochResponse:
+        block = _execute_command(lambda: service.mine_epoch_block(payload))
         return MineEpochResponse(
             height=block.header.height,
             block_hash=block.block_hash,

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -65,7 +64,7 @@ class Block(BaseModel):
 
     header: BlockHeader
     useful_compute_proof: UsefulComputeProof
-    transactions: list[SignedTransaction | dict[str, Any]] = Field(default_factory=list)
+    transactions: list[SignedTransaction] = Field(default_factory=list)
     inclusion_proofs: list[MerkleInclusionProof] = Field(default_factory=list)
     proposer_public_key: str | None = None
     proposer_signature: str | None = None
@@ -84,7 +83,7 @@ class HiveBlockchain:
         self.hive_id = hive_id
         self.difficulty = difficulty
         self.chain: list[Block] = []
-        self.mempool: list[SignedTransaction | dict[str, Any]] = []
+        self.mempool: list[SignedTransaction] = []
         self._create_genesis_block()
 
     def _create_genesis_block(self) -> None:
@@ -138,9 +137,13 @@ class HiveBlockchain:
                 return candidate
             nonce += 1
 
-    def submit_transaction(self, tx: SignedTransaction | dict[str, Any]) -> None:
-        """Queue a verified contract or Ed25519-signed transaction into the Hive mempool."""
-        if isinstance(tx, SignedTransaction) and not tx.verify_signature():
+    def submit_transaction(self, tx: SignedTransaction) -> None:
+        """Queue a verified Ed25519-signed transaction into the Hive mempool."""
+        if not isinstance(tx, SignedTransaction):
+            raise TypeError(
+                "submit_transaction requires a verified SignedTransaction; unsigned dicts are prohibited."
+            )
+        if not tx.verify_signature():
             raise ValueError("Invalid Ed25519 signature on SignedTransaction.")
         self.mempool.append(tx)
 
@@ -219,12 +222,13 @@ class HiveBlockchain:
             if not block.transactions and block.inclusion_proofs:
                 return False
             for tx in block.transactions:
-                if isinstance(tx, SignedTransaction):
-                    try:
-                        if not tx.verify_signature():
-                            return False
-                    except (ValueError, TypeError):
+                if not isinstance(tx, SignedTransaction):
+                    return False
+                try:
+                    if not tx.verify_signature():
                         return False
+                except (ValueError, TypeError):
+                    return False
             if block.inclusion_proofs:
                 if len(block.inclusion_proofs) != len(block.transactions):
                     return False

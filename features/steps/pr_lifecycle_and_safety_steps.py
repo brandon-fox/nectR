@@ -331,24 +331,121 @@ def step_given_chain_and_contracts(context: Any) -> None:
 
 @when("adversarial tampering checks and stateful multi-step transaction sequences execute")
 def step_when_adversarial_and_stateful_run(context: Any) -> None:
+    import hashlib
+
+    from nectr.chain import Ed25519Signer, SignedTransaction, compute_sha256
     from nectr.contracts.engine import BeeRole, ContractViolationError, TokenState
+
+    def _signer(bid: str) -> Ed25519Signer:
+        return Ed25519Signer.from_seed(hashlib.sha256(f"pr_life:{bid}".encode()).digest())
 
     hive_a = context.hive_a
     hive_b = context.hive_b
-    hive_a.bootstrap_sponsored_hive(500.0, ["queen_a"], {"worker_a": ["CS-101"]})
-    hive_b.bootstrap_sponsored_hive(300.0, ["queen_b"], {"worker_b": ["MATH-101"]})
-    hive_a.contracts.register_bee("learner_a", role=BeeRole.LEARNER_BEE)
-    hive_a.contracts.allocate_raw_pollen_to_learner("queen_a", "learner_a", 50.0)
-    hive_a.execute_tutoring_handshake(
-        session_id="bdd_s1",
-        tutor_id="worker_a",
-        learner_id="learner_a",
-        subject_id="CS-101",
-        duration_hours=1.0,
-        amount=20.0,
-        token_state=TokenState.RAW_POLLEN,
+    qa_s, wa_s, la_s = _signer("queen_a"), _signer("worker_a"), _signer("learner_a")
+    qb_s, wb_s = _signer("queen_b"), _signer("worker_b")
+
+    hive_a.bootstrap_sponsored_hive(
+        SignedTransaction.create(
+            {
+                "action": "BOOTSTRAP_HIVE",
+                "hive_id": hive_a.hive_id,
+                "queen_id": "queen_a",
+                "seed_comb_amount": 500.0,
+                "queen_public_keys": {"queen_a": qa_s.public_key_hex},
+                "certified_workers": {"worker_a": ["CS-101"]},
+                "worker_public_keys": {"worker_a": wa_s.public_key_hex},
+                "nonce": 1,
+            },
+            signer=qa_s,
+            signer_id="queen_a",
+        )
     )
-    hive_a.mine_epoch_block()
+    hive_b.bootstrap_sponsored_hive(
+        SignedTransaction.create(
+            {
+                "action": "BOOTSTRAP_HIVE",
+                "hive_id": hive_b.hive_id,
+                "queen_id": "queen_b",
+                "seed_comb_amount": 300.0,
+                "queen_public_keys": {"queen_b": qb_s.public_key_hex},
+                "certified_workers": {"worker_b": ["MATH-101"]},
+                "worker_public_keys": {"worker_b": wb_s.public_key_hex},
+                "nonce": 1,
+            },
+            signer=qb_s,
+            signer_id="queen_b",
+        )
+    )
+    hive_a.register_bee(
+        SignedTransaction.create(
+            {
+                "action": "REGISTER_BEE",
+                "hive_id": hive_a.hive_id,
+                "bee_id": "learner_a",
+                "role": BeeRole.LEARNER_BEE.value,
+                "nonce": 1,
+            },
+            signer=la_s,
+            signer_id="learner_a",
+        )
+    )
+    hive_a.allocate_raw_pollen(
+        SignedTransaction.create(
+            {
+                "action": "ALLOCATE_RAW_POLLEN",
+                "hive_id": hive_a.hive_id,
+                "queen_id": "queen_a",
+                "learner_id": "learner_a",
+                "amount": 50.0,
+                "nonce": 2,
+            },
+            signer=qa_s,
+            signer_id="queen_a",
+        )
+    )
+    settle_payload = {
+        "action": "SETTLE_SESSION",
+        "hive_id": hive_a.hive_id,
+        "session_id": "bdd_s1",
+        "learner_attestation_score": 0.95,
+        "tutor_comprehension_hash": compute_sha256("bdd_s1:worker_a:learner_a:CS-101"),
+        "learner_nonce": 3,
+        "tutor_nonce": 1,
+    }
+    hive_a.execute_tutoring_handshake(
+        escrow_tx=SignedTransaction.create(
+            {
+                "action": "CREATE_BARTER_ESCROW",
+                "hive_id": hive_a.hive_id,
+                "session_id": "bdd_s1",
+                "tutor_id": "worker_a",
+                "learner_id": "learner_a",
+                "subject_id": "CS-101",
+                "duration_hours": 1.0,
+                "amount": 20.0,
+                "token_state": TokenState.RAW_POLLEN.value,
+                "nonce": 2,
+            },
+            signer=la_s,
+            signer_id="learner_a",
+        ),
+        learner_settle_tx=SignedTransaction.create(
+            settle_payload, signer=la_s, signer_id="learner_a"
+        ),
+        tutor_settle_tx=SignedTransaction.create(settle_payload, signer=wa_s, signer_id="worker_a"),
+    )
+    hive_a.mine_epoch_block(
+        SignedTransaction.create(
+            {
+                "action": "MINE_EPOCH_BLOCK",
+                "hive_id": hive_a.hive_id,
+                "queen_id": "queen_a",
+                "nonce": 3,
+            },
+            signer=qa_s,
+            signer_id="queen_a",
+        )
+    )
 
     # Verify Guard Bee rejection before Accepted Status
     context.unaccepted_bridge_rejected = False
