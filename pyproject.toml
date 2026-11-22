@@ -12,11 +12,7 @@ authors = [
 dependencies = [
     "pydantic>=2.7.0",
     "networkx>=3.3",
-    "numpy>=1.26.0",
     "fastapi>=0.111.0",
-    "uvicorn>=0.30.0",
-    "httpx>=0.27.0",
-    "rich>=13.7.0",
     "pyyaml>=6.0.1",
     "cryptography>=42.0.0",
     "canonicaljson>=2.0.0",
@@ -34,6 +30,10 @@ test = [
     "pytest-cov>=5.0.0",
     "behave>=1.2.6",
     "hypothesis>=6.100.0",
+    "httpx>=0.27.0",
+]
+api = [
+    "uvicorn>=0.30.0",
 ]
 lint = [
     "ruff>=0.4.8",
@@ -65,7 +65,7 @@ ui = [
     "streamlit>=1.36.0",
 ]
 dev = [
-    "nectr[test,lint,security,docs,research,ui]",
+    "nectr[test,lint,security,docs,research,ui,api]",
 ]
 
 [project.scripts]

@@ -2277,28 +2277,27 @@ dependencies = [
     { name = "canonicaljson" },
     { name = "cryptography" },
     { name = "fastapi" },
-    { name = "httpx" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "opentelemetry-sdk" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "remerkleable" },
-    { name = "rich" },
     { name = "sqlmodel" },
     { name = "structlog" },
-    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
+api = [
+    { name = "uvicorn" },
+]
 dev = [
     { name = "adrlint" },
     { name = "behave" },
     { name = "check-jsonschema" },
     { name = "commitizen" },
     { name = "detect-secrets" },
+    { name = "httpx" },
     { name = "hypothesis" },
     { name = "matplotlib" },
     { name = "mesa", version = "3.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -2320,6 +2319,7 @@ dev = [
     { name = "streamlit" },
     { name = "types-networkx" },
     { name = "types-pyyaml" },
+    { name = "uvicorn" },
 ]
 docs = [
     { name = "mkdocs" },
@@ -2351,6 +2351,7 @@ security = [
 ]
 test = [
     { name = "behave" },
+    { name = "httpx" },
     { name = "hypothesis" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -2371,16 +2372,15 @@ requires-dist = [
     { name = "cryptography", specifier = ">=42.0.0" },
     { name = "detect-secrets", marker = "extra == 'security'", specifier = ">=1.5.0" },
     { name = "fastapi", specifier = ">=0.111.0" },
-    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.27.0" },
     { name = "hypothesis", marker = "extra == 'test'", specifier = ">=6.100.0" },
     { name = "matplotlib", marker = "extra == 'research'", specifier = ">=3.9.0" },
     { name = "mesa", marker = "extra == 'research'", specifier = ">=3.0.0" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6.0" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5.0" },
     { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.10.0" },
-    { name = "nectr", extras = ["test", "lint", "security", "docs", "research", "ui"], marker = "extra == 'dev'" },
+    { name = "nectr", extras = ["test", "lint", "security", "docs", "research", "ui", "api"], marker = "extra == 'dev'" },
     { name = "networkx", specifier = ">=3.3" },
-    { name = "numpy", specifier = ">=1.26.0" },
     { name = "opentelemetry-sdk", specifier = ">=1.25.0" },
     { name = "pandas", marker = "extra == 'research'", specifier = ">=2.2.2" },
     { name = "pip-audit", marker = "extra == 'security'", specifier = ">=2.7.0" },
@@ -2393,7 +2393,6 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5.0.0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "remerkleable", specifier = ">=0.1.28" },
-    { name = "rich", specifier = ">=13.7.0" },
     { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.4.8" },
     { name = "scipy", marker = "extra == 'research'", specifier = ">=1.13.0" },
     { name = "sqlmodel", specifier = ">=0.0.21" },
@@ -2401,9 +2400,9 @@ requires-dist = [
     { name = "structlog", specifier = ">=24.1.0" },
     { name = "types-networkx", marker = "extra == 'lint'", specifier = ">=3.6.1" },
     { name = "types-pyyaml", marker = "extra == 'lint'", specifier = ">=6.0.12" },
-    { name = "uvicorn", specifier = ">=0.30.0" },
+    { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.30.0" },
 ]
-provides-extras = ["test", "lint", "security", "docs", "research", "ui", "dev"]
+provides-extras = ["test", "api", "lint", "security", "docs", "research", "ui", "dev"]
 
 [[package]]
 name = "networkx"

@@ -284,10 +284,6 @@ def test_pyproject_license_and_author_metadata() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: TL4 runtime dependencies not yet trimmed",
-)
 def test_pyproject_runtime_deps_trimmed() -> None:
     import re
 
