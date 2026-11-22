@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -101,13 +99,10 @@ def test_structure_freeze_until_v010() -> None:
     assert "Waves 3 to 5 are out of scope until after v0.1.0" in orchestration
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: DC2 README plain-language intro, status, and independence notice not yet implemented",
-)
 def test_readme_plain_language_status_independence_and_license() -> None:
     """Verify README has status line within 10 lines, Independence section, and license link."""
     readme_lines = (REPO_ROOT / "README.md").read_text(encoding="utf-8").splitlines()
+
     assert readme_lines[0].startswith("# ")
 
     status_lines = [line for line in readme_lines[:10] if line.startswith("> **Status:**")]
