@@ -31,9 +31,3 @@ PYTHONPATH=src python -m nectr.devtools.spec_links
 ruff check src tests features
 ruff format --check src tests features
 pymarkdown --config pyproject.toml scan README.md AGENTS.md docs/index.md docs/glossary.md docs/adr docs/planning docs/architecture docs/business docs/theory/biomimicry_model.md docs/theory/provenance_lineage.md
-if git diff --cached --name-only --diff-filter=ACMR | grep -qE '^(docs/|mkdocs\.yml$)'; then
-    mkdocs build --strict
-fi
-python -m mypy src .agents/lib .agents/skills tests/test_skills_spec.py
-python -m pytest
-python -m behave --tags=-red

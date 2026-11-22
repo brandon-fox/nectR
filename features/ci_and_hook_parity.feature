@@ -27,3 +27,8 @@ Feature: End-to-End Hook, CI Pipeline, Scheduled Audit, and Release Parity
     Given all GitHub Actions workflow definitions under .github/workflows
     When the CI workflow runtime and action hygiene validator inspects all workflow files
     Then workflows require Node 24 action versions, isolated setup-uv cache suffixes, permissive SPDX allow-licenses with action license exclusions, clean lychee temp output, and quiet MkDocs logs
+
+  Scenario: Fast pre-commit hook runs static checks only while pre-push enforces heavy type, docs, and test suites
+    Given the repository root hook, pre-commit, and GitHub Actions workflow definitions
+    When the hook stage split between pre-commit and pre-push is inspected
+    Then pre-commit omits mypy, mkdocs build, pytest, and behave while pre-push and pre-commit config enforce them via pre-push stages

@@ -180,7 +180,7 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
     _GateSpec(
         gate="mypy",
         stage_patterns=(
-            (".githooks/pre-commit", (r"\bmypy\b",)),
+            (".githooks/pre-push", (r"\bmypy\b",)),
             (".pre-commit-config.yaml", (r"\bmypy\b",)),
             (".github/workflows/license-and-security-scan.yml", (r"\bmypy\b",)),
         ),
@@ -188,7 +188,6 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
     _GateSpec(
         gate="mkdocs-strict",
         stage_patterns=(
-            (".githooks/pre-commit", (r"mkdocs\s+build\s+--strict",)),
             (".githooks/pre-push", (r"mkdocs\s+build\s+--strict",)),
             (".pre-commit-config.yaml", (r"mkdocs\s+build\s+--strict",)),
             (".github/workflows/license-and-security-scan.yml", (r"mkdocs\s+build\s+--strict",)),
@@ -197,7 +196,6 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
     _GateSpec(
         gate="pytest-coverage",
         stage_patterns=(
-            (".githooks/pre-commit", (r"\bpytest\b",)),
             (".githooks/pre-push", (r"\bpytest\b",)),
             (".pre-commit-config.yaml", (r"\bpytest\b",)),
             (
@@ -209,8 +207,7 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
     _GateSpec(
         gate="behave",
         stage_patterns=(
-            (".githooks/pre-commit", (r"\bbehave\b", r"--tags=-red")),
-            (".githooks/pre-push", (r"\bbehave\b",)),
+            (".githooks/pre-push", (r"\bbehave\b", r"--tags=-red")),
             (".pre-commit-config.yaml", (r"\bbehave\b",)),
             (".github/workflows/license-and-security-scan.yml", (r"\bbehave\b",)),
         ),
