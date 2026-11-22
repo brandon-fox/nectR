@@ -27,3 +27,9 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     Given the repository documentation root
     When the README transparency validator inspects README and LICENSE
     Then README has a status line within ten lines and an Independence section and license link
+
+  @red
+  Scenario: OpenSpec change proposals enforce archiving of merged work and deferral notice for out-of-scope waves
+    Given the repository documentation root
+    When the OpenSpec lifecycle validator inspects active, archived, and deferred proposals
+    Then merged proposals are archived and out-of-scope proposals carry a deferral notice

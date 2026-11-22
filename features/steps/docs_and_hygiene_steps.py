@@ -134,3 +134,48 @@ def step_then_readme_transparency_ok(context) -> None:
     if context.has_license:
         assert "## License" in context.readme_text or "[LICENSE](LICENSE)" in context.readme_text
         assert "MIT" in context.readme_text
+
+
+@when("the OpenSpec lifecycle validator inspects active, archived, and deferred proposals")
+def step_when_inspect_openspec_lifecycle(context) -> None:
+    context.archive_dir = context.repo_root / "openspec" / "changes" / "archive"
+    context.changes_dir = context.repo_root / "openspec" / "changes"
+    context.openspec_readme = (
+        (context.changes_dir / "README.md").read_text(encoding="utf-8")
+        if (context.changes_dir / "README.md").exists()
+        else ""
+    )
+
+
+@then("merged proposals are archived and out-of-scope proposals carry a deferral notice")
+def step_then_openspec_lifecycle_ok(context) -> None:
+    for merged_change in (
+        "add-github-actions-and-schema-hooks",
+        "add-sqlmodel-persistence-and-api",
+        "adopt-ed25519-and-pymerkle",
+        "adopt-mesa-abm-and-hypothesis",
+        "automate-pr-lifecycle-and-merge-safety",
+        "enforce-spec-feature-links",
+        "harden-ci-action-runtimes-and-review",
+        "standardize-custom-skills",
+    ):
+        assert (context.archive_dir / merged_change).is_dir(), (
+            f"Expected {merged_change} in archive"
+        )
+
+    for deferred_change in (
+        "add-biomimetic-lifecycle-and-swarming-contracts",
+        "add-campus-compliance-lti-and-zk-identity",
+        "add-nats-jetstream-cross-hive-federation",
+        "add-pactflow-api-and-message-contracts",
+        "add-telemetry-dashboard-ui",
+        "adopt-vyper-and-zero-gas-pyevm",
+    ):
+        proposal_file = context.changes_dir / deferred_change / "proposal.md"
+        assert proposal_file.exists(), f"Expected {proposal_file} to exist"
+        proposal_text = proposal_file.read_text(encoding="utf-8")
+        assert "DEFERRED" in proposal_text
+
+    assert "Active Changes" in context.openspec_readme
+    assert "Deferred Changes" in context.openspec_readme
+    assert "Archived Changes" in context.openspec_readme
