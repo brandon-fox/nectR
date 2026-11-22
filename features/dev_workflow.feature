@@ -36,7 +36,6 @@ Feature: Isolated Worktrees and Tiered Mutation Testing Gate
     When the mutation gate classifies target files across bounded-context tiers
     Then zero tiered targets are selected and the gate reports "no tiered source changes"
 
-  @red
   Scenario: Worktrunk pre-merge hooks enforce pre-commit.ci parity and pre-commit excludes worktrees
     Given the Worktrunk project configuration in ".config/wt.toml"
     When I parse the Worktrunk lifecycle hooks and pre-commit exclusions

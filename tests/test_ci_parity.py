@@ -5,8 +5,6 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-import pytest
-
 from nectr.devtools.ci_parity import (
     check_no_red_scenarios,
     check_pipeline_parity,
@@ -71,38 +69,76 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
     (root / ".pre-commit-config.yaml").write_text(
         textwrap.dedent(
             """\
+            exclude: ^(\\.worktrees|\\.poodle-temp)/
+            ci:
+              autofix_prs: true
+              autofix_commit_msg: "style(pre-commit.ci): auto fixes from pre-commit hooks"
+              autoupdate_prs: true
+              autoupdate_branch: "chore/pre-commit-autoupdate"
+              autoupdate_commit_msg: "chore(deps): pre-commit.ci weekly hook autoupdate"
+              autoupdate_schedule: weekly
+              submodules: false
+              skip:
+                - adrlint-check
+                - nectr-decisions-check
+                - nectr-citations-check
+                - nectr-docs-check
+                - nectr-spec-links-check
+                - mkdocs-build-strict
+                - pymarkdown-lint
+                - mypy-strict-typecheck
+                - nectr-tdd-unit-tests
+                - nectr-bdd-behave-precommit
             repos:
-              - repo: local
+              - repo: https://github.com/Yelp/detect-secrets
+                rev: v1.5.0
                 hooks:
                   - id: detect-secrets
-                    entry: detect-secrets-hook --baseline .secrets.baseline
+                    args: ["--baseline", ".secrets.baseline"]
+              - repo: https://github.com/python-jsonschema/check-jsonschema
+                rev: 0.39.0
+                hooks:
+                  - id: check-jsonschema
+                    args: ["--schemafile", "docs/planning/decisions.schema.json", "docs/planning/decisions.yaml"]
+              - repo: https://github.com/astral-sh/ruff-pre-commit
+                rev: v0.17.6
+                hooks:
+                  - id: ruff-check
+                  - id: ruff-format
+              - repo: local
+                hooks:
                   - id: forbid-local-paths
+                    language: pygrep
                     entry: '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
                   - id: adrlint-check
+                    language: system
                     entry: adrlint lint
-                  - id: check-jsonschema-decisions
-                    entry: check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
                   - id: nectr-decisions-check
+                    language: system
                     entry: python -m nectr.devtools.decisions check
                   - id: nectr-citations-check
+                    language: system
                     entry: python -m nectr.devtools.citations check
                   - id: nectr-docs-check
+                    language: system
                     entry: python -m nectr.devtools.docs_sync check
                   - id: nectr-spec-links-check
+                    language: system
                     entry: python -m nectr.devtools.spec_links
-                  - id: ruff-check
-                    entry: ruff check src tests features
-                  - id: ruff-format-check
-                    entry: ruff format --check src tests features
                   - id: mkdocs-build-strict
+                    language: system
                     entry: mkdocs build --strict
                   - id: pymarkdown-lint
+                    language: system
                     entry: pymarkdown --config pyproject.toml scan README.md docs/theory paper
                   - id: mypy-strict-typecheck
+                    language: system
                     entry: python -m mypy src
                   - id: nectr-tdd-unit-tests
+                    language: system
                     entry: python -m pytest
                   - id: nectr-bdd-behave-precommit
+                    language: system
                     entry: python -m behave --tags=-red
             """
         ),
@@ -441,10 +477,6 @@ def _write_valid_pre_commit_ci_yaml(root: Path) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
-)
 def test_real_repo_pre_commit_ci_config_is_valid() -> None:
     from nectr.devtools import ci_parity
 
@@ -452,10 +484,6 @@ def test_real_repo_pre_commit_ci_config_is_valid() -> None:
     assert ci_parity.check_pre_commit_ci_config(repo_root) == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
-)
 def test_check_pre_commit_ci_config_accepts_valid_split_config(tmp_path: Path) -> None:
     from nectr.devtools import ci_parity
 
@@ -463,10 +491,6 @@ def test_check_pre_commit_ci_config_accepts_valid_split_config(tmp_path: Path) -
     assert ci_parity.check_pre_commit_ci_config(tmp_path) == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
-)
 def test_check_pre_commit_ci_config_flags_missing_and_invalid_ci_fields(
     tmp_path: Path,
 ) -> None:
@@ -532,10 +556,6 @@ def test_check_pre_commit_ci_config_flags_missing_and_invalid_ci_fields(
     assert "unknown-stale-hook" in joined
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
-)
 def test_cli_main_fails_when_pre_commit_ci_config_is_invalid(tmp_path: Path) -> None:
     _write_synthetic_workspace(tmp_path, include_release=True)
     cfg = tmp_path / ".pre-commit-config.yaml"

@@ -1,12 +1,72 @@
+exclude: ^(\.worktrees|\.poodle-temp)/
+
+ci:
+  autofix_prs: true
+  autofix_commit_msg: "style(pre-commit.ci): auto fixes from pre-commit hooks"
+  autoupdate_prs: true
+  autoupdate_branch: "chore/pre-commit-autoupdate"
+  autoupdate_commit_msg: "chore(deps): pre-commit.ci weekly hook autoupdate"
+  autoupdate_schedule: weekly
+  submodules: false
+  skip:
+    - commitizen
+    - adrlint-check
+    - adrlint-format-and-lock
+    - nectr-decisions-check
+    - nectr-citations-check
+    - nectr-docs-check
+    - nectr-spec-links-check
+    - mkdocs-build-strict
+    - pymarkdown-lint
+    - mypy-strict-typecheck
+    - nectr-tdd-unit-tests
+    - nectr-bdd-behave-precommit
+    - nectr-bdd-behave-push
+    - nectr-mutation-gate
+
 repos:
-  - repo: local
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: end-of-file-fixer
+        exclude: ^adrlint\.lock$
+      - id: trailing-whitespace
+        exclude: ^(docs/adr/|adrlint\.lock$)
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         name: detect-secrets (OSS secret & entropy scan)
-        entry: detect-secrets-hook --baseline .secrets.baseline
-        language: system
-        stages: [pre-commit]
+        args: ["--baseline", ".secrets.baseline"]
 
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.39.0
+    hooks:
+      - id: check-jsonschema
+        name: check-jsonschema (docs/planning/decisions.yaml)
+        files: ^docs/planning/decisions\.(yaml|schema\.json)$
+        pass_filenames: false
+        args: ["--schemafile", "docs/planning/decisions.schema.json", "docs/planning/decisions.yaml"]
+      - id: check-github-workflows
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        name: ruff lint check (src, tests, features)
+        args: ["--fix"]
+        files: ^(src|tests|features)/
+      - id: ruff-format
+        name: ruff format check (src, tests, features)
+        files: ^(src|tests|features)/
+
+  - repo: local
+    hooks:
       - id: forbid-local-paths
         name: Forbid hardcoded user/local/private paths
         entry: '([A-Za-z]:[/\\]Users[/\\]|/(Users|home)/[^/\s]+|\.gemini[/\\]|\.ollama[/\\])'
@@ -48,13 +108,6 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: check-jsonschema-decisions
-        name: check-jsonschema (docs/planning/decisions.yaml)
-        entry: check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
       - id: nectr-citations-check
         name: nectR Citation Quality & Provenance Lineage Check (pre-commit)
         entry: python -m nectr.devtools.citations check
@@ -72,20 +125,6 @@ repos:
       - id: nectr-spec-links-check
         name: nectR OpenSpec-to-Feature Link Check (pre-commit)
         entry: python -m nectr.devtools.spec_links
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
-      - id: ruff-check
-        name: ruff lint check (src, tests, features)
-        entry: ruff check src tests features
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
-      - id: ruff-format-check
-        name: ruff format check (src, tests, features)
-        entry: ruff format --check src tests features
         language: system
         pass_filenames: false
         stages: [pre-commit]

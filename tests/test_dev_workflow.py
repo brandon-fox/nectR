@@ -245,10 +245,6 @@ def test_hooks_and_ci_workflow_wired() -> None:
     assert "mutation-report*.json" in gitignore
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
-)
 def test_worktrunk_pre_merge_runs_ci_parity_and_precommit_excludes_worktrees() -> None:
     import yaml
 

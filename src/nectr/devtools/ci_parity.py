@@ -15,6 +15,29 @@ import yaml
 RED_TAG_LINE_RE = re.compile(r"^\s*@(?:.*\s)?red(?:\s|$)")
 DEPRECATED_SETUP_UV_RE = re.compile(r"^astral-sh/setup-uv@v([1-6])(?:\.|$)")
 DEPRECATED_GH_RELEASE_RE = re.compile(r"^softprops/action-gh-release@v([12])(?:\.|$)")
+CONVENTIONAL_COMMIT_MSG_RE = re.compile(
+    r"^(?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\([a-z0-9._/-]+\))?:\s+\S"
+)
+APPROVED_PRE_COMMIT_REPOS: frozenset[str] = frozenset(
+    {
+        "https://github.com/pre-commit/pre-commit-hooks",
+        "https://github.com/Yelp/detect-secrets",
+        "https://github.com/python-jsonschema/check-jsonschema",
+        "https://github.com/astral-sh/ruff-pre-commit",
+    }
+)
+ALLOWED_AUTOUPDATE_SCHEDULES: frozenset[str] = frozenset({"weekly", "monthly", "quarterly"})
+FLOATING_REVS: frozenset[str] = frozenset({"", "HEAD", "main", "master"})
+CLOUD_ACTIVE_HOOK_IDS: frozenset[str] = frozenset(
+    {
+        "detect-secrets",
+        "check-jsonschema",
+        "ruff-check",
+        "ruff-format",
+        "forbid-local-paths",
+        "forbid-mutation-pragmas",
+    }
+)
 REQUIRED_PERMISSIVE_SPDX: tuple[str, ...] = (
     "MIT",
     "Apache-2.0",
@@ -79,7 +102,9 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
             (".githooks/pre-push", (r"detect-secrets-hook\s+--baseline\s+\.secrets\.baseline",)),
             (
                 ".pre-commit-config.yaml",
-                (r"detect-secrets-hook\s+--baseline\s+\.secrets\.baseline",),
+                (
+                    r"(?:detect-secrets-hook\s+--baseline\s+\.secrets\.baseline|id:\s*detect-secrets[\s\S]*?\.secrets\.baseline)",
+                ),
             ),
             (
                 ".github/workflows/license-and-security-scan.yml",
@@ -156,7 +181,7 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
         gate="ruff-check",
         stage_patterns=(
             (".githooks/pre-commit", (r"ruff\s+check",)),
-            (".pre-commit-config.yaml", (r"ruff\s+check",)),
+            (".pre-commit-config.yaml", (r"(?:ruff\s+check|id:\s*ruff-check)",)),
             (".github/workflows/license-and-security-scan.yml", (r"ruff\s+check",)),
         ),
     ),
@@ -164,7 +189,7 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
         gate="ruff-format",
         stage_patterns=(
             (".githooks/pre-commit", (r"ruff\s+format\s+--check",)),
-            (".pre-commit-config.yaml", (r"ruff\s+format\s+--check",)),
+            (".pre-commit-config.yaml", (r"(?:ruff\s+format\s+--check|id:\s*ruff-format)",)),
             (".github/workflows/license-and-security-scan.yml", (r"ruff\s+format\s+--check",)),
         ),
     ),
@@ -486,6 +511,120 @@ def check_workflow_action_hygiene(repo_root: Path) -> list[str]:
     return errors
 
 
+def _validate_ci_block(ci_cfg: object) -> tuple[list[str], set[str]]:
+    if not isinstance(ci_cfg, dict):
+        return [".pre-commit-config.yaml: missing top-level 'ci' mapping for pre-commit.ci."], set()
+
+    errors: list[str] = []
+    if ci_cfg.get("autofix_prs") is not True:
+        errors.append(".pre-commit-config.yaml (ci): 'autofix_prs' must be true.")
+    if ci_cfg.get("autoupdate_prs") is not True:
+        errors.append(".pre-commit-config.yaml (ci): 'autoupdate_prs' must be true.")
+    if ci_cfg.get("submodules") is not False:
+        errors.append(".pre-commit-config.yaml (ci): 'submodules' must be false.")
+
+    schedule = str(ci_cfg.get("autoupdate_schedule", "")).strip()
+    if schedule not in ALLOWED_AUTOUPDATE_SCHEDULES:
+        errors.append(
+            f".pre-commit-config.yaml (ci): 'autoupdate_schedule' must be one of {sorted(ALLOWED_AUTOUPDATE_SCHEDULES)}."
+        )
+
+    branch = str(ci_cfg.get("autoupdate_branch", "")).strip()
+    if not branch.startswith("chore/"):
+        errors.append(".pre-commit-config.yaml (ci): 'autoupdate_branch' must start with 'chore/'.")
+
+    for msg_key in ("autofix_commit_msg", "autoupdate_commit_msg"):
+        msg_val = str(ci_cfg.get(msg_key, "")).strip()
+        if CONVENTIONAL_COMMIT_MSG_RE.match(msg_val) is None:
+            errors.append(
+                f".pre-commit-config.yaml (ci): '{msg_key}' must use Conventional Commits formatting for Commitizen."
+            )
+
+    raw_skip = ci_cfg.get("skip")
+    skip_ids: set[str] = set()
+    if isinstance(raw_skip, list):
+        skip_ids = {str(item).strip() for item in raw_skip if str(item).strip()}
+    return errors, skip_ids
+
+
+def _validate_pre_commit_repos(repos_raw: object, skip_ids: set[str]) -> list[str]:
+    if not isinstance(repos_raw, list) or not repos_raw:
+        return [".pre-commit-config.yaml: 'repos' must be a non-empty list."]
+
+    errors: list[str] = []
+    all_hook_ids: set[str] = set()
+    local_system_ids: set[str] = set()
+
+    for entry in repos_raw:
+        if not isinstance(entry, dict):
+            continue
+        repo_url = str(entry.get("repo", "")).strip()
+        hooks = entry.get("hooks")
+        if repo_url not in ("local", "meta"):
+            if repo_url not in APPROVED_PRE_COMMIT_REPOS:
+                errors.append(f".pre-commit-config.yaml: unapproved remote hook repo '{repo_url}'.")
+            rev = str(entry.get("rev", "")).strip()
+            if rev in FLOATING_REVS:
+                errors.append(
+                    f".pre-commit-config.yaml: remote hook repo '{repo_url}' must pin an immutable tag/SHA 'rev'."
+                )
+
+        if not isinstance(hooks, list):
+            continue
+        for hook in hooks:
+            if not isinstance(hook, dict):
+                continue
+            hook_id = str(hook.get("id", "")).strip()
+            if not hook_id:
+                continue
+            all_hook_ids.add(hook_id)
+            if repo_url == "local" and str(hook.get("language", "")).strip() == "system":
+                local_system_ids.add(hook_id)
+
+    unskipped_system = sorted(local_system_ids - skip_ids)
+    if unskipped_system:
+        errors.append(
+            f".pre-commit-config.yaml (ci.skip): local 'language: system' hooks must be skipped in pre-commit.ci: {', '.join(unskipped_system)}."
+        )
+
+    wrongly_skipped = sorted(skip_ids & CLOUD_ACTIVE_HOOK_IDS)
+    if wrongly_skipped:
+        errors.append(
+            f".pre-commit-config.yaml (ci.skip): cloud-capable hooks must not be skipped: {', '.join(wrongly_skipped)}."
+        )
+
+    unknown_skipped = sorted(skip_ids - all_hook_ids)
+    if unknown_skipped:
+        errors.append(
+            f".pre-commit-config.yaml (ci.skip): unknown hook IDs not present in repos: {', '.join(unknown_skipped)}."
+        )
+    return errors
+
+
+def check_pre_commit_ci_config(repo_root: Path) -> list[str]:
+    """Validate `.pre-commit-config.yaml` `ci:` bot settings, repo allowlist, and `ci.skip` parity."""
+    cfg_path = repo_root / ".pre-commit-config.yaml"
+    if not cfg_path.is_file():
+        return ["Missing .pre-commit-config.yaml."]
+
+    data = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        return [".pre-commit-config.yaml: root must be a YAML mapping."]
+
+    errors: list[str] = []
+    exclude_str = str(data.get("exclude", ""))
+    for required_dir in (".worktrees", ".poodle-temp"):
+        if required_dir not in exclude_str:
+            errors.append(
+                f".pre-commit-config.yaml: top-level 'exclude' must omit '{required_dir}'."
+            )
+
+    ci_errors, skip_ids = _validate_ci_block(data.get("ci"))
+    errors.extend(ci_errors)
+    errors.extend(_validate_pre_commit_repos(data.get("repos"), skip_ids))
+    return errors
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nectr-ci-parity",
@@ -521,21 +660,24 @@ def main(argv: list[str] | None = None) -> int:
 
     report = check_pipeline_parity(repo_root)
     hygiene_errors = check_workflow_action_hygiene(repo_root)
+    pre_commit_ci_errors = check_pre_commit_ci_config(repo_root)
     red_hits: list[str] = []
     if args.forbid_red:
         red_hits = check_no_red_scenarios(repo_root, allowed_files=args.allow_file)
 
-    if not report.passed or hygiene_errors or red_hits:
+    if not report.passed or hygiene_errors or pre_commit_ci_errors or red_hits:
         for err in report.errors:
             print(f"CI PARITY ERROR: {err}", file=sys.stderr)
         for err in hygiene_errors:
             print(f"CI WORKFLOW HYGIENE ERROR: {err}", file=sys.stderr)
+        for err in pre_commit_ci_errors:
+            print(f"PRE-COMMIT.CI CONFIG ERROR: {err}", file=sys.stderr)
         for hit in red_hits:
             print(f"FORBIDDEN @red SCENARIO: {hit}", file=sys.stderr)
         return 1
 
     print(
-        f"CI parity check passed ({len(report.diagnostics)} gate(s) verified, workflow hygiene clean"
+        f"CI parity check passed ({len(report.diagnostics)} gate(s) verified, workflow & pre-commit.ci hygiene clean"
         + (", 0 @red tags" if args.forbid_red else "")
         + ")."
     )

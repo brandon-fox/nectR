@@ -10,4 +10,7 @@ readiness = "uv run python .agents/skills/atomic-conventional-commits/scripts/ve
 mutation = "uv run python -m nectr.devtools.mutation_gate diff --base main"
 
 [[pre-merge]]
+ci_parity = "uv run python -m nectr.devtools.ci_parity check"
+
+[[pre-merge]]
 orchestration = "uv run python .agents/skills/orchestrate-nectr/scripts/verify_orchestration_gate.py"
