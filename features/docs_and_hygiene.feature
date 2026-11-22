@@ -32,3 +32,8 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     Given the repository documentation root
     When the OpenSpec lifecycle validator inspects active, archived, and deferred proposals
     Then merged proposals are archived and out-of-scope proposals carry a deferral notice
+
+  Scenario: Architecture decision records treat the chain as a signed audit log superseding PoW consensus
+    Given the repository documentation root
+    When the ADR and audit log wording validator inspects ADR records, README, architecture, theory, and glossary
+    Then ADR-0019 is accepted superseding ADR-0007 and consensus wording describes the signed audit log

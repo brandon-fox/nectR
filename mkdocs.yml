@@ -55,6 +55,7 @@ nav:
           - "0016: Scope External Workflow Automation Off...": adr/0016-scope-external-workflow-automation-off-chain.md
           - "0017: Adopt Vyper and Zero-Gas py-evm Smart...": adr/0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md
           - "0018: Enforce Pact v4 and PactFlow Bi-Direct...": adr/0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md
+          - "0019: Treat the hive chain as a signed, hash...": adr/0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md
   - 1. Theory & Academic Paper:
       - Whitepaper Draft: theory/whitepaper_outline.md
       - Biomimetic Hive Mechanics: theory/biomimicry_model.md

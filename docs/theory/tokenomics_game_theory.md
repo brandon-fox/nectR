@@ -177,7 +177,7 @@ acct.royal_jelly_earned = round(
 
 This score omits $\Delta S_{\text{comb}}^+(e)$, the delayed $\gamma_Q \Delta M$ vesting term, and the excess-dispute penalty $\delta_Q(D - D^*)$, which are deferred to Phase 2 Student-Queen bond-staking contracts. Additionally, per **`EXP-001`** in [Fast Decision Log](../planning/decision_log.md) (`status: open-simulation`), Queen receiver-only praise weights (allowing Queens to praise learner outcomes tracing backward to tutors) remain **unlocked** until validated across Honest vs. Biased nepotism simulation arms.
 
-## 5. Guard Bee `Accepted Status`, Epoch Cross-Hive FX & `PoUW-PoW` Security
+## 5. Guard Bee `Accepted Status`, Epoch Cross-Hive FX & Audit Log Useful Compute Verification
 
 ### 5.1 Guard Bee `Accepted Status`, FX Corridor & Bancor ABC Exclusion (`DEC-003`, `DEC-004`, `ADR-0005`, `downs_ratnieks_2000`)
 
@@ -195,21 +195,21 @@ Supply conservation (`assert_supply_conservation()`) is verified on both Hives a
 
 **Exclusion of Continuous Bancor Augmented Bonding Curves (`ADR-0005`):** Continuous Bancor Augmented Bonding Curves (`ABC`s, $R = \rho \cdot S \cdot P$) are explicitly excluded per [ADR-0005](../adr/0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md). As documented in the Sarafu post-mortem (`mattsson_2023`), Grassroots Economics dropped continuous Bancor curves in favor of single-token simplicity because per-trade curves introduce extreme reserve-ratio sensitivity, student UX confusion, and Maximal Extractable Value (MEV) sandwich arbitrage. Epoch-level Comb-per-active-Bee FX snapshots plus `K=3` Guard Bee acceptance eliminate sandwich attacks completely.
 
-### 5.2 Open Campus & Transcript-Oracle `PoUW-PoW` Duplex Security (`ADR-0007`, `ball_2018`)
+### 5.2 Open Campus Useful Compute Verification & Audit Log Security (`ADR-0019`, Superseding `ADR-0007`, `ball_2018`)
 
-Per [ADR-0007](../adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md), block mining in `src/nectr/chain/ledger.py` couples SHA-256 Proof-of-Work (`BlockHeader`) with a deterministic `UsefulComputeProof` committing `epoch`, `active_bees`, `total_directional_edges`, `collusion_discounted_velocity`, `gini_coefficient`, and `graph_state_hash`. Under fine-grained Proof-of-Useful-Work (`ball_2018`) and transcript-oracle difficulty coupling ([Federated PoUW-PoW Infrastructure](research/federated_PoUW-PoW_blockchain_infrastructure.md)), a campus node evaluates a bounded useful transcript $\pi_{\text{pouw}}$ over the epoch's Knowledge Graph and Pairwise Decay matrix from a deterministic header seed $\sigma_t$:
+Under [ADR-0019](../adr/0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md) (superseding [ADR-0007](../adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md)), block sealing in `src/nectr/chain/ledger.py` binds SHA-256 header chaining (`BlockHeader`) with a deterministic `UsefulComputeProof` committing `epoch`, `active_bees`, `total_directional_edges`, `collusion_discounted_velocity`, `gini_coefficient`, and `graph_state_hash`. Under fine-grained Proof-of-Useful-Work theory (`ball_2018`, originally explored as `PoUW-PoW` consensus in superseded `ADR-0007`), a campus node evaluates a bounded useful transcript $\pi_{\text{pouw}}$ over the epoch's Knowledge Graph and Pairwise Decay matrix from a deterministic header seed $\sigma_t$ for the signed audit log:
 
 $$H(\sigma_t \parallel \text{kg\_root} \parallel \pi_{\text{pouw}} \parallel \text{nonce}) < 2^{\ell} \cdot p$$
 
-When proving overhead is bounded and task instances are bucketed into uniform difficulty bands, the duplex security surplus above wasted work remains strictly positive ($\Delta_{\text{sec}} > 0$). Meanwhile, miner payouts derive strictly from a capped **Comb Compute Jar** with zero inflationary coinbase minting, pausing payouts whenever the jar depletes so $M_{H_i}(t)$ remains strictly conserved.
+When proving overhead is bounded and task instances are bucketed into uniform difficulty bands, the duplex security surplus above wasted work remains strictly positive ($\Delta_{\text{sec}} > 0$). Meanwhile, verifier payouts derive strictly from a capped **Comb Compute Jar** with zero inflationary coinbase minting, pausing payouts whenever the jar depletes so $M_{H_i}(t)$ remains strictly conserved.
 
 ## 6. Empirical ACE Telemetry (`src/nectr/personas/simulator.py`, `nectr_sim_baseline_2026`)
 
-Executing `run_multi_hive_persona_simulation()` (`src/nectr/personas/simulator.py`, cited as `nectr_sim_baseline_2026` in `paper/references.yaml`) runs all 6 Behavioral Persona Sub-Agents (`docs/experiments/persona_swarm_spec.md` / [Persona Swarm Spec](../experiments/persona_swarm_spec.md)) across `HIVE_ALPHA` and `HIVE_BETA` on the live `PoUW-PoW` chain (`tests/test_invariants.py`). *(Note: `simulator.py` sets `accepted_status_peer_threshold=2` for compact 3-epoch smoke validation versus the locked `DEC-003` production default `K=3`; `experiments/` currently holds `experiments/README.md` only, with full `mesa` Monte Carlo sweeps per `ADR-0010` / `DEC-009` scheduled for Milestone 3.)*
+Executing `run_multi_hive_persona_simulation()` (`src/nectr/personas/simulator.py`, cited as `nectr_sim_baseline_2026` in `paper/references.yaml`) runs all 6 Behavioral Persona Sub-Agents (`docs/experiments/persona_swarm_spec.md` / [Persona Swarm Spec](../experiments/persona_swarm_spec.md)) across `HIVE_ALPHA` and `HIVE_BETA` on the live signed audit log chain (`tests/test_invariants.py`). *(Note: `simulator.py` sets `accepted_status_peer_threshold=2` for compact 3-epoch smoke validation versus the locked `DEC-003` production default `K=3`; `experiments/` currently holds `experiments/README.md` only, with full `mesa` Monte Carlo sweeps per `ADR-0010` / `DEC-009` scheduled for Milestone 3.)*
 
 | Telemetry Metric (`SimulationTelemetry`) | Observed Baseline (`nectr_sim_baseline_2026`) | Theoretical Invariant Validated |
 | :--- | :---: | :--- |
-| `hive_a_blocks_mined` / `hive_a_chain_valid` | `5` / `True` | `PoUW-PoW` Merkle + `UsefulComputeProof` chain integrity |
+| `hive_a_blocks_mined` / `hive_a_chain_valid` | `5` / `True` | Signed audit log Merkle + `UsefulComputeProof` chain integrity |
 | `hive_a_comb_reserve` | `905.5` | `1000.0` Seed Comb $-$ `95.0` `RAW_POLLEN` $+$ `0.5` `5%` bridge toll |
 | `honest_worker_effectiveness` | `3.2062` | `>= 0.6` attestation + `0.25 * W` Learn-then-Teach cascade |
 | `sybil_colluder_effectiveness` | `1.3232` | $\frac{1}{1 + 1.5n}$ decay across 6 `A <-> B` wash loops |

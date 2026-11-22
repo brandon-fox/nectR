@@ -153,3 +153,40 @@ def test_openspec_archiving_and_deferrals() -> None:
     assert "Active Changes" in readme_text
     assert "Deferred Changes" in readme_text
     assert "Archived Changes" in readme_text
+
+
+def test_chain_audit_log_adr_and_wording_supersession() -> None:
+    """Verify ADR-0019 supersedes ADR-0007 and doc wording describes the signed audit log."""
+    adr_19 = (
+        REPO_ROOT
+        / "docs"
+        / "adr"
+        / "0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md"
+    )
+    assert adr_19.exists(), "Expected ADR-0019 to exist"
+    adr_19_text = adr_19.read_text(encoding="utf-8")
+    assert "status: accepted" in adr_19_text
+    assert "Treat the hive chain as a signed, hash-chained audit log" in adr_19_text
+    assert "supersedes `ADR-0007`" in adr_19_text or "supersedes ADR-0007" in adr_19_text
+
+    adr_7 = (
+        REPO_ROOT
+        / "docs"
+        / "adr"
+        / "0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md"
+    )
+    adr_7_text = adr_7.read_text(encoding="utf-8")
+    assert "status: superseded by ADR-0019" in adr_7_text
+
+    lock_text = (REPO_ROOT / "adrlint.lock").read_text(encoding="utf-8")
+    assert "0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md" in lock_text
+
+    readme_text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "Hybrid `PoUW-PoW` distributed compute consensus" not in readme_text
+    assert "audit log" in readme_text
+
+    sys_design_text = (REPO_ROOT / "docs" / "architecture" / "system_design.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Private PoUW-PoW Blockchain" not in sys_design_text
+    assert "Signed Audit Log" in sys_design_text or "signed audit log" in sys_design_text

@@ -15,7 +15,7 @@
 3. **Institutional Business & Campus Sponsorship Proposals** (`business/`, `docs/business/`)
    - University sponsorship ROI models (Seed Comb injection vs. static tutoring budgets), retention economics, and multi-campus autonomous Swarming playbooks.
 4. **Flagship System Design Portfolio: Private Blockchain, Smart Contracts & Service Layer** (`src/nectr/chain/`, `src/nectr/contracts/`, `src/nectr/services/`, `docs/architecture/`)
-   - Hybrid `PoUW-PoW` distributed compute consensus (`ADR-0007`), the 5 deterministic smart contracts, and the hexagonal Hive Service Layer.
+   - Signed cryptographic audit log with useful compute verification (`ADR-0019`, superseding `ADR-0007`), the 5 deterministic smart contracts, and the hexagonal Hive Service Layer.
 
 ---
 
