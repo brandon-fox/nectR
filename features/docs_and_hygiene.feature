@@ -37,3 +37,8 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     Given the repository documentation root
     When the ADR and audit log wording validator inspects ADR records, README, architecture, theory, and glossary
     Then ADR-0019 is accepted superseding ADR-0007 and consensus wording describes the signed audit log
+
+  Scenario: Documentation labels unsourced figures as assumptions and smoke scenarios as non-experimental
+    Given the repository documentation root
+    When the assumption and smoke scenario validator inspects institutional proposal and tokenomics game theory
+    Then institutional proposal labels fill rates and ROI inputs as assumptions and tokenomics game theory retitles smoke scenario output

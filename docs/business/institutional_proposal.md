@@ -5,22 +5,22 @@
 Universities spend heavily on centralized tutoring centers with static hourly wages (`$15–$27/hr` base student wages + fixed administrative overhead = **`$42.50/hr` all-in cost**), low peer-to-peer visibility, help-seeking stigma (reaching only `~20%–25%` of undergraduates), and severe bottlenecks during midterms and finals. **nectR** replaces static hourly wage lines with a **Sponsored Seed Comb**:
 
 1. **The Money Multiplier of a Seed Comb:** Every `1 nectR` injected as `RAW_POLLEN` by a sponsoring university first funds a verified gateway session with a Faculty-Queen-Certified Worker Bee, then refines into `LIQUID_NECTR` (`ADR-0006`) that circulates `5x–10x` across the student body at **`0%` P2P transaction fee** and zero marginal wage cost to the university.
-2. **Counter-Cyclical Finals Liquidity (`38.0%` $\rightarrow$ `67.4%` Fill Rate):** By recycling Weeks 1–13 idle-balance demurrage (`~2%/month` above a student safety buffer, `DEC-001`) and Queen governance fees into a **Comb Waggle Surge Bounty Pool** that co-pays `60%` of `2.2x` peak Midterm/Finals tutor payouts (`DEC-002`), **nectR** eliminates the Capitol Hill Babysitting Co-op liquidity freeze (`sweeney_1977`).
+2. **Counter-Cyclical Finals Liquidity (Modeled Assumption: `38.0%` $\rightarrow$ `67.4%` Fill Rate):** By recycling Weeks 1–13 idle-balance demurrage (`~2%/month` above a student safety buffer, `DEC-001`) and Queen governance fees into a **Comb Waggle Surge Bounty Pool** that co-pays `60%` of `2.2x` peak Midterm/Finals tutor payouts (`DEC-002`), **nectR** eliminates the Capitol Hill Babysitting Co-op liquidity freeze (`sweeney_1977`). *(Note: The fill-rate lift from `38.0%` to `67.4%` is an illustrative modeling assumption derived from peak-hours babysitting liquidity simulations, to be validated empirically during campus trials.)*
 3. **Verifiable Academic Telemetry & Organic Swarming:** Every transaction records a zero-PII directional service proof (`Course Code`, `Duration >= 25 min`, `Downstream Mastery Lineage`), giving departments real-time visibility into course bottlenecks while veteran student tutors graduate into Founding Queens of daughter Hives (`ADR-0006`, `DEC-012`).
 
 ---
 
-## 2. 10,000-Student University ROI & Retention Model
+## 2. 10,000-Student University ROI & Retention Model (Planning Assumptions)
 
-Calibrated against postsecondary tutoring meta-analyses (`nickow_2024`, `leung_2019`), Supplemental Instruction (`SI`) GPA lift benchmarks (`+0.50` course GPA), and National Student Clearinghouse retention data (`student_tutoring_mechanism_design.md`) for a representative 10,000-student university (`2,500-student` freshman cohort at `$25,000` blended net tuition/year):
+The financial figures and retention projections below are illustrative planning assumptions, calibrated against postsecondary tutoring meta-analyses (`nickow_2024`, `leung_2019`), Supplemental Instruction (`SI`) GPA lift benchmarks (`+0.50` course GPA), and National Student Clearinghouse retention data (`student_tutoring_mechanism_design.md`) for a representative 10,000-student university (`2,500-student` freshman cohort at `$25,000` blended net tuition/year). These modeling assumptions serve as institutional budgeting scenarios rather than measured empirical outcomes:
 
-| Financial & Operational Metric | Traditional Hourly Tutoring Center | nectR Treasury-Seeded P2P Hive | Institutional Impact |
+| Financial & Operational Metric (Planning Assumption) | Traditional Hourly Tutoring Center (Model Assumption) | nectR Treasury-Seeded P2P Hive (Model Assumption) | Projected Institutional Impact (Assumption) |
 | :--- | :--- | :--- | :--- |
-| **Annual Delivered Tutoring Volume** | `6,000 hrs/yr` (capped by center hours & wage budget; `~20%` freshman reach) | **`18,000 hrs/yr`** (`3x` volume via 24/7 stigma-free peer matching & Learn-then-Teach cascades) | **`+200%` tutoring capacity** |
-| **Annual Institutional Cost Structure** | `$22.50/hr` loaded student wage (`$18` base + `25%` fringe) + `$120,000` fixed staff = **`$255,000/yr`** | `$25,000` Queen stipends + `$25,000` low-marginal-cost campus perk sinks + `$10,000` audit/ops = **`$60,000/yr`** | **`-76.5%` annual budget** |
-| **All-In Institutional Cost per Tutoring Hour** | **`$42.50 / hr`** | **`$3.33 / hr`** | **`-92.2%` cost / delivered hour** |
-| **Break-Even Retained Freshmen (`$25K` Net Tuition)** | `10.20 students` (`0.41%` of cohort) | **`2.40 students`** (`0.10%` of a 2,500-student freshman cohort) | **`4.25x` lower break-even bar** |
-| **Projected Retention Revenue (`+3 pp` lift on `1,000` newly reached freshmen)** | Baseline (`0` incremental reach) | **`30 retained students = $750,000` Year-1 net tuition** (`$2.25M` 3-year LTV) | **`1,150%` Year-1 Net ROI** |
+| **Annual Delivered Tutoring Volume (Assumption)** | `6,000 hrs/yr` (capped by center hours & wage budget; `~20%` freshman reach) | **`18,000 hrs/yr`** (`3x` volume via 24/7 stigma-free peer matching & Learn-then-Teach cascades) | **`+200%` tutoring capacity** |
+| **Annual Institutional Cost Structure (Assumption)** | `$22.50/hr` loaded student wage (`$18` base + `25%` fringe) + `$120,000` fixed staff = **`$255,000/yr`** | `$25,000` Queen stipends + `$25,000` low-marginal-cost campus perk sinks + `$10,000` audit/ops = **`$60,000/yr`** | **`-76.5%` annual budget** |
+| **All-In Institutional Cost per Tutoring Hour (Modeled Ratio)** | **`$42.50 / hr`** | **`$3.33 / hr`** | **`-92.2%` cost / delivered hour** |
+| **Break-Even Retained Freshmen (`$25K` Net Tuition Assumption)** | `10.20 students` (`0.41%` of cohort) | **`2.40 students`** (`0.10%` of a 2,500-student freshman cohort) | **`4.25x` lower break-even bar** |
+| **Projected Retention Revenue (Assumption: `+3 pp` lift on `1,000` newly reached freshmen)** | Baseline (`0` incremental reach) | **`30 retained students = $750,000` Year-1 net tuition** (`$2.25M` 3-year LTV) | **`1,150%` Year-1 Net ROI** |
 
 ### 2.1 Closing the Overlapping-Generations (`OLG`) Loop: 3-Door Senior Graduation Sinks (`DEC-004`)
 

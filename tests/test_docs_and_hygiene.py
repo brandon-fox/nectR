@@ -190,3 +190,18 @@ def test_chain_audit_log_adr_and_wording_supersession() -> None:
     )
     assert "Private PoUW-PoW Blockchain" not in sys_design_text
     assert "Signed Audit Log" in sys_design_text or "signed audit log" in sys_design_text
+
+
+def test_unsourced_figures_labeled_as_assumptions_and_smoke_scenario_retitle() -> None:
+    """Verify fill rates and ROI inputs are labeled assumptions and smoke scenario retitled."""
+    proposal = (REPO_ROOT / "docs" / "business" / "institutional_proposal.md").read_text(
+        encoding="utf-8"
+    )
+    assert "38.0%" in proposal and "67.4%" in proposal
+    assert "assumption" in proposal.lower()
+    assert "planning assumption" in proposal.lower() or "modeled assumption" in proposal.lower()
+
+    game_theory = (REPO_ROOT / "docs" / "theory" / "tokenomics_game_theory.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Scripted smoke-scenario output (not an experiment)" in game_theory

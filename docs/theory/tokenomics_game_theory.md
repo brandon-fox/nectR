@@ -203,11 +203,14 @@ $$H(\sigma_t \parallel \text{kg\_root} \parallel \pi_{\text{pouw}} \parallel \te
 
 When proving overhead is bounded and task instances are bucketed into uniform difficulty bands, the duplex security surplus above wasted work remains strictly positive ($\Delta_{\text{sec}} > 0$). Meanwhile, verifier payouts derive strictly from a capped **Comb Compute Jar** with zero inflationary coinbase minting, pausing payouts whenever the jar depletes so $M_{H_i}(t)$ remains strictly conserved.
 
-## 6. Empirical ACE Telemetry (`src/nectr/personas/simulator.py`, `nectr_sim_baseline_2026`)
+## 6. Scripted smoke-scenario output (not an experiment) (`src/nectr/personas/simulator.py`, `nectr_sim_baseline_2026`)
 
-Executing `run_multi_hive_persona_simulation()` (`src/nectr/personas/simulator.py`, cited as `nectr_sim_baseline_2026` in `paper/references.yaml`) runs all 6 Behavioral Persona Sub-Agents (`docs/experiments/persona_swarm_spec.md` / [Persona Swarm Spec](../experiments/persona_swarm_spec.md)) across `HIVE_ALPHA` and `HIVE_BETA` on the live signed audit log chain (`tests/test_invariants.py`). *(Note: `simulator.py` sets `accepted_status_peer_threshold=2` for compact 3-epoch smoke validation versus the locked `DEC-003` production default `K=3`; `experiments/` currently holds `experiments/README.md` only, with full `mesa` Monte Carlo sweeps per `ADR-0010` / `DEC-009` scheduled for Milestone 3.)*
+Executing `run_multi_hive_persona_simulation()` (`src/nectr/personas/simulator.py`, cited as `nectr_sim_baseline_2026` in `paper/references.yaml`) executes a scripted smoke scenario (not an empirical experiment) running all 6 Behavioral Persona Sub-Agents (`docs/experiments/persona_swarm_spec.md` / [Persona Swarm Spec](../experiments/persona_swarm_spec.md)) across `HIVE_ALPHA` and `HIVE_BETA` on the live signed audit log chain (`tests/test_invariants.py`). This scripted scenario validates deterministic protocol mechanics and state transitions under synthetic test conditions; full empirical agent-based modeling experiments and Monte Carlo sweeps per `ADR-0010` / `DEC-009` remain scheduled for Milestone 3. *(Note: `simulator.py` sets `accepted_status_peer_threshold=2` for compact 3-epoch smoke validation versus the locked `DEC-003` production default `K=3`; `experiments/` currently holds `experiments/README.md` only.)*
 
-| Telemetry Metric (`SimulationTelemetry`) | Observed Baseline (`nectr_sim_baseline_2026`) | Theoretical Invariant Validated |
+### Scripted smoke-scenario output (not an experiment)
+
+| Telemetry Metric (`SimulationTelemetry`) | Scripted smoke-scenario output (not an experiment) (`nectr_sim_baseline_2026`) | Theoretical Invariant Validated |
+| :--- | :---: | :--- |
 | :--- | :---: | :--- |
 | `hive_a_blocks_mined` / `hive_a_chain_valid` | `5` / `True` | Signed audit log Merkle + `UsefulComputeProof` chain integrity |
 | `hive_a_comb_reserve` | `905.5` | `1000.0` Seed Comb $-$ `95.0` `RAW_POLLEN` $+$ `0.5` `5%` bridge toll |
