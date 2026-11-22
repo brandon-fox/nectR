@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "nectR"
+authors:
+  - family-names: Fox
+    given-names: Brandon
+    email: 32090240+brandon-fox@users.noreply.github.com
+repository-code: "https://github.com/brandon-fox/nectR"
+license: MIT
+version: 0.1.0
+date-released: "2026-11-22"
+abstract: "Research prototype of a campus peer-tutoring credit economy with deterministic smart contracts, agent simulation, and a signed audit log."
