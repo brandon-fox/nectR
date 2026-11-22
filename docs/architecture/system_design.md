@@ -1,6 +1,6 @@
-# Flagship System Design: Private PoUW-PoW Blockchain and Hive Service Layer
+# Flagship System Design: Signed Cryptographic Audit Log and Hive Service Layer
 
-This architecture defines **nectR**'s closed-loop, peer-to-peer campus tutoring platform, separating cryptographic consensus (`src/nectr/chain/`), deterministic smart contract state machines (`src/nectr/contracts/`), and the hexagonal application layer (`src/nectr/services/`). Domain acronyms (`MV = PQ`, `PoUW-PoW` = Proof-of-Useful-Work plus Proof-of-Work) and ubiquitous language terms are defined in the [Domain Glossary](../glossary.md) per `DEC-008`; `FX` denotes the cross-Hive Foreign Exchange rate (`[0.5x, 2.0x]`).
+This architecture defines **nectR**'s closed-loop, peer-to-peer campus tutoring platform, separating the signed cryptographic audit log (`src/nectr/chain/`), deterministic smart contract state machines (`src/nectr/contracts/`), and the hexagonal application layer (`src/nectr/services/`). Domain acronyms (`MV = PQ`, `PoUW-PoW` = Proof-of-Useful-Work plus Proof-of-Work, describing useful compute verification in the audit log under `ADR-0019`) and ubiquitous language terms are defined in the [Domain Glossary](../glossary.md) per `DEC-008`; `FX` denotes the cross-Hive Foreign Exchange rate (`[0.5x, 2.0x]`).
 
 Throughout this specification, **Implemented Baseline** denotes code currently present in `src/nectr/`, **Wave 1 Target Interfaces** denotes contracts/adapters specified in amended [ADR-0008](../adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md) and [ADR-0009](../adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md), and **Locked Protocol Specifications** denotes economic rules in `DEC-001`–`DEC-004` and `ADR-0003`–`ADR-0007` scheduled across implementation waves.
 
@@ -9,7 +9,7 @@ Throughout this specification, **Implemented Baseline** denotes code currently p
 1. **No Blind Token Transfers ([ADR-0002](../adr/0002-enforce-directional-service-barter-state-transitions.md)):** Every peer transfer executes through `DirectionalServiceBarterContract` (`Tutor -> Learner`, `Subject`, `Duration`, co-signed `Attestation`, or `0-nectR` reciprocal skill barter) or an explicit `ROYAL_COMB_RESERVE` (`Comb`) / cross-Hive bridge call.
 2. **Zero-Fee P2P Barter & Comb Fee Routing ([ADR-0004](../adr/0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md)):** Peer-to-peer tutoring settlements charge `0%` fee, while `100%` of governance fees route into `Comb`.
 3. **Strict Queen Separation of Powers ([ADR-0003](../adr/0003-enforce-multi-tier-beekeeper-and-queen-governance.md)):** `QUEEN` accounts cannot act as tutors, receive `RAW_POLLEN`, or bridge `LIQUID_NECTR`; institutional `Beekeeper` authorities retain transparent override and bond-slashing powers.
-4. **Capped Comb Compute Jar ([ADR-0007](../adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md)):** Open campus laptop mining couples SHA-256 Proof-of-Work (`PoW`) with `UsefulComputeProof` verification (`PoUW`), paid strictly from a capped Comb sub-pool with zero inflationary coinbase minting.
+4. **Capped Comb Compute Jar ([ADR-0019](../adr/0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md), superseding [ADR-0007](../adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md)):** The signed audit log couples hash-chained blocks with `UsefulComputeProof` verification (formerly framed as `PoUW-PoW` consensus in superseded `ADR-0007`), paid strictly from a capped Comb sub-pool with zero inflationary coinbase minting.
 5. **Cryptographic & Merkle Integrity ([ADR-0008](../adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md)):** Wave 1 upgrades ad-hoc JSON hashing to `canonicaljson`, Ed25519 signatures via `cryptography`, and SSZ Merkle inclusion proofs via `remerkleable` (`MIT`).
 6. **Hexagonal Purity ([ADR-0009](../adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md)):** Persistence (`SQLModel` + `Alembic`), HTTP (`FastAPI`), and telemetry (`structlog` + `opentelemetry-sdk`) attach through ports in `src/nectr/services/` while `src/nectr/contracts/` remains pure Python.
 
@@ -24,7 +24,7 @@ flowchart TB
         Queen["Queen Steward<br/>(Phase 1 Faculty / Phase 2 Student)"]
         Beekeeper["Beekeeper<br/>(Institutional Override & Auditor)"]
         Sponsor["Campus Sponsor<br/>(Seed Comb Funder)"]
-        Miners["Open Campus Laptop Nodes<br/>(PoUW-PoW Validators)"]
+        Miners["Open Campus Laptop Nodes<br/>(Audit Log Validators)"]
     end
 
     subgraph Platform["nectR Multi-Hive Platform"]
@@ -37,7 +37,7 @@ flowchart TB
     Worker -->|"Refines RAW_POLLEN via Tutoring"| HiveA
     Queen -->|"Certifies Workers & Arbitrates Disputes"| HiveA
     Beekeeper -->|"Logged Emergency Override & Bond Slashing"| HiveA
-    Miners -->|"Verifies UsefulComputeProof & Mines Blocks"| HiveA
+    Miners -->|"Verifies UsefulComputeProof in Audit Log"| HiveA
     Pollinator -->|"Tutors K>=3 Local Peers for Accepted Status"| HiveB
     HiveA <-->|"Comb-to-Comb Bridge (Epoch FX + 5% Toll)"| HiveB
 ```
@@ -60,9 +60,9 @@ flowchart TB
         SQLRepo["SQLModelHiveRepository & Alembic (Wave 1 Target)<br/>src/nectr/services/ + src/nectr/services/migrations/"]
     end
 
-    subgraph DomainLedger["Deterministic Domain & Consensus Containers"]
+    subgraph DomainLedger["Deterministic Domain & Audit Log Containers"]
         Contracts["HiveContractEngine (Pure Python)<br/>src/nectr/contracts/engine.py"]
-        Chain["HiveBlockchain (PoUW-PoW Ledger)<br/>src/nectr/chain/ledger.py"]
+        Chain["HiveBlockchain (Signed Audit Log)<br/>src/nectr/chain/ledger.py"]
         DB[("SQLite / SQL Database<br/>Alembic-Managed State")]
     end
 
@@ -75,7 +75,7 @@ flowchart TB
     SQLRepo -.->|"implements"| RepoPort
     SQLRepo --> DB
     ServiceCore -->|"Executes deterministic transitions"| Contracts
-    ServiceCore -->|"Submits txs & mines epoch blocks"| Chain
+    ServiceCore -->|"Submits txs & seals epoch blocks"| Chain
 ```
 
 ## C4 Level 3: Component and Strict DDD Layering
@@ -100,9 +100,9 @@ flowchart LR
         Engine["HiveContractEngine<br/>BeeAccount, ServiceBarterSession<br/>TokenState, BeeRole, SessionStatus<br/>assert_supply_conservation()"]
     end
 
-    subgraph ChainCtx["Consensus & Ledger Context (src/nectr/chain/)"]
+    subgraph ChainCtx["Signed Audit Log Context (src/nectr/chain/)"]
         Baseline["ledger.py (Baseline)<br/>HiveBlockchain, Block, BlockHeader<br/>UsefulComputeProof, compute_sha256"]
-        Crypto["Wave 1 Crypto (ADR-0008)<br/>Ed25519Signer / Ed25519Verifier<br/>CanonicalPayload, SignedTransaction<br/>MerkleInclusionProof (remerkleable)"]
+        Crypto["Wave 1 Crypto (ADR-0008, ADR-0019)<br/>Ed25519Signer / Ed25519Verifier<br/>CanonicalPayload, SignedTransaction<br/>MerkleInclusionProof (remerkleable)"]
     end
 
     UIMod -.->|"Target read-only path"| APIRouter
@@ -126,13 +126,13 @@ flowchart LR
 | `src/nectr/services/` | `nectr.contracts`, `nectr.chain`, `sqlmodel`, `alembic`, `fastapi`, `structlog`, `opentelemetry-sdk` | `nectr.personas`, `nectr.ui` | Exposes ports in `ports.py`; keeps `contracts/` pure |
 | `src/nectr/personas/` & `src/nectr/ui/` | `nectr.services` (and read-only contract enums/types) | Direct DB mutations bypassing `HiveServiceLayer` | `personas/simulator.py` currently invokes `hive.contracts.{register_bee, allocate_raw_pollen_to_learner, bridge_nectr_to_target_hive}` and `hive.blockchain.{submit_transaction, verify_chain}` directly alongside `HiveServiceLayer`; Wave 1 target routes all commands through `HiveServiceLayer` |
 
-## PoUW-PoW Open Campus Mining and Capped Comb Compute Jar
+## Signed Audit Log and Capped Comb Compute Jar (ADR-0019)
 
-Under [ADR-0007](../adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md), **nectR** couples lightweight cryptographic hashing (`PoW`) with deterministic Knowledge Graph verification (`PoUW`) so student laptop nodes secure ledger immutability without inflationary block rewards.
+Under [ADR-0019](../adr/0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md) (superseding [ADR-0007](../adr/0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md)), **nectR** structures the ledger as a signed, hash-chained audit log with deterministic Knowledge Graph verification (originally designed around PoUW-PoW consensus in superseded `ADR-0007`) so student laptop nodes secure ledger immutability without proof-of-work mining races or inflationary block rewards.
 
-### Consensus Commitment Model
+### Audit Log Commitment Model
 
-In `src/nectr/chain/ledger.py`, every mined `Block` binds two commitments inside a frozen `BlockHeader`:
+In `src/nectr/chain/ledger.py`, every sealed `Block` binds two commitments inside a frozen `BlockHeader`:
 
 - **`UsefulComputeProof` Fields (`ConfigDict(frozen=True, extra="forbid")`):**
   - `epoch: int` — Monotonic epoch counter managed by `HiveServiceLayer`.
@@ -142,17 +142,17 @@ In `src/nectr/chain/ledger.py`, every mined `Block` binds two commitments inside
   - `gini_coefficient: float` — Inequality index in `[0.0, 1.0]` computed by `compute_gini_coefficient()` over non-`QUEEN` `liquid_nectr_balance + raw_pollen_balance`.
   - `graph_state_hash: str` — SHA-256 digest of `hive_id`, `epoch`, `comb_reserve`, and sorted `tutor_effectiveness` snapshot.
 - **`BlockHeader` Fields:** `hive_id: str`, `height: int`, `prev_hash: str`, `merkle_root: str`, `knowledge_graph_root: str`, `difficulty: int` (no field default on `BlockHeader`; `difficulty: int = 2` is defaulted on `HiveBlockchain.__init__`), `nonce: int`, `timestamp: float`.
-- **Dual Binding:** `HiveBlockchain.mine_block()` sets `knowledge_graph_root = useful_compute_proof.to_commitment_hash()` and increments `nonce` until `BlockHeader.block_hash()` begins with `"0" * self.difficulty`. `HiveBlockchain.verify_chain()` recomputes PoW prefix, `merkle_root`, `knowledge_graph_root`, and `prev_hash` links across all blocks (genesis `height=0`, `prev_hash="0" * 64`, `timestamp=1700000000.0`).
+- **Dual Binding:** `HiveBlockchain.mine_block()` (retained as the block sealing method) sets `knowledge_graph_root = useful_compute_proof.to_commitment_hash()` and increments `nonce` to verify header consistency. `HiveBlockchain.verify_chain()` recomputes header hash prefix, `merkle_root`, `knowledge_graph_root`, and `prev_hash` links across all audit log blocks (genesis `height=0`, `prev_hash="0" * 64`, `timestamp=1700000000.0`).
 
-### Capped Comb Compute Jar Orchestration (`ADR-0007`)
+### Capped Comb Compute Jar Orchestration (ADR-0019)
 
 To preserve strict closed-loop supply conservation (`MV = PQ`) while rewarding student laptop verifiers:
 
 1. **Strict DDD Placement:** Compute rebate payouts are orchestrated exclusively inside `HiveServiceLayer` (application layer), NEVER inside `src/nectr/chain/`, so `chain/` contains zero tokenomics or balance state.
 2. **Non-Inflationary Funding:** The Comb Compute Jar is a bounded sub-allocation of `ROYAL_COMB_RESERVE` fed solely by governance fees (`certify_worker_bee`, `resolve_disputed_session`), `DEC-001` idle-balance demurrage, and `5%` cross-Hive bridge tolls (`ADR-0005`). Zero coinbase tokens are minted on block creation.
-3. **Automatic Pause on Reserve Lag:** Before disbursing a mining rebate from the jar, `HiveServiceLayer` checks available jar balance. If governance/demurrage inflows lag compute demand and the jar drops below its floor, coin payouts automatically pause while `PoUW-PoW` block verification continues, ensuring `total_minted_supply` remains strictly conserved.
+3. **Automatic Pause on Reserve Lag:** Before disbursing a compute rebate from the jar, `HiveServiceLayer` checks available jar balance. If governance/demurrage inflows lag compute demand and the jar drops below its floor, coin payouts automatically pause while audit log verification continues, ensuring `total_minted_supply` remains strictly conserved.
 
-## Wave 1 Consensus and Cryptographic Ledger Specification (`ADR-0008`)
+## Wave 1 Audit Log and Cryptographic Ledger Specification (ADR-0008, ADR-0019)
 
 [ADR-0008](../adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md) (as amended in PR #19) replaces ad-hoc hashing in `src/nectr/chain/ledger.py` with audited, `MIT`-compatible cryptography while preserving backward compatibility for existing dict-based callers.
 
@@ -271,10 +271,10 @@ flowchart TB
         C5["5. GuardBeeCrossHiveBridgeContract (Accepted Status + Swarming)"]
     end
 
-    subgraph ChainPlane["1. Consensus & Cryptographic State (src/nectr/chain/)"]
+    subgraph ChainPlane["1. Audit Log & Cryptographic State (src/nectr/chain/)"]
         Signer["SignerPort (PyNaCl / cryptography Ed25519) + CanonicalCodecPort (rfc8785 / canonicaljson)"]
         Merkle["MerkleAccumulatorPort (remerkleable + 0x00/0x01 Sparse Merkle Tree)"]
-        PoUW["Transcript-Oracle PoUW-PoW Miner (Capped Comb Compute Jar)"]
+        PoUW["Transcript-Oracle Compute Verifier (Capped Comb Compute Jar)"]
         Ledger["Immutable Block Ledger (32-Byte kg_root Commitment)"]
     end
 
@@ -293,20 +293,20 @@ flowchart TB
 
 | Architectural Plane | Core Responsibility | Permissive OSS Stack (`MIT` / `Apache-2.0` / `BSD`) | Key Invariant / Design Boundary |
 | :--- | :--- | :--- | :--- |
-| **1. Consensus & Cryptographic State (`src/nectr/chain/`)** | Block headers (`evm_state_root` + `kg_root`), Ed25519 signatures, canonical serialization, domain-separated Merkle roots, and Transcript-Oracle `PoUW-PoW`. | `PyNaCl` / `cryptography` (`Apache-2.0`/`BSD`), `rfc8785` / `canonicaljson` (`Apache-2.0`), `remerkleable` (`MIT`). | Zero tutoring business logic; `0x00` leaf / `0x01` node domain separation blocks odd-leaf duplication; `pymerkle` (`GPLv3+`) and `merklelib` (Python 3.10+ incompatible) are rejected (`ADR-0008`). |
+| **1. Audit Log & Cryptographic State (`src/nectr/chain/`)** | Block headers (`evm_state_root` + `kg_root`), Ed25519 signatures, canonical serialization, domain-separated Merkle roots, and useful compute verification (`ADR-0019`, superseding `ADR-0007`). | `PyNaCl` / `cryptography` (`Apache-2.0`/`BSD`), `rfc8785` / `canonicaljson` (`Apache-2.0`), `remerkleable` (`MIT`). | Zero tutoring business logic; `0x00` leaf / `0x01` node domain separation blocks odd-leaf duplication; `pymerkle` (`GPLv3+`) and `merklelib` (Python 3.10+ incompatible) are rejected (`ADR-0008`). |
 | **2. Deterministic Smart Contracts (`src/nectr/contracts/`, `ADR-0017`)** | Five `vyper` `.vy` contracts executing `uint256` `micro_nectr` (`DEC-017`) token refinement, `0..10,000 bps` (`DEC-018`) barter escrow, Queen governance, pairwise decay, and Guard Bee bridging on zero-gas `py-evm`. | `vyper` (`Apache-2.0`), `eth-tester[py-evm]` + `web3.py` + `eth-account` (`MIT`), `icontract` (`MIT`), `Hypothesis` (`MPL-2.0`), **Quint / TLA+** (`Apache-2.0`). | `gas_price = 0` (`0%` P2P fee) with `gas_limit` loop safety; `secp256k1` EIP-712 `msg.sender` (`DEC-019`); rejects copyleft `solc` (`GPL-3.0`), `snekmate` (`AGPL-3.0`), and `bitcoinlib` (`GPLv3+`). |
 | **3. Hexagonal Hive Service Layer & PactFlow Gate (`src/nectr/services/`, `ADR-0018`)** | Canonical `SQLModel` block-log replay into `py-evm`, REST APIs, Pact v4 / **PactFlow** bi-directional contracts, Zero-PII FERPA/GDPR hashing, and tracing. | `FastAPI` (`MIT`), `pact-python` v4 (`MIT`) + **PactFlow** (`can-i-deploy`), `SQLModel` (`MIT`), `Alembic` (`MIT`), `structlog`, `opentelemetry-sdk`. | Canonical block-log replay verifies `evm_state_root` on reload; offline `pacts/*.json` on local hooks/forks + PactFlow OpenAPI 3.1 & async message verification in CI (`ADR-0018`). |
 | **4. Cross-Hive Federation Bus (`ADR-0014`)** | Relays `AcceptedStatusGranted` and Comb-to-Comb bridge proofs across asymmetric university NATs and firewalls. | `nats-server` + `nats-py` (`Apache-2.0`, CNCF/Synadia May 2025 settlement) using **Leaf Nodes (port `7422`)** & **JetStream Domains**. | Outbound-only TLS connections require zero inbound campus firewall rules and avoid `py-libp2p` v0.8.0's `trio`-only event-loop incompatibility. |
-| **5. Off-Chain CQRS Knowledge Graph Read Model (`ADR-0014`)** | Materializes `EigenTrust`, Personalized PageRank, Circle `Anduin` max-flow, and `COCM` Fiedler-vector clustering asynchronously. | `networkx` (`BSD-3-Clause`), `NetworKit` (`MIT`, C++/OpenMP for Python 3.11+), `rustworkx` (`Apache-2.0`, Rust/rayon) behind `GraphTelemetryPort`. | On-chain consensus stores only a 32-byte `knowledge_graph_root` (`kg_root`); floating-point graph math never runs inside block validation. |
+| **5. Off-Chain CQRS Knowledge Graph Read Model (`ADR-0014`)** | Materializes `EigenTrust`, Personalized PageRank, Circle `Anduin` max-flow, and `COCM` Fiedler-vector clustering asynchronously. | `networkx` (`BSD-3-Clause`), `NetworKit` (`MIT`, C++/OpenMP for Python 3.11+), `rustworkx` (`Apache-2.0`, Rust/rayon) behind `GraphTelemetryPort`. | On-chain audit log stores only a 32-byte `knowledge_graph_root` (`kg_root`); floating-point graph math never runs inside block validation. |
 | **6. Chaos Testbed, Compliance & Telemetry UI (`src/nectr/ui/`)** | Reproducible multi-Hive fault injection, OTLP metrics, read-only visual explorer, and LMS/SSO campus integration. | Post-June-2024 **Kurtosis** (`Apache-2.0`) + **Pumba** / **Toxiproxy** (`Apache-2.0`), **Prometheus OTLP + Perses** (`Apache-2.0`), `Streamlit` (`Apache-2.0`). | `Perses` replaces Grafana for strict `Apache-2.0` compliance (`DEC-014`); `src/nectr/ui/` is strictly read-only (`ADR-0011`); LTI 1.3 + Shibboleth abstract keys (`ADR-0015`). |
 
 ---
 
 ## Key System Design Highlights
 
-1. **Transcript-Oracle Proof-of-Useful-Work (`PoUW-PoW`) & Capped Comb Compute Jar (`ADR-0007`):**
-   Instead of burning electricity on uncoupled hashes, mining nodes evaluate a deterministic intermediate transcript $\pi_{\text{pouw}}$ verifying the epoch's directional Knowledge Flow Matrix and Pairwise Collusion Decay root (`ball_2018`, $\Delta_{\text{sec}} > 0$). Task dimension $N$ and oracle difficulty $p$ tune orthogonally so standard university VMs mine without GPUs, while compute rebates draw strictly from the capped **Comb Compute Jar** (pausing automatically if reserves dip, guaranteeing zero systemic inflation).
-2. **Event-Sourced CQRS Isolation Against Floating-Point Consensus Forks (`ADR-0014`):**
+1. **Transcript-Oracle Useful Compute Verification & Capped Comb Compute Jar (`ADR-0019`, superseding `ADR-0007`):**
+   Instead of burning electricity on uncoupled Proof-of-Work mining, audit log validators evaluate a deterministic intermediate transcript $\pi_{\text{pouw}}$ verifying the epoch's directional Knowledge Flow Matrix and Pairwise Collusion Decay root (`ball_2018`, $\Delta_{\text{sec}} > 0$, superseding the legacy PoUW-PoW consensus framing in `ADR-0007`). Task dimension $N$ and oracle difficulty $p$ tune orthogonally so standard university VMs verify proofs without GPUs, while compute rebates draw strictly from the capped **Comb Compute Jar** (pausing automatically if reserves dip, guaranteeing zero systemic inflation).
+2. **Event-Sourced CQRS Isolation Against Floating-Point State Inconsistencies (`ADR-0014`):**
    Embedding multi-hop graph solvers directly inside block validation risks state-root divergence across CPU architectures. In **nectR**, `HiveContractEngine` commits deterministic rational/fixed-point pairwise weights and a 32-byte `kg_root` on-chain while emitting post-commit domain events (`SessionSettled`, `AcceptedStatusGranted`) to the off-chain `CQRSGraphProjector`.
 3. **Asymmetric Campus Firewall Traversal via NATS Leaf Nodes (`ADR-0014`):**
    Each university Hive runs an embedded `nats-server` configured with its own named JetStream domain (`nectr-hive-alpha`, `nectr-hive-beta`) that dials outbound TLS on port `7422` to a lightweight relay hub. When `HIVE_BETA` grants **Accepted Status** to a visiting Pollinator, JetStream mirrors the signed proof envelope to `HIVE_ALPHA` with idempotent sequence deduplication.

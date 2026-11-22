@@ -14,7 +14,7 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0004` | [Route Governance Fees to Comb with Phase-Split Royal Jelly](0004-route-governance-fees-to-comb-with-phase-split-royal-jelly.md) | `accepted` |
 | `ADR-0005` | [Gate Cross-Hive Bridges with Guard Bee Status and Epoch FX](0005-gate-cross-hive-bridges-with-guard-bee-status-and-epoch-fx.md) | `accepted` |
 | `ADR-0006` | [Adopt Two-Phase Hive Genesis and Autonomous Swarming](0006-adopt-two-phase-hive-genesis-and-autonomous-swarming.md) | `accepted` |
-| `ADR-0007` | [Couple Open Campus PoUW-PoW Mining to Capped Comb Compute Jar](0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md) | `accepted` |
+| `ADR-0007` | [Couple Open Campus PoUW-PoW Mining to Capped Comb Compute Jar](0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md) | `superseded by ADR-0019` |
 | `ADR-0008` | [Adopt Ed25519 CanonicalJSON and Merklelib](0008-adopt-ed25519-canonicaljson-and-merklelib.md) | `accepted` |
 | `ADR-0009` | [Adopt SQLModel Alembic Structlog and OpenTelemetry](0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md) | `accepted` |
 | `ADR-0010` | [Adopt Mesa ABM and Hypothesis Invariant Testing](0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md) | `accepted` |
@@ -26,6 +26,7 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0016` | [Scope External Workflow Automation Off-Chain](0016-scope-external-workflow-automation-off-chain.md) | `accepted` |
 | `ADR-0017` | [Adopt Vyper and Zero-Gas py-evm Smart Contracts](0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md) | `accepted` |
 | `ADR-0018` | [Enforce Pact v4 and PactFlow Bi-Directional Contracts](0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md) | `accepted` |
+| `ADR-0019` | [Treat the hive chain as a signed, hash-chained audit log](0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md) | `accepted` |
 <!-- END AUTO-ADR-INDEX -->
 
 ## `adrlint` Workflow & Configuration

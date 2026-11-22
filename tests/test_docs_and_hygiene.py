@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -157,10 +155,6 @@ def test_openspec_archiving_and_deferrals() -> None:
     assert "Archived Changes" in readme_text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: DC4 ADR-0019 audit-log supersession and wording updates not yet implemented",
-)
 def test_chain_audit_log_adr_and_wording_supersession() -> None:
     """Verify ADR-0019 supersedes ADR-0007 and doc wording describes the signed audit log."""
     adr_19 = (

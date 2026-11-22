@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0019
 date: 2026-11-21
 decision-makers:
   - nectR Consensus & System Design Architecture
