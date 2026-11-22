@@ -263,3 +263,35 @@ def step_when_workflow_hygiene_runs(context: Any) -> None:
 )
 def step_then_workflow_hygiene_verified(context: Any) -> None:
     assert context.hygiene_errors == [], f"Workflow hygiene errors: {context.hygiene_errors}"
+
+
+@when("the hook stage split between pre-commit and pre-push is inspected")
+def step_when_hook_stage_split_inspected(context: Any) -> None:
+    context.pre_commit_text = context.pipeline_texts[".githooks/pre-commit"]
+    context.pre_push_text = context.pipeline_texts[".githooks/pre-push"]
+    context.pre_commit_cfg = yaml.safe_load(context.pipeline_texts[".pre-commit-config.yaml"])
+
+
+@then(
+    "pre-commit omits mypy, mkdocs build, pytest, and behave while pre-push and pre-commit config enforce them via pre-push stages"
+)
+def step_then_hook_stage_split_verified(context: Any) -> None:
+    for heavy in ("mypy", "pytest", "behave", "mkdocs build --strict"):
+        assert heavy not in context.pre_commit_text, f"{heavy} should not be in pre-commit"
+    for heavy in ("mypy", "pytest", "behave --tags=-red", "mkdocs build --strict"):
+        assert heavy in context.pre_push_text, f"{heavy} missing from pre-push"
+
+    hooks_by_id = {
+        hook["id"]: hook for repo in context.pre_commit_cfg["repos"] for hook in repo["hooks"]
+    }
+    for hook_id in (
+        "mkdocs-build-strict",
+        "mypy-strict-typecheck",
+        "nectr-tdd-unit-tests",
+        "nectr-bdd-behave-push",
+    ):
+        assert hook_id in hooks_by_id, f"Missing hook {hook_id} in .pre-commit-config.yaml"
+        assert hooks_by_id[hook_id]["stages"] == ["pre-push"]
+        assert str(hooks_by_id[hook_id]["entry"]).startswith("uv run ")
+    assert "nectr-bdd-behave-precommit" not in hooks_by_id
+    assert "--tags=-red" in str(hooks_by_id["nectr-bdd-behave-push"]["entry"])

@@ -5,6 +5,9 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+import yaml
+
 from nectr.devtools.ci_parity import (
     check_no_red_scenarios,
     check_pipeline_parity,
@@ -436,3 +439,82 @@ def test_check_pipeline_parity_accepts_40_char_sha_pinned_actions(tmp_path: Path
 
     report = check_pipeline_parity(tmp_path)
     assert report.passed is True
+
+
+@pytest.mark.xfail(
+    strict=True, reason="RED: TL1 fast pre-commit / pre-push split not yet implemented"
+)
+def test_hooks_split_fast_pre_commit_from_heavy_pre_push(tmp_path: Path) -> None:
+    _write_synthetic_workspace(tmp_path, include_release=True)
+    githooks = tmp_path / ".githooks"
+    (githooks / "pre-commit").write_text(
+        textwrap.dedent(
+            """\
+            #!/usr/bin/env sh
+            REPO_ROOT=$(cygpath -u "$(git rev-parse --show-toplevel)")
+            PATH="$REPO_ROOT/.venv/Scripts:$REPO_ROOT/.venv/bin:$PATH"
+            git diff --cached --name-only -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
+            git grep --cached -nE '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
+            adrlint --no-color lint
+            adrlint --no-color format --check
+            adrlint --no-color lock --check
+            check-jsonschema --schemafile docs/planning/decisions.schema.json docs/planning/decisions.yaml
+            python -m nectr.devtools.decisions check
+            python -m nectr.devtools.citations check
+            python -m nectr.devtools.docs_sync check
+            python -m nectr.devtools.spec_links
+            ruff check src tests features
+            ruff format --check src tests features
+            pymarkdown --config pyproject.toml scan README.md docs/theory paper
+            """
+        ),
+        encoding="utf-8",
+    )
+    (githooks / "pre-push").write_text(
+        textwrap.dedent(
+            """\
+            #!/usr/bin/env sh
+            REPO_ROOT=$(cygpath -u "$(git rev-parse --show-toplevel)")
+            PATH="$REPO_ROOT/.venv/Scripts:$REPO_ROOT/.venv/bin:$PATH"
+            git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
+            git grep -nE '([A-Za-z]:[/\\\\]Users[/\\\\]|/(Users|home)/)'
+            mkdocs build --strict
+            python -m mypy src
+            python -m pytest
+            python -m behave --tags=-red
+            """
+        ),
+        encoding="utf-8",
+    )
+    synthetic_report = check_pipeline_parity(tmp_path)
+    assert synthetic_report.passed is True, synthetic_report.errors
+
+    repo_root = Path(__file__).resolve().parents[1]
+    pre_commit_text = (repo_root / ".githooks" / "pre-commit").read_text(encoding="utf-8")
+    pre_push_text = (repo_root / ".githooks" / "pre-push").read_text(encoding="utf-8")
+    for heavy in ("mypy", "pytest", "behave", "mkdocs build --strict"):
+        assert heavy not in pre_commit_text
+    for required in (
+        "detect-secrets-hook",
+        "mkdocs build --strict",
+        "mypy",
+        "pytest",
+        "behave --tags=-red",
+    ):
+        assert required in pre_push_text
+
+    pre_commit_cfg = yaml.safe_load(
+        (repo_root / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    )
+    hooks_by_id = {hook["id"]: hook for repo in pre_commit_cfg["repos"] for hook in repo["hooks"]}
+    for hook_id in (
+        "mkdocs-build-strict",
+        "mypy-strict-typecheck",
+        "nectr-tdd-unit-tests",
+        "nectr-bdd-behave-push",
+    ):
+        assert hook_id in hooks_by_id
+        assert hooks_by_id[hook_id]["stages"] == ["pre-push"]
+        assert hooks_by_id[hook_id]["entry"].startswith("uv run ")
+    assert "nectr-bdd-behave-precommit" not in hooks_by_id
+    assert "--tags=-red" in hooks_by_id["nectr-bdd-behave-push"]["entry"]
