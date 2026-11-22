@@ -68,8 +68,8 @@ decisions:
   - id: DEC-009
     category: parameter-default
     status: locked
-    title: Mesa ABM + ML/RL Over LLM Frameworks (CrewAI/k8n)
-    decision: Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations rather than LLM orchestration frameworks (CrewAI/k8n).
+    title: Mesa ABM + ML/RL Over LLM Workflows (CrewAI/n8n)
+    decision: Use Mesa ABM + Hypothesis (ADR-0010) and ML/RL policies for deterministic Monte Carlo ACE simulations over CrewAI/n8n (formerly k8n).
     owner_agent: ux-behavior-agent
     related_adr: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
 
@@ -124,6 +124,14 @@ decisions:
     owner_agent: business-proposal-agent
     related_adr: docs/adr/0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md
 
+  - id: DEC-016
+    category: workflow-policy
+    status: locked
+    title: Out-of-Process Boundary for n8n & Workflow Engines
+    decision: Keep n8n (SUL) out of pyproject.toml; trigger HiveServiceLayer via webhooks only, preferring MIT/Apache-2.0 tools (Activepieces, Kestra, Prefect, Temporal) if packaged.
+    owner_agent: ux-behavior-agent
+    related_adr: docs/adr/0016-scope-external-workflow-automation-off-chain.md
+
 experiments:
   - id: EXP-001
     status: open-simulation
@@ -174,3 +182,13 @@ experiments:
       - system-arch-agent
       - contracts-service-agent
     related_adr: docs/adr/0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md
+
+  - id: EXP-006
+    status: open-simulation
+    title: Mesa Baseline vs. External n8n Hybrid Trigger Arm
+    hypothesis: Compare deterministic seeded Mesa ABM + ML/RL runs against external n8n/Activepieces webhook-triggered surge and Sybil arms on seed parity, latency, and collusion detection.
+    risk_note: External LLM/webhook timing adds non-determinism and SUL license risk; keep triggers off-chain and replayable via logged inputs.
+    owner_agents:
+      - ux-behavior-agent
+      - contracts-service-agent
+    related_adr: docs/adr/0016-scope-external-workflow-automation-off-chain.md
