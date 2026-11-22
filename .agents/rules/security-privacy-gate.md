@@ -22,3 +22,8 @@ trigger: always_on
 - Git hooks are versioned in `.githooks/` (`core.hooksPath = .githooks`) and mirrored in `.pre-commit-config.yaml` using `detect-secrets`, `commitizen`, and `pygrep`.
 - **NEVER** use `--no-verify` on `git commit` or `git push`.
 - If any hook reports a violation, halt immediately, remediate the leak or local path, and re-run until exit code `0`.
+
+## 3. GitHub Actions Immutable Commit SHA Pinning (Mandatory)
+- Every `uses:` reference to a third-party or official GitHub Action in `.github/workflows/*.yml` **MUST** be pinned to a full 40-character hexadecimal commit SHA (`uses: owner/repo@<40-hex-sha> # vX.Y.Z`), **never** a mutable version tag (`@v7`, `@v10.4.0`, `@main`).
+- Always include an inline `# vX.Y.Z` comment after the SHA so Dependabot (`github-actions` ecosystem) and reviewers can track the resolved release tag.
+- Enforced programmatically by `nectr.devtools.ci_parity` in pre-commit and CI.
