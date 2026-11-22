@@ -13,7 +13,7 @@ repos:
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
-      - id: detect-secrets-hook
+      - id: detect-secrets
         name: detect-secrets-hook --baseline .secrets.baseline (OSS secret & entropy scan)
         args: ["--baseline", ".secrets.baseline"]
         stages: [pre-commit]
