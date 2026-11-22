@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -194,10 +192,6 @@ def test_chain_audit_log_adr_and_wording_supersession() -> None:
     assert "Signed Audit Log" in sys_design_text or "signed audit log" in sys_design_text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: unsourced figures must be marked as assumptions and smoke scenario retitled",
-)
 def test_unsourced_figures_labeled_as_assumptions_and_smoke_scenario_retitle() -> None:
     """Verify fill rates and ROI inputs are labeled assumptions and smoke scenario retitled."""
     proposal = (REPO_ROOT / "docs" / "business" / "institutional_proposal.md").read_text(
