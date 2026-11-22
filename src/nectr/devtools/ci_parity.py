@@ -35,6 +35,7 @@ REQUIRED_PIPELINE_FILES: tuple[str, ...] = (
     ".githooks/pre-push",
     ".pre-commit-config.yaml",
     ".github/workflows/license-and-security-scan.yml",
+    ".github/workflows/pr-lifecycle.yml",
     ".github/workflows/release.yml",
 )
 
@@ -201,7 +202,7 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
             (".pre-commit-config.yaml", (r"\bpytest\b",)),
             (
                 ".github/workflows/license-and-security-scan.yml",
-                (r"\bpytest\b", r"--cov-fail-under=80"),
+                (r"\bpytest\b", r"--cov-branch", r"--cov-fail-under=90"),
             ),
         ),
     ),
@@ -247,6 +248,28 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
     _GateSpec(
         gate="release-workflow",
         stage_patterns=((".github/workflows/release.yml", (r"\b(?:cz|commitizen)\b",)),),
+    ),
+    _GateSpec(
+        gate="pr-merge-safety",
+        stage_patterns=(
+            (
+                ".github/workflows/license-and-security-scan.yml",
+                (
+                    r"nectr\.devtools\.pr_lifecycle\s+check-branch",
+                    r"uv\s+lock\s+--check",
+                    r"pull_request\.head\.sha",
+                ),
+            ),
+        ),
+    ),
+    _GateSpec(
+        gate="pr-lifecycle-workflow",
+        stage_patterns=(
+            (
+                ".github/workflows/pr-lifecycle.yml",
+                (r"nectr\.devtools\.pr_lifecycle", r"PR_LIFECYCLE_TOKEN"),
+            ),
+        ),
     ),
 )
 
