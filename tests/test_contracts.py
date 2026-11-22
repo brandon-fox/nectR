@@ -882,7 +882,6 @@ def test_snapshot_hydration_rejects_corrupted_fields_and_bad_types() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="review finding 3; fixed by CA2")
 def test_repeated_fractional_disputes_conserve_supply_with_exact_equality() -> None:
     engine = HiveContractEngine(hive_id="HIVE_EXACT_SUPPLY")
     engine.inject_sponsored_seed_comb(10_000.0)
@@ -923,7 +922,6 @@ def test_repeated_fractional_disputes_conserve_supply_with_exact_equality() -> N
     )
 
 
-@pytest.mark.xfail(strict=True, reason="RED: CA2 integer micro-unit exact conservation")
 def test_micro_unit_conservation_holds_exact_integer_equality_for_any_iteration_count() -> None:
     engine = HiveContractEngine(hive_id="HIVE_MICRO_504")
     engine.inject_sponsored_seed_comb(10_000.0)
@@ -951,17 +949,57 @@ def test_micro_unit_conservation_holds_exact_integer_equality_for_any_iteration_
             service_fee_rate=0.10,
         )
 
-    pollen_units = sum(a.raw_pollen_units for a in engine.accounts.values())  # type: ignore[attr-defined]
-    liquid_units = sum(a.liquid_nectr_units for a in engine.accounts.values())  # type: ignore[attr-defined]
+    pollen_units = sum(a.raw_pollen_units for a in engine.accounts.values())
+    liquid_units = sum(a.liquid_nectr_units for a in engine.accounts.values())
     escrow_units = sum(
-        s.escrowed_units  # type: ignore[attr-defined]
+        s.escrowed_units
         for s in engine.sessions.values()
         if s.status == SessionStatus.INTENT_ESCROWED
     )
     assert (
-        engine.comb_reserve_units + pollen_units + liquid_units + escrow_units  # type: ignore[attr-defined]
-        == engine.total_minted_supply_units  # type: ignore[attr-defined]
+        engine.comb_reserve_units + pollen_units + liquid_units + escrow_units
+        == engine.total_minted_supply_units
     )
+
+
+def test_micro_unit_helpers_and_snapshot_mismatch_guards() -> None:
+    from decimal import Decimal
+
+    from nectr.contracts import from_micro_units, to_micro_units
+
+    assert to_micro_units(Decimal("1.5")) == 1_500_000
+    assert to_micro_units(2) == 2_000_000
+    assert from_micro_units(1_500_000) == 1.5
+
+    for bad_val in (True, Decimal("-0.1"), Decimal("NaN"), -1, "bad"):
+        with pytest.raises(ContractViolationError):
+            to_micro_units(bad_val)  # type: ignore[arg-type]
+
+    engine = _setup_basic_hive(hive_id="HIVE_MISMATCH")
+    snap = engine.to_snapshot()
+    snap["comb_reserve_units"] = snap["comb_reserve_units"] + 1
+    with pytest.raises(ContractViolationError, match="Supply conservation invariant violated"):
+        HiveContractEngine.from_snapshot(snap)
+
+    # Sub-micro-unit positive values (< 0.5e-6) round to 0 and are rejected for positive-only ops
+    with pytest.raises(ContractViolationError, match="Seed Comb injection must be positive"):
+        engine.inject_sponsored_seed_comb(1e-8)
+    with pytest.raises(ContractViolationError, match="Insufficient Comb reserve"):
+        engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", 1e-8)
+
+    # Non-finite session balance via property setter triggers assert_supply_conservation failure
+    engine.create_service_barter_escrow(
+        "s_nan_prop", "worker_1", "learner_1", "CS-101", 1.0, 5.0, TokenState.RAW_POLLEN
+    )
+    engine.sessions["s_nan_prop"].escrowed_amount = float("nan")
+    with pytest.raises(ContractViolationError, match="Non-finite session balance"):
+        engine.assert_supply_conservation()
+    engine.sessions["s_nan_prop"].escrowed_amount = 5.0
+    engine.assert_supply_conservation()
+
+    engine.accounts["learner_1"].raw_pollen_balance = float("inf")
+    with pytest.raises(ContractViolationError, match="Non-finite account balance"):
+        engine.assert_supply_conservation()
 
 
 @pytest.mark.xfail(strict=True, reason="review finding 4; fixed by CA4")

@@ -822,10 +822,6 @@ def test_register_queen_via_service_without_queen_signed_command_rejected() -> N
         service.register_bee("rogue_queen", role=BeeRole.QUEEN)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: CA2 micro-unit migration 0002 and integer persistence not yet implemented",
-)
 def test_alembic_0002_upgrades_0001_and_persists_exact_micro_units(tmp_path: Path) -> None:
     from alembic import command
     from alembic.config import Config
@@ -864,6 +860,14 @@ def test_alembic_0002_upgrades_0001_and_persists_exact_micro_units(tmp_path: Pat
     assert "total_minted_supply_units" in hive_cols
 
     reloaded = HiveServiceLayer.from_repository("HIVE_OLD", repository=repo)
-    assert reloaded.contracts.comb_reserve_units == 100_500_000  # type: ignore[attr-defined]
-    assert reloaded.contracts.total_minted_supply_units == 100_500_000  # type: ignore[attr-defined]
+    assert reloaded.contracts.comb_reserve_units == 100_500_000
+    assert reloaded.contracts.total_minted_supply_units == 100_500_000
+
+    # Verify downgrade cleanly removes 0002 columns
+    with repo.engine.begin() as conn:
+        cfg.attributes["connection"] = conn
+        command.downgrade(cfg, "0001_initial_hive_schema")
+    inspector_after = inspect(repo.engine)
+    hive_cols_after = {col["name"] for col in inspector_after.get_columns("hive_states")}
+    assert "comb_reserve_units" not in hive_cols_after
     repo.close()

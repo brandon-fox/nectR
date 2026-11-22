@@ -217,7 +217,9 @@ def create_hive_router(service: HiveServiceLayer) -> APIRouter:
             role=payload.role,
             home_hive_id=payload.home_hive_id,
         )
-        return BeeAccountResponse(**acct.to_dict())
+        return BeeAccountResponse(
+            **{k: v for k, v in acct.to_dict().items() if k in BeeAccountResponse.model_fields}
+        )
 
     @router.get("/bees/{bee_id}", response_model=BeeAccountResponse)
     def get_bee(bee_id: str) -> BeeAccountResponse:
@@ -227,7 +229,9 @@ def create_hive_router(service: HiveServiceLayer) -> APIRouter:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Bee '{bee_id}' not found in Hive '{service.hive_id}'.",
             )
-        return BeeAccountResponse(**acct.to_dict())
+        return BeeAccountResponse(
+            **{k: v for k, v in acct.to_dict().items() if k in BeeAccountResponse.model_fields}
+        )
 
     @router.post("/pollen/allocate")
     def allocate_pollen(payload: AllocatePollenRequest) -> dict[str, Any]:
@@ -282,7 +286,9 @@ def create_hive_router(service: HiveServiceLayer) -> APIRouter:
                 token_state=payload.token_state,
                 reciprocal_subject_id=payload.reciprocal_subject_id,
             )
-            return SessionResponse(**sess.to_dict())
+            return SessionResponse(
+                **{k: v for k, v in sess.to_dict().items() if k in SessionResponse.model_fields}
+            )
         except ContractViolationError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -294,7 +300,9 @@ def create_hive_router(service: HiveServiceLayer) -> APIRouter:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Session '{session_id}' not found.",
             )
-        return SessionResponse(**sess.to_dict())
+        return SessionResponse(
+            **{k: v for k, v in sess.to_dict().items() if k in SessionResponse.model_fields}
+        )
 
     @router.post("/sessions/{session_id}/settle")
     def settle_session(session_id: str, payload: SettleSessionRequest) -> dict[str, Any]:
