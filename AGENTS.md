@@ -37,3 +37,8 @@ You are operating inside the **nectR** monorepo (repository root).
 - **OpenSpec (`openspec/`):** Every behavioral change requires an OpenSpec spec/change proposal (`openspec/changes/<change-id>/`) before implementation.
 - **BDD (`features/`):** Every OpenSpec scenario must be defined in Gherkin (`features/*.feature`) and verified with `python -m behave`.
 - **Strict TDD (Red-Green-Refactor) & DDD:** Follow Red-Green-Refactor (`python -m pytest`) and respect DDD Bounded Contexts defined in `openspec/project.md` before, during, and after every action.
+
+## 5. Structure Freeze Until v0.1.0
+
+- **Freeze Policy:** no new ADRs, change proposals, skills, workflows or gates outside the Plan to B+ until v0.1.0.
+- **Plan to B+ Alignment:** All agent operations and code contributions must directly serve the planned findings remediation, test hardening, and v0.1.0 release criteria.

@@ -1,5 +1,7 @@
 # Multi-Agent Swarm, `/teamwork` & Build Orchestration Playbook
 
+> **NOTICE:** This orchestration playbook is superseded for current work by the Plan to B+; Waves 3 to 5 are out of scope until after v0.1.0.
+
 This document defines the **Two-Tier Multi-Agent Architecture**, strict worktree/file ownership boundaries, and the **Five-Wave Swarm & `/teamwork` Build Plan** for developing, verifying, simulating, and publishing **nectR**.
 
 ---
