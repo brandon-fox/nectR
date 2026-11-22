@@ -1,6 +1,6 @@
 # Flagship System Design: Private PoUW-PoW Blockchain and Hive Service Layer
 
-This architecture defines **nectR**'s closed-loop, peer-to-peer campus tutoring platform, separating cryptographic consensus (`src/nectr/chain/`), deterministic smart contract state machines (`src/nectr/contracts/`), and the hexagonal application layer (`src/nectr/services/`). Domain acronyms (`MV = PQ`, `PoUW-PoW` = Proof-of-Useful-Work plus Proof-of-Work, `FX`, `QMP`) and ubiquitous language terms are defined in the [Domain Glossary](../glossary.md) per `DEC-008`.
+This architecture defines **nectR**'s closed-loop, peer-to-peer campus tutoring platform, separating cryptographic consensus (`src/nectr/chain/`), deterministic smart contract state machines (`src/nectr/contracts/`), and the hexagonal application layer (`src/nectr/services/`). Domain acronyms (`MV = PQ`, `PoUW-PoW` = Proof-of-Useful-Work plus Proof-of-Work) and ubiquitous language terms are defined in the [Domain Glossary](../glossary.md) per `DEC-008`; `FX` denotes the cross-Hive Foreign Exchange rate (`[0.5x, 2.0x]`).
 
 Throughout this specification, **Implemented Baseline** denotes code currently present in `src/nectr/`, **Wave 1 Target Interfaces** denotes contracts/adapters specified in amended [ADR-0008](../adr/0008-adopt-ed25519-canonicaljson-and-merklelib.md) and [ADR-0009](../adr/0009-adopt-sqlmodel-alembic-structlog-and-opentelemetry.md), and **Locked Protocol Specifications** denotes economic rules in `DEC-001`–`DEC-004` and `ADR-0003`–`ADR-0007` scheduled across implementation waves.
 
@@ -53,11 +53,11 @@ flowchart TB
     end
 
     subgraph ServiceBoundary["Hive Service Layer (src/nectr/services/)"]
-        FastAPI["FastAPIHiveRouter (Wave 1 ADR-0009)<br/>src/nectr/services/api.py"]
+        FastAPI["FastAPIHiveRouter (Wave 1 Target, ADR-0009)<br/>Driving HTTP Adapter in src/nectr/services/"]
         ServiceCore["HiveServiceLayer<br/>src/nectr/services/hive_service.py"]
-        Telemetry["TelemetryAdapter (Wave 1 ADR-0009)<br/>src/nectr/services/telemetry.py (structlog + OpenTelemetry)"]
-        RepoPort["HiveRepositoryPort & TelemetryPort<br/>src/nectr/services/ports.py"]
-        SQLRepo["SQLModelHiveRepository & Alembic<br/>persistence.py + src/nectr/services/migrations/"]
+        Telemetry["TelemetryAdapter (Wave 1 Target, ADR-0009)<br/>structlog + OpenTelemetry in src/nectr/services/"]
+        RepoPort["HiveRepositoryPort (Wave 1 Target)<br/>src/nectr/services/ports.py"]
+        SQLRepo["SQLModelHiveRepository & Alembic (Wave 1 Target)<br/>src/nectr/services/ + src/nectr/services/migrations/"]
     end
 
     subgraph DomainLedger["Deterministic Domain & Consensus Containers"]
@@ -72,7 +72,7 @@ flowchart TB
     FastAPI --> ServiceCore
     ServiceCore --> Telemetry
     ServiceCore --> RepoPort
-    RepoPort -.->|"implements"| SQLRepo
+    SQLRepo -.->|"implements"| RepoPort
     SQLRepo --> DB
     ServiceCore -->|"Executes deterministic transitions"| Contracts
     ServiceCore -->|"Submits txs & mines epoch blocks"| Chain
@@ -87,13 +87,13 @@ flowchart LR
     subgraph Driving["External & Simulation Layer"]
         UIMod["ui/__init__.py (Stub)"]
         SimMod["personas/simulator.py"]
-        APIRouter["services/api.py (FastAPIHiveRouter)"]
+        APIRouter["FastAPIHiveRouter (Wave 1 Target, src/nectr/services/)"]
     end
 
     subgraph AppLayer["Application & Ports Layer (src/nectr/services/)"]
         SvcLayer["HiveServiceLayer<br/>bootstrap_sponsored_hive<br/>execute_tutoring_handshake<br/>compute_useful_work_proof<br/>mine_epoch_block"]
-        Ports["ports.py<br/>HiveRepositoryPort<br/>TelemetryPort"]
-        Adapters["Adapters (ADR-0009)<br/>SQLModelHiveRepository<br/>TelemetryAdapter<br/>migrations/"]
+        Ports["src/nectr/services/ports.py<br/>HiveRepositoryPort"]
+        Adapters["Wave 1 Adapters in src/nectr/services/ (ADR-0009)<br/>SQLModelHiveRepository<br/>TelemetryAdapter<br/>migrations/"]
     end
 
     subgraph ContractsCtx["Smart Contracts Context (src/nectr/contracts/)"]
@@ -140,8 +140,8 @@ In `src/nectr/chain/ledger.py`, every mined `Block` binds two commitments inside
   - `total_directional_edges: int` — Settled transaction edge count (`len(contracts.settled_tx_log)`).
   - `collusion_discounted_velocity: float` — Sum of `amount * effective_weight` across settled transactions.
   - `gini_coefficient: float` — Inequality index in `[0.0, 1.0]` computed by `compute_gini_coefficient()` over non-`QUEEN` `liquid_nectr_balance + raw_pollen_balance`.
-  - `graph_state_hash: str` — SHA-256 digest of sorted `tutor_effectiveness` and `comb_reserve` snapshot.
-- **`BlockHeader` Fields:** `hive_id: str`, `height: int`, `prev_hash: str`, `merkle_root: str`, `knowledge_graph_root: str`, `difficulty: int` (default `2`), `nonce: int`, `timestamp: float`.
+  - `graph_state_hash: str` — SHA-256 digest of `hive_id`, `epoch`, `comb_reserve`, and sorted `tutor_effectiveness` snapshot.
+- **`BlockHeader` Fields:** `hive_id: str`, `height: int`, `prev_hash: str`, `merkle_root: str`, `knowledge_graph_root: str`, `difficulty: int` (no field default on `BlockHeader`; `difficulty: int = 2` is defaulted on `HiveBlockchain.__init__`), `nonce: int`, `timestamp: float`.
 - **Dual Binding:** `HiveBlockchain.mine_block()` sets `knowledge_graph_root = useful_compute_proof.to_commitment_hash()` and increments `nonce` until `BlockHeader.block_hash()` begins with `"0" * self.difficulty`. `HiveBlockchain.verify_chain()` recomputes PoW prefix, `merkle_root`, `knowledge_graph_root`, and `prev_hash` links across all blocks (genesis `height=0`, `prev_hash="0" * 64`, `timestamp=1700000000.0`).
 
 ### Capped Comb Compute Jar Orchestration (`ADR-0007`)
@@ -160,7 +160,7 @@ To preserve strict closed-loop supply conservation (`MV = PQ`) while rewarding s
 
 | Component | Status | Library & License | Responsibility & Typing Constraints |
 |---|---|---|---|
-| `compute_sha256`, `compute_merkle_root`, `UsefulComputeProof`, `BlockHeader`, `Block`, `HiveBlockchain` | **Implemented Baseline** | Python stdlib `hashlib`/`json` + `pydantic` | SHA-256 hex digests, sorted compact JSON serialization, odd-leaf duplication Merkle root (`"EMPTY_BLOCK"` when empty), PoW nonce search, and chain verification |
+| `compute_sha256`, `compute_merkle_root`, `UsefulComputeProof`, `BlockHeader`, `Block`, `HiveBlockchain` | **Implemented Baseline** | Python stdlib `hashlib`/`json` + `pydantic` | SHA-256 hex digests, sorted compact JSON serialization, odd-leaf duplication Merkle root (`compute_sha256("EMPTY_BLOCK")` when empty), PoW nonce search, and chain verification |
 | `CanonicalPayload` | **Wave 1 Target (`ADR-0008`)** | `canonicaljson` (`Apache-2.0`) | Encodes dicts/models via `canonicaljson.encode_canonical_json` (RFC 7159 deterministic byte layout) prior to SHA-256 hashing across Python versions and OSes |
 | `Ed25519Signer`, `Ed25519Verifier`, `SignedTransaction` | **Wave 1 Target (`ADR-0008`)** | `cryptography` (`Apache-2.0 / BSD-3-Clause`) | Deterministic Ed25519 signing/verification via `cryptography.hazmat.primitives.asymmetric.ed25519`; zero raw private-key logging; `HiveBlockchain` validates `SignedTransaction` signatures while keeping dict compatibility |
 | `MerkleInclusionProof` | **Wave 1 Target (`ADR-0008`)** | `remerkleable` (`MIT`, zero runtime deps) | Typed adapter wrapping `remerkleable.tree` (`subtree_fill_to_contents`, `RootNode`, `to_gindex`, `merkle_hash`) with `0x00`-prefixed leaf hashing for transaction inclusion proofs in `BlockHeader.merkle_root` |
@@ -179,17 +179,17 @@ Currently, `HiveServiceLayer` (`src/nectr/services/hive_service.py`) maintains s
 
 ### Hexagonal Ports and Adapters (`src/nectr/services/`)
 
-| Module / Symbol | Role | Stack & License | Contract & Isolation Guarantees |
+| Component / Symbol | Role | Stack & License | Contract & Isolation Guarantees |
 |---|---|---|---|
-| `HiveRepositoryPort`, `TelemetryPort` (`src/nectr/services/ports.py`) | Driven Port Protocols | Python `typing.Protocol` | Abstract interfaces for loading/persisting `BeeAccount`, `ServiceBarterSession`, and `HiveState`, and emitting structured audit/trace events |
-| `SQLModelHiveRepository` (`src/nectr/services/persistence.py`) | Persistence Adapter | `sqlmodel` (`MIT`) | Implements `HiveRepositoryPort` using `sqlmodel.Session`, mapping domain dataclasses to relational rows without introducing ORM classes into `contracts/` |
+| `HiveRepositoryPort` (`src/nectr/services/ports.py`) | Driven Persistence Port | Python `typing.Protocol` | Wave 1 target abstract interface for loading/saving `BeeAccount`, `ServiceBarterSession`, and `HiveState` |
+| `SQLModelHiveRepository` (`src/nectr/services/`) | Persistence Adapter | `sqlmodel` (`MIT`) | Wave 1 target component implementing `HiveRepositoryPort` using `sqlmodel.Session`, mapping domain dataclasses to relational rows without introducing ORM classes into `contracts/` |
 | Programmatic Migrations (`src/nectr/services/migrations/`) | Schema Lifecycle | `alembic` (`MIT`) | Deterministic forward/rollback database migrations invoked programmatically for test/runtime environments |
-| `FastAPIHiveRouter` (`src/nectr/services/api.py`) | Driving HTTP Adapter | `fastapi` (`MIT`) | Translates validated HTTP payloads into `HiveServiceLayer` commands and returns deterministic JSON responses (exact route URI schemas remain governed by the `add-sqlmodel-persistence-and-api` implementation) |
-| `TelemetryAdapter` (`src/nectr/services/telemetry.py`) | Observability Adapter | `structlog` (`MIT/Apache-2.0`) + `opentelemetry-sdk` (`Apache-2.0`) | Binds `hive_id`, `epoch`, and `tx_id` context onto logs and spans with zero secrets, private keys, or student PII |
+| `FastAPIHiveRouter` (`src/nectr/services/`) | Driving HTTP Adapter | `fastapi` (`MIT`) | Wave 1 target component translating validated HTTP payloads into `HiveServiceLayer` commands and returning deterministic JSON responses (exact module filenames and route schemas are owned by the Wave 1 `add-sqlmodel-persistence-and-api` implementation) |
+| `TelemetryAdapter` (`src/nectr/services/`) | Observability Adapter | `structlog` (`MIT/Apache-2.0`) + `opentelemetry-sdk` (`Apache-2.0`) | Wave 1 target component binding `hive_id`, `epoch`, and `tx_id` context onto logs and spans with zero secrets, private keys, or student PII |
 
 ### Backward Compatibility and Atomic Rollback Invariant
 
-1. **Optional Port Defaults:** `HiveServiceLayer.__init__(hive_id, difficulty=2, accepted_status_peer_threshold=3, repository=None, telemetry=None)` preserves `repository=None` (in-memory) and `telemetry=None` defaults so existing simulation and BDD invariant suites run unchanged.
+1. **Backward-Compatible Adapter Injection:** The implemented constructor in `src/nectr/services/hive_service.py` is `HiveServiceLayer.__init__(hive_id, difficulty=2, accepted_status_peer_threshold=3)`. Wave 1 (`ADR-0009`) injects optional persistence (`HiveRepositoryPort`) and telemetry (`TelemetryAdapter`) adapters while preserving backward-compatible in-memory defaults when omitted, so existing simulation and BDD invariant suites run unchanged (exact optional constructor parameter names are owned by the Wave 1 `add-sqlmodel-persistence-and-api` implementation).
 2. **Atomic Rollback on `ContractViolationError`:** Whenever `HiveContractEngine` raises `ContractViolationError`, `HiveServiceLayer` aborts the active `SQLModelHiveRepository` unit of work and rolls back the database transaction before commit, ensuring ledger, contract state, and SQL storage never diverge.
 
 ## Comb-to-Comb Cross-Hive Bridge Sequence Flow (`ADR-0005`, `DEC-003`, `DEC-004`)
@@ -225,7 +225,9 @@ sequenceDiagram
     BridgeB->>BridgeB: Credit target_acct.liquid_nectr_balance & HIVE_B.total_minted_supply
     BridgeB->>BridgeB: HIVE_B.assert_supply_conservation()
     BridgeA-->>ServiceA: Return CROSS_HIVE_BRIDGE tx record
-    ServiceA->>Chain: submit_transaction(bridge_tx) & mine_epoch_block()
+    ServiceA->>Chain: submit_transaction(bridge_tx)
+    ServiceA->>ServiceA: mine_epoch_block()
+    ServiceA->>Chain: mine_block(useful_compute_proof)
 ```
 
 See [Smart Contracts Specification](smart_contracts.md) for full state machine diagrams, mathematical invariants, and the reconciliation mapping of all five logical service interfaces.
@@ -238,40 +240,40 @@ This architecture serves as the **System Design Portfolio Highlight** for **nect
 
 ```mermaid
 flowchart TB
-    subgraph CampusPlane["1. Campus Clients, LMS & Persona Swarm"]
+    subgraph CampusPlane["6. Campus Clients, LMS, Persona Swarm & Telemetry UI"]
         LMS["Canvas / Moodle LTI 1.3 (NRPS) + Shibboleth SAML 2.0"]
         WebUI["Read-Only Streamlit Explorer & Perses OTLP Dashboards"]
         Personas["6 Behavioral Persona Sub-Agents (Mesa ABM + ML/RL)"]
     end
 
-    subgraph ServicePlane["2. Hexagonal Hive Service Layer (src/nectr/services/)"]
+    subgraph ServicePlane["3. Hexagonal Hive Service Layer (src/nectr/services/)"]
         ComplianceGuard["Zero-PII FERPA/GDPR Guard & Title IV Service-Credit Firewall"]
         EscrowSvc["Barter Escrow & Co-Signed Handshake Service"]
         QueenSvc["Queen Governance, Certification & Arbitration Service"]
         RepoPort["SQLModel + Alembic / Strict WAL Snapshot Repository Port"]
     end
 
-    subgraph FederationPlane["3. Cross-Hive Federation Bus (ADR-0014)"]
+    subgraph FederationPlane["4. Cross-Hive Federation Bus (ADR-0014)"]
         NatsLeaf["Outbound NATS Leaf Node (TLS Port 7422) + JetStream Domain"]
         BridgeSvc["Guard Bee Accepted Status & Clamped Epoch FX Bridge Adapter"]
     end
 
-    subgraph CQRSPlane["4. Off-Chain CQRS Knowledge Graph Read Model (ADR-0014)"]
+    subgraph CQRSPlane["5. Off-Chain CQRS Knowledge Graph Read Model (ADR-0014)"]
         EventBus["Post-Commit Domain Event Consumer"]
         GraphEngine["GraphTelemetryPort (networkx / NetworKit / rustworkx)"]
     end
 
-    subgraph ContractPlane["5. Deterministic Smart Contracts (src/nectr/contracts/)"]
+    subgraph ContractPlane["2. Deterministic Smart Contracts (src/nectr/contracts/)"]
         C1["1. TokenStateAndCombContract (Demurrage + BME + Senior Sinks)"]
         C2["2. DirectionalServiceBarterContract (0% P2P + Waggle/Tremble)"]
-        C3["3. QueenGovernanceContract (Separation + QMP/Supersedure)"]
+        C3["3. QueenGovernanceContract (Separation + Queen Mandibular Pheromone [QMP]/Supersedure)"]
         C4["4. KnowledgeGraphAndPolicingContract (Pairwise Decay + Oophagy)"]
         C5["5. GuardBeeCrossHiveBridgeContract (Accepted Status + Swarming)"]
     end
 
-    subgraph ChainPlane["6. Private PoUW-PoW Blockchain Core (src/nectr/chain/)"]
+    subgraph ChainPlane["1. Consensus & Cryptographic State (src/nectr/chain/)"]
         Signer["SignerPort (PyNaCl / cryptography Ed25519) + CanonicalCodecPort (rfc8785 / canonicaljson)"]
-        Merkle["MerkleAccumulatorPort (merklelib / remerkleable + 0x00/0x01 Sparse Merkle Tree)"]
+        Merkle["MerkleAccumulatorPort (remerkleable + 0x00/0x01 Sparse Merkle Tree)"]
         PoUW["Transcript-Oracle PoUW-PoW Miner (Capped Comb Compute Jar)"]
         Ledger["Immutable Block Ledger (32-Byte kg_root Commitment)"]
     end
@@ -291,7 +293,7 @@ flowchart TB
 
 | Architectural Plane | Core Responsibility | Permissive OSS Stack (`MIT` / `Apache-2.0` / `BSD`) | Key Invariant / Design Boundary |
 | :--- | :--- | :--- | :--- |
-| **1. Consensus & Cryptographic State (`src/nectr/chain/`)** | Block headers, Ed25519 signatures, canonical serialization, domain-separated Merkle roots, and Transcript-Oracle `PoUW-PoW`. | `PyNaCl` / `cryptography` (`Apache-2.0`/`BSD`), `rfc8785` / `canonicaljson` (`Apache-2.0`), `remerkleable` / `merklelib` (`MIT`). | Zero tutoring business logic; `0x00` leaf / `0x01` node domain separation blocks odd-leaf duplication; `pymerkle` (`GPLv3+`) is strictly banned (`ADR-0008`). |
+| **1. Consensus & Cryptographic State (`src/nectr/chain/`)** | Block headers, Ed25519 signatures, canonical serialization, domain-separated Merkle roots, and Transcript-Oracle `PoUW-PoW`. | `PyNaCl` / `cryptography` (`Apache-2.0`/`BSD`), `rfc8785` / `canonicaljson` (`Apache-2.0`), `remerkleable` (`MIT`). | Zero tutoring business logic; `0x00` leaf / `0x01` node domain separation blocks odd-leaf duplication; `pymerkle` (`GPLv3+`) and `merklelib` (Python 3.10+ incompatible) are rejected (`ADR-0008`). |
 | **2. Deterministic Smart Contracts (`src/nectr/contracts/`)** | Pure finite-state machines executing token refinement, barter escrow, Queen governance, pairwise decay, and Guard Bee bridging. | Pure Python stdlib + `icontract` (`MIT`) Design-by-Contract + `Hypothesis` (`MPL-2.0`) + **Quint / TLA+** (`Apache-2.0`) formal verification. | Pure functions of `(current_state, signed_tx, block_context)`; enforces invariants `D-01` through `D-08` and strict supply conservation. |
 | **3. Hexagonal Hive Service Layer (`src/nectr/services/`)** | Durable persistence, schema migrations, REST APIs, Zero-PII FERPA/GDPR hashing, and structured tracing. | `FastAPI` (`MIT`), `SQLModel` (`MIT`), `Alembic` (`MIT`), `RocksDict` / `aiosqlite` (`MIT` strict WAL snapshot mode), `structlog`, `opentelemetry-sdk`. | Single-writer sequential block application; bans SQL `now()`/`random()` so block replay yields bit-identical state roots across VMs (`ADR-0009`). |
 | **4. Cross-Hive Federation Bus (`ADR-0014`)** | Relays `AcceptedStatusGranted` and Comb-to-Comb bridge proofs across asymmetric university NATs and firewalls. | `nats-server` + `nats-py` (`Apache-2.0`, CNCF/Synadia May 2025 settlement) using **Leaf Nodes (port `7422`)** & **JetStream Domains**. | Outbound-only TLS connections require zero inbound campus firewall rules and avoid `py-libp2p` v0.8.0's `trio`-only event-loop incompatibility. |
