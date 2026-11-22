@@ -313,3 +313,20 @@ def step_then_roadmap_and_vision_ok(context) -> None:
     assert "Track CA" in context.roadmap_text or "Core Contracts" in context.roadmap_text
     assert "Track CB" in context.roadmap_text or "Service Layer" in context.roadmap_text
     assert "Track DC" in context.roadmap_text or "Documentation" in context.roadmap_text
+
+
+@then(
+    "roadmap.md accurately details all Plan to B+ workstream deliverables and unmerged hold statuses"
+)
+def step_then_roadmap_accurately_details_plan_to_b_plus(context) -> None:
+    text = context.roadmap_text
+    assert "[ ] **CA3:**" in text
+    assert "[ ] **CB1:**" in text
+    assert "dispute and escrow-cancel" in text.lower()
+    assert "append-only" in text and "verify_chain()" in text
+    assert "velocity" in text and "royal jelly" in text.lower()
+    assert "--check-stale" in text
+    assert "license" in text.lower() and "author" in text.lower()
+    assert ("numpy" in text.lower() or "runtime" in text.lower()) and "TL4" in text
+    assert "**TL6:**" in text
+    assert "**TL7:**" in text
