@@ -163,9 +163,6 @@ def test_lineage_graph_propagates_quarantine_blast_radius(tmp_path: Path) -> Non
     assert "code:m" in rebuilt
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: nectr_sim_baseline_2026 not yet annotated as smoke scenario"
-)
 def test_nectr_sim_baseline_annotation() -> None:
     """Verify nectr_sim_baseline_2026 in paper/references.yaml is explicitly annotated as smoke-scenario."""
     from nectr.devtools.citations import load_references

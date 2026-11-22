@@ -371,12 +371,12 @@ references:
     status: verified
 
   - id: nectr_sim_baseline_2026
-    title: nectR Multi-Hive 6-Persona Baseline Invariant Telemetry
+    title: "nectR Multi-Hive 6-Persona Baseline Invariant Telemetry (Scripted smoke-scenario output (not an experiment))"
     authors:
       - nectR Behavioral Economy Team
     year: 2026
     source_type: internal-experiment
-    venue: src/nectr/personas/simulator.py
+    venue: "src/nectr/personas/simulator.py (Scripted smoke-scenario output (not an experiment))"
     custody_agent: ux-behavior-agent
     plagiarism_screen: clean
     status: verified
