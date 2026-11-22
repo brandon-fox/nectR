@@ -813,3 +813,10 @@ def test_serialize_tx_entry_and_snapshot_mempool_normalization() -> None:
         {"kind": "BARTER", "amount": 4.5},
         {"kind": "PROXY", "nested": {"x": 1}},
     ]
+
+
+@pytest.mark.xfail(strict=True, reason="review finding 1; fixed by CB1")
+def test_register_queen_via_service_without_queen_signed_command_rejected() -> None:
+    service = HiveServiceLayer(hive_id="HIVE_AUTH", difficulty=1)
+    with pytest.raises((ContractViolationError, PermissionError, TypeError)):
+        service.register_bee("rogue_queen", role=BeeRole.QUEEN)

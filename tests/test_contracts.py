@@ -875,3 +875,133 @@ def test_snapshot_hydration_rejects_corrupted_fields_and_bad_types() -> None:
         bad_sess[field_name] = bad_val
         with pytest.raises(ContractViolationError):
             ServiceBarterSession.from_dict(bad_sess)
+
+
+# ---------------------------------------------------------------------------
+# Review Findings Strict RED Regression Tests (CA1)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.xfail(strict=True, reason="review finding 3; fixed by CA2")
+def test_repeated_fractional_disputes_conserve_supply_with_exact_equality() -> None:
+    engine = HiveContractEngine(hive_id="HIVE_EXACT_SUPPLY")
+    engine.inject_sponsored_seed_comb(10_000.0)
+    engine.register_bee("queen_1", role=BeeRole.QUEEN)
+    engine.register_bee("tutor_1", role=BeeRole.LEARNER_BEE)
+    engine.register_bee("learner_1", role=BeeRole.LEARNER_BEE)
+    engine.certify_worker_bee("queen_1", "tutor_1", "CS-101")
+
+    for idx in range(500):
+        engine.allocate_raw_pollen_to_learner("queen_1", "learner_1", 0.1234567)
+        sess_id = f"frac_sess_{idx}"
+        engine.create_service_barter_escrow(
+            session_id=sess_id,
+            tutor_id="tutor_1",
+            learner_id="learner_1",
+            subject_id="CS-101",
+            duration_hours=1.0,
+            amount=0.1234567,
+            token_state=TokenState.RAW_POLLEN,
+        )
+        engine.resolve_disputed_session(
+            queen_id="queen_1",
+            session_id=sess_id,
+            tutor_share_ratio=1.0 / 3.0,
+            service_fee_rate=0.10,
+        )
+
+    total_pollen = sum(a.raw_pollen_balance for a in engine.accounts.values())
+    total_liquid = sum(a.liquid_nectr_balance for a in engine.accounts.values())
+    total_escrow = sum(
+        s.escrowed_amount
+        for s in engine.sessions.values()
+        if s.status == SessionStatus.INTENT_ESCROWED
+    )
+    assert (
+        engine.comb_reserve + total_pollen + total_liquid + total_escrow
+        == engine.total_minted_supply
+    )
+
+
+@pytest.mark.xfail(strict=True, reason="review finding 4; fixed by CA4")
+def test_bridge_rejects_foreign_mover_registered_in_target_without_home_hive_id() -> None:
+    hive_a = HiveContractEngine(hive_id="HIVE_A")
+    hive_b = HiveContractEngine(hive_id="HIVE_B")
+
+    hive_a.inject_sponsored_seed_comb(500.0)
+    hive_b.inject_sponsored_seed_comb(500.0)
+
+    hive_a.register_bee("queen_a", role=BeeRole.QUEEN)
+    hive_a.register_bee("learner_a", role=BeeRole.LEARNER_BEE)
+    hive_a.register_bee("mover", role=BeeRole.LEARNER_BEE)
+    hive_a.certify_worker_bee("queen_a", "mover", "CS-101")
+    hive_a.allocate_raw_pollen_to_learner("queen_a", "learner_a", 50.0)
+    hive_a.create_service_barter_escrow(
+        session_id="earn_in_a",
+        tutor_id="mover",
+        learner_id="learner_a",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=50.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    hive_a.settle_co_signed_session("earn_in_a", 1.0, "hash_earn_a")
+    assert hive_a.accounts["mover"].liquid_nectr_balance == 50.0
+
+    # Register "mover" in HIVE_B without home_hive_id and without tutoring anyone there
+    hive_b.register_bee("mover", role=BeeRole.LEARNER_BEE)
+
+    with pytest.raises(ContractViolationError, match="Guard Bee Rejection"):
+        hive_a.bridge_nectr_to_target_hive("mover", hive_b, 20.0)
+
+
+@pytest.mark.xfail(strict=True, reason="review finding 5a; fixed by CA3")
+def test_queen_cannot_resolve_undisputed_escrow_at_full_fee() -> None:
+    engine = _setup_basic_hive()
+    engine.create_service_barter_escrow(
+        session_id="s_undisputed",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=20.0,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    comb_before = engine.comb_reserve
+    with pytest.raises(ContractViolationError):
+        engine.resolve_disputed_session(
+            queen_id="queen_1",
+            session_id="s_undisputed",
+            tutor_share_ratio=0.5,
+            service_fee_rate=1.0,
+        )
+    assert engine.sessions["s_undisputed"].status == SessionStatus.INTENT_ESCROWED
+    assert engine.sessions["s_undisputed"].escrowed_amount == 20.0
+    assert engine.comb_reserve == comb_before
+
+
+@pytest.mark.xfail(strict=True, reason="review finding 5b; fixed by CA3")
+def test_learner_cancels_expired_escrow_and_recovers_original_token_state() -> None:
+    engine = _setup_basic_hive()
+    engine.create_service_barter_escrow(  # type: ignore[call-arg]
+        session_id="s_expired",
+        tutor_id="worker_1",
+        learner_id="learner_1",
+        subject_id="CS-101",
+        duration_hours=1.0,
+        amount=15.0,
+        token_state=TokenState.RAW_POLLEN,
+        created_at_epoch=0,
+        expiry_epochs=5,
+    )
+    assert engine.accounts["learner_1"].raw_pollen_balance == 35.0
+
+    engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+        session_id="s_expired",
+        learner_id="learner_1",
+        current_epoch=6,
+    )
+    assert engine.accounts["learner_1"].raw_pollen_balance == 50.0
+    assert engine.accounts["learner_1"].liquid_nectr_balance == 0.0
+    assert engine.sessions["s_expired"].status != SessionStatus.INTENT_ESCROWED
+    engine.assert_supply_conservation()
