@@ -1,0 +1,76 @@
+name: PR Lifecycle, Auto-Merge & Serial Rebase Queue
+
+on:
+  pull_request:
+    branches: [main]
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+      - converted_to_draft
+      - labeled
+      - unlabeled
+  push:
+    branches: [main]
+  schedule:
+    # Sweep every 30 minutes for stale hygiene & fallback queue reconciliation
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview planned PR lifecycle actions without mutating GitHub state"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: pr-lifecycle-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-pr-lifecycle:
+    name: Reconcile Auto-Merge, Serial Rebase & Stale Lifecycle
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up uv & Python 3.12
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-suffix: pr-lifecycle
+
+      - name: Install base project for lifecycle CLI
+        run: uv sync --frozen --no-default-groups
+
+      - name: Reconcile open pull requests (auto-merge, FIFO rebase, conflicts & stale)
+        env:
+          GH_TOKEN: ${{ secrets.PR_LIFECYCLE_TOKEN || github.token }}
+          HAS_PAT_TOKEN: ${{ secrets.PR_LIFECYCLE_TOKEN != '' && 'true' || 'false' }}
+          EVENT_NAME: ${{ github.event_name }}
+          DRY_RUN_FLAG: ${{ inputs.dry_run && 'true' || 'false' }}
+          REPO_SLUG: ${{ github.repository }}
+        run: |
+          ARGS=(reconcile --repo "${REPO_SLUG}")
+          if [ "${HAS_PAT_TOKEN}" = "true" ]; then
+            ARGS+=(--has-pat)
+          fi
+          if [ "${EVENT_NAME}" = "schedule" ] || [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            ARGS+=(--check-stale)
+          fi
+          if [ "${DRY_RUN_FLAG}" = "true" ]; then
+            ARGS+=(--dry-run)
+          fi
+          uv run python -m nectr.devtools.pr_lifecycle "${ARGS[@]}"

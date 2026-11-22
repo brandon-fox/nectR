@@ -13,10 +13,10 @@ Feature: End-to-End Hook, CI Pipeline, Scheduled Audit, and Release Parity
     When the CI matrix and dependency audit configuration is validated
     Then CI installs locked dev and research extras via uv and runs tests across Python 3.11 to 3.13 on Linux and Windows
 
-  Scenario: Main-branch merge guard rejects unimplemented @red BDD scenarios and enforces 80 percent coverage floor
+  Scenario: Main-branch merge guard rejects unimplemented @red BDD scenarios and enforces 90 percent branch coverage floor
     Given a simulated main-branch CI check with an active @red feature scenario
     When the main-branch readiness gate evaluates BDD tags and pytest coverage configuration
-    Then validation fails on lingering @red scenarios and requires at least 80 percent XML-reported test coverage
+    Then validation fails on lingering @red scenarios and requires at least 90 percent XML-reported branch coverage
 
   Scenario: Scheduled security scan and release workflow enforce baseline drift, schema validation, and tagged changelogs
     Given the scheduled security scan, PR policy, and release workflow configurations
