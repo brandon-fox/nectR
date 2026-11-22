@@ -179,3 +179,49 @@ def step_then_openspec_lifecycle_ok(context) -> None:
     assert "Active Changes" in context.openspec_readme
     assert "Deferred Changes" in context.openspec_readme
     assert "Archived Changes" in context.openspec_readme
+
+
+@when(
+    "the ADR and audit log wording validator inspects ADR records, README, architecture, theory, and glossary"
+)
+def step_when_inspect_audit_log_wording(context) -> None:
+    context.adr_19_path = (
+        context.repo_root
+        / "docs"
+        / "adr"
+        / "0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md"
+    )
+    context.adr_7_path = (
+        context.repo_root
+        / "docs"
+        / "adr"
+        / "0007-couple-open-campus-pouw-pow-mining-to-capped-comb-compute-jar.md"
+    )
+    context.lock_path = context.repo_root / "adrlint.lock"
+    context.sys_design_path = context.repo_root / "docs" / "architecture" / "system_design.md"
+    context.readme_path = context.repo_root / "README.md"
+
+
+@then(
+    "ADR-0019 is accepted superseding ADR-0007 and consensus wording describes the signed audit log"
+)
+def step_then_audit_log_wording_ok(context) -> None:
+    assert context.adr_19_path.exists(), "Expected ADR-0019 to exist"
+    adr_19_text = context.adr_19_path.read_text(encoding="utf-8")
+    assert "status: accepted" in adr_19_text
+    assert "Treat the hive chain as a signed, hash-chained audit log" in adr_19_text
+    assert "supersedes `ADR-0007`" in adr_19_text or "supersedes ADR-0007" in adr_19_text
+
+    adr_7_text = context.adr_7_path.read_text(encoding="utf-8")
+    assert "status: superseded by ADR-0019" in adr_7_text
+
+    lock_text = context.lock_path.read_text(encoding="utf-8")
+    assert "0019-treat-the-hive-chain-as-a-signed-hash-chained-audit-log.md" in lock_text
+
+    readme_text = context.readme_path.read_text(encoding="utf-8")
+    assert "Hybrid `PoUW-PoW` distributed compute consensus" not in readme_text
+    assert "audit log" in readme_text
+
+    sys_design_text = context.sys_design_path.read_text(encoding="utf-8")
+    assert "Private PoUW-PoW Blockchain" not in sys_design_text
+    assert "Signed Audit Log" in sys_design_text or "signed audit log" in sys_design_text
