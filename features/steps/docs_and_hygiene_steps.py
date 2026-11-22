@@ -86,3 +86,27 @@ def step_then_hygiene_ok(context) -> None:
         assert persona in context.optional_deps, f"Missing persona extra '{persona}'"
     assert any("adrlint" in item for item in context.optional_deps.get("lint", []))
     assert "pyadr" not in str(context.optional_deps.get("dev", []))
+
+
+@when("the documentation freeze validator inspects AGENTS.md and agent_orchestration.md")
+def step_when_inspect_freeze(context) -> None:
+    agents_path = context.repo_root / "AGENTS.md"
+    orch_path = context.repo_root / "docs" / "planning" / "agent_orchestration.md"
+    context.agents_text = agents_path.read_text(encoding="utf-8") if agents_path.exists() else ""
+    context.orch_text = orch_path.read_text(encoding="utf-8") if orch_path.exists() else ""
+
+
+@then(
+    "AGENTS.md enforces the structure freeze and agent_orchestration.md displays the superseded banner"
+)
+def step_then_freeze_ok(context) -> None:
+    assert (
+        "Structure Freeze Until v0.1.0" in context.agents_text
+        or "Freeze Until v0.1.0" in context.agents_text
+    )
+    assert (
+        "no new ADRs, change proposals, skills, workflows or gates outside the Plan to B+ until v0.1.0"
+        in context.agents_text
+    )
+    assert "superseded for current work by the Plan to B+" in context.orch_text
+    assert "Waves 3 to 5 are out of scope until after v0.1.0" in context.orch_text
