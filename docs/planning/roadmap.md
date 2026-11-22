@@ -42,23 +42,24 @@ flowchart LR
   - [x] Track 4: [Permissive Tooling & Formal Verification Survey](../theory/research/permissive_tooling_survey_for_nectR.md)
   - [x] Track 5: [Federated PoUW-PoW & NATS Infrastructure](../theory/research/federated_PoUW-PoW_blockchain_infrastructure.md)
   - [x] Track 6: [Non-Dilutive Funding & Campus Pilot Strategy](../theory/research/nectR_funding_and_pilot_strategy.md)
-- [x] **Lock Architectural Decisions (`ADR-0001`–`ADR-0015`) & Fast Operational Rules (`DEC-001`–`DEC-015`, `EXP-001`–`EXP-005`):** Completed `/grill-me` synthesis across tokenomics, governance, permissive tooling, NATS Leaf Node / CQRS isolation (`ADR-0014`), and Zero-PII FERPA/GDPR/Title IV compliance (`ADR-0015`).
+- [x] **Lock Architectural Decisions (`ADR-0001`–`ADR-0018`) & Fast Operational Rules (`DEC-001`–`DEC-020`, `EXP-001`–`EXP-006`):** Completed `/grill-me` synthesis across tokenomics, governance, permissive tooling, NATS Leaf Node / CQRS isolation (`ADR-0014`), Zero-PII FERPA/GDPR/Title IV compliance (`ADR-0015`), off-chain `n8n` boundary (`ADR-0016`), zero-gas `vyper` + `py-evm` smart contracts with `uint256` `micro_nectr` (`ADR-0017`, `DEC-017`–`DEC-019`), **Pact v4 + PactFlow** bi-directional HTTP & async message contracts (`ADR-0018`), and **JASSS / JEBO (`ODD+D`) + NSF DRMS / RSF** primary academic framing (`DEC-020`).
 - [x] **Citation Validation & Provenance Chain-of-Custody ([#7](https://github.com/brandon-fox/nectR/issues/7)):** Expanded `paper/references.yaml` (`27` external references, `88.9%` peer-reviewed floor) and `paper/lineage.yaml` (`36` DAG edges) with automated downstream quarantine & rebuild flagging (`nectr-citations`).
 - [x] **Formalize Biomimetic & Game-Theoretic Specifications:** Expanded [`docs/theory/biomimicry_model.md`](../theory/biomimicry_model.md), [`docs/theory/tokenomics_game_theory.md`](../theory/tokenomics_game_theory.md), and [`docs/theory/whitepaper_outline.md`](../theory/whitepaper_outline.md) with 1-to-1 ODEs, payoff matrices, Spence separating thresholds, and duplex `PoUW-PoW` security proofs.
 
 ---
 
-## Milestone 2: Private `PoUW-PoW` Blockchain, 5 Smart Contracts & Federated Service Layer
+## Milestone 2: Private `PoUW-PoW` Blockchain, 5 Vyper `py-evm` Contracts & PactFlow Service Layer
 
 - [ ] **Wave 2A — Cryptographic & Merkle Ports + Transcript-Oracle `PoUW-PoW` (`src/nectr/chain/`, `adopt-ed25519-and-pymerkle`):**
-  - Implement `SignerPort` (`PyNaCl` / `cryptography` Ed25519), `CanonicalCodecPort` (`rfc8785` / `canonicaljson`), and `MerkleAccumulatorPort` (`merklelib` / `remerkleable` + `0x00`/`0x01` domain-separated Sparse Merkle Tree) (`ADR-0008`).
+  - Baseline `Ed25519Signer`, `CanonicalPayload`, and `remerkleable` `MerkleInclusionProof` delivered (`ADR-0008`); extend `BlockHeader` to anchor both `evm_state_root` (`ADR-0017`) and `0x00`/`0x01` domain-separated `knowledge_graph_root`.
   - Couple Transcript-Oracle `PoUW-PoW` difficulty ($\Delta_{\text{sec}} > 0$, `ball_2018`) to the capped Comb Compute Jar (`ADR-0007`).
-- [ ] **Wave 2B — Extended Biomimetic Lifecycle & Swarming Smart Contracts (`src/nectr/contracts/`, `add-biomimetic-lifecycle-and-swarming-contracts`):**
-  - Decorate `HiveContractEngine` with `icontract` Design-by-Contract invariants (`D-01`–`D-08`) and formalize `specs/quint/hive_invariants.qnt` (Quint / TLA+ / Apalache).
-  - Implement `DemurrageAccumulator` (`DEC-001`), `WaggleTrembleController` (`DEC-002`, `DEC-013`), `QMPHealthAndSupersedureFSM`, `TemporalPolyethismGovernor` (Khoury Precocious Promotion Circuit Breaker, `D-07`), 3-door Senior graduation sinks (`DEC-004`), and `SwarmBivouacEscrow` (`6.25x–8.0x` Honey-to-Wax burn + 15-Scout Quorum Sensing, `DEC-012`, `D-08`).
-- [ ] **Wave 2C — Hexagonal Persistence, CQRS Graph Read Model & FastAPI (`src/nectr/services/`, `add-sqlmodel-persistence-and-api`):**
-  - Implement `HiveRepositoryPort` with `SQLModel` + `Alembic` (and strict single-writer WAL snapshot mode banning SQL wall-clock functions), `FastAPI` endpoints, and `structlog` + `OpenTelemetry` tracing (`ADR-0009`).
-  - Isolate `networkx`/`NetworKit`/`rustworkx` Knowledge Graph analytics in an asynchronous post-commit CQRS projector while committing only the 32-byte `kg_root` on-chain (`ADR-0014`).
+- [ ] **Wave 2B-1 — Core Vyper `.vy` Smart Contracts on Zero-Gas `py-evm` (`src/nectr/contracts/`, `adopt-vyper-and-zero-gas-pyevm`, `ADR-0017`):**
+  - Implement all 5 core `.vy` smart contracts (`vyper` `Apache-2.0`) on zero-gas-price `eth-tester[py-evm]` + `web3.py` (`MIT`) with exact `uint256` `micro_nectr` (`DEC-017`), `0..10,000 bps` direct learner attestations (`DEC-018`), `eth-account` (`secp256k1` EIP-712) `msg.sender` wallets (`DEC-019`), Lazy Demurrage (`DEC-001`), Waggle `60%` Co-Pay (`DEC-002`), `25-minute` minimum block (`DEC-011`), and 3-door Senior graduation sinks (`DEC-004`).
+- [ ] **Wave 2B-2 — Colony Lifecycle, Policing & Swarming `.vy` Extensions (`src/nectr/contracts/`, `add-biomimetic-lifecycle-and-swarming-contracts`):**
+  - Formalize `specs/quint/hive_invariants.qnt` (Quint / TLA+ / Apalache) + `icontract` boundary invariants (`D-01`–`D-08`) and implement `QMPHealthAndSupersedure` (24h Emergency Election), `TemporalPolyethismGovernor` (Khoury EO Circuit Breaker, `D-07`), Oophagy Fraud Proofs, and `SwarmBivouacEscrow` (`6.25x–8.0x` Honey-to-Wax burn + 15-Scout Quorum Sensing, `DEC-012`, `D-08`).
+- [ ] **Wave 2C — Canonical `SQLModel` Block-Log Replay, CQRS Graph Projector & PactFlow Contracts (`src/nectr/services/`, `add-pactflow-api-and-message-contracts`):**
+  - Extend `SQLModelHiveRepository` + `FastAPIHiveRouter` (`ADR-0009`) with deterministic canonical block-log replay into `py-evm` (`evm_state_root` verification, `ADR-0017`) and asynchronous post-commit `CQRSGraphProjector` (`networkx`/`NetworKit`/`rustworkx`, `ADR-0014`).
+  - Enforce `pact-python` v4 consumer HTTP REST (`FastAPI`) and async message (`NATS JetStream`) pacts offline in `pytest`/`behave`, plus **PactFlow** Bi-Directional OpenAPI 3.1 verification and `can-i-deploy` release gates in CI (`ADR-0018`).
 - [ ] **Wave 2D — Outbound NATS Leaf Node Federation & Kurtosis Chaos Testbed (`add-nats-jetstream-cross-hive-federation`):**
   - Implement `CrossHiveBridgePort` over `nats-py` Leaf Nodes (outbound TLS port `7422`) and per-Hive JetStream Domains (`ADR-0014`).
   - Package reproducible multi-Hive fault-injection enclaves with post-June-2024 Apache-2.0 **Kurtosis** + **Pumba** (`tc netem`) / **Toxiproxy** (`DEC-014`).
@@ -84,10 +85,10 @@ flowchart LR
 ## Milestone 4: Academic Paper, Non-Dilutive Grant Pipeline & Flagship Portfolio
 
 - [x] **Living Docs, Glossary & IDE-Agnostic Onboarding ([#9](https://github.com/brandon-fox/nectR/issues/9), [#12](https://github.com/brandon-fox/nectR/issues/12)):** Added `docs/glossary.md` defining `MV=PQ` & `PoUW-PoW`, made `README.md` IDE/skill-agnostic, and automated `README.md` spaces & `mkdocs.yml` `nav:` generation/drift checks (`nectr-docs`).
-- [ ] **Compile Publication-Ready Whitepaper (`paper/nectR_whitepaper.md`):** Author the 10-section manuscript following [`docs/theory/whitepaper_outline.md`](../theory/whitepaper_outline.md) with 100% verified `nectr-citations check` custody and empirical figures from `experiments/`.
+- [ ] **Compile Publication-Ready Whitepaper (`paper/nectR_whitepaper.md`, `DEC-020`):** Author the 10-section manuscript targeting **JASSS (*Journal of Artificial Societies and Social Simulation*)** / ***JEBO*** using the **ODD+D** ABM protocol ([`docs/theory/whitepaper_outline.md`](../theory/whitepaper_outline.md)) with 100% verified `nectr-citations check` custody and empirical figures from `experiments/`.
 - [ ] **Finalize Institutional ROI & Grant Submission Dossiers (`business/`, `docs/business/institutional_proposal.md`):**
   - Package the 10,000-student university ROI calculator (`$42.50/hr` $\rightarrow$ `$3.33/hr`, `2.40` break-even retained freshmen, `1,150%` Year-1 ROI).
-  - Prepare Q1 2027 non-dilutive grant submissions: **NSF IUSE: EDU** (`Jan 20, 2027`), **NSF Future CoRe (`CISE`)** (`Feb 4, 2027`), **Ethereum Foundation `ESP`** (`Feb 2027`), **NSF PESOSE Track 1** (`Mar 2, 2027`), **NSF DRMS**, **Russell Sage Foundation (+ J-PAL)**, and **Alfred P. Sloan Foundation**.
+  - Prepare Q1 2027 non-dilutive grant submissions led by primary behavioral/ACE targets **NSF DRMS** and **Russell Sage Foundation (+ J-PAL RCT)** (`DEC-020`), alongside **NSF IUSE: EDU** (`Jan 20, 2027`), **NSF Future CoRe (`CISE`)** (`Feb 4, 2027`), **Ethereum Foundation `ESP`** (`Feb 2027`), **NSF PESOSE Track 1** (`Mar 2, 2027`), and **Alfred P. Sloan Foundation**.
 - [ ] **Publish System Design Portfolio Site:** Verify and deploy via `uv run mkdocs build --strict`.
 
 ---

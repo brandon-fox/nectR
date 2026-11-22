@@ -132,6 +132,40 @@ decisions:
     owner_agent: ux-behavior-agent
     related_adr: docs/adr/0016-scope-external-workflow-automation-off-chain.md
 
+  - id: DEC-017
+    category: parameter-default
+    status: locked
+    title: Integer micro_nectr (10^6) & Basis-Point On-Chain Math
+    decision: Represent all on-chain Vyper balances in uint256 micro_nectr (1 nectR = 1,000,000 units) and rates in bps (0..10,000), converting to decimals only at Service/UI boundaries.
+    owner_agent: contracts-service-agent
+    related_adr: docs/adr/0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md
+    openspec_ref: openspec/specs/protocol-invariants/spec.md
+
+  - id: DEC-018
+    category: parameter-default
+    status: locked
+    title: Direct On-Chain Learner Attestation Scores (0..10,000 bps)
+    decision: Keep co-signed learner session attestation scores (0..10,000 bps) inside DirectionalServiceBarter.vy, relying on pairwise decay (alpha=1.5) and lineage to limit inflation.
+    owner_agent: contracts-service-agent
+    related_adr: docs/adr/0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md
+    openspec_ref: openspec/specs/protocol-invariants/spec.md
+
+  - id: DEC-019
+    category: security-oss
+    status: locked
+    title: Layered secp256k1 EVM Wallets & Ed25519 Consensus Keys
+    decision: Sign Vyper EVM calls and EIP-712 session handshakes with eth-account (secp256k1, MIT) for native py-evm msg.sender; keep Ed25519 + remerkleable for PoUW-PoW & NATS proofs.
+    owner_agent: pow-compute-agent
+    related_adr: docs/adr/0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md
+
+  - id: DEC-020
+    category: research-hygiene
+    status: locked
+    title: JASSS / JEBO (ODD+D) Venue & NSF DRMS / RSF Grant Priority
+    decision: Anchor paper/nectR_whitepaper.md on JASSS / JEBO using the standard ABM ODD+D protocol, paired with NSF DRMS and Russell Sage Foundation (J-PAL RCT) primary grants.
+    owner_agent: sci-research-agent
+    related_adr: docs/adr/0010-adopt-mesa-abm-and-hypothesis-invariant-testing.md
+
 experiments:
   - id: EXP-001
     status: open-simulation

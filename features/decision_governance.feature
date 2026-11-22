@@ -30,7 +30,6 @@ Feature: Dual-Track Decision Governance (adrlint MADR 4.0 and Fast Decision Regi
     And DEC-016 and EXP-006 enforce an off-chain n8n boundary with permissive OSS roadmap options
     And an accepted locked MADR record documents the external workflow automation scope
 
-  @red
   Scenario: Vyper py-evm chain contracts, PactFlow API contracts, micro_nectr math, and JASSS ODD+D framing are locked
     Given the repository root decision governance workspace
     When the Vyper py-evm, PactFlow, and JASSS ODD+D governance checks inspect ADRs, decisions, and OpenSpec proposals

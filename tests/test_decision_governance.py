@@ -258,10 +258,6 @@ def test_n8n_workflow_decisions_adr_and_roadmap_options() -> None:
         assert option_tool in roadmap_text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="RED: lock-vyper-pactflow-and-grill-me-decisions ADR-0017/0018 and DEC-017..020 pending",
-)
 def test_vyper_pyevm_pactflow_and_jasss_grill_me_decisions_locked() -> None:
     """Verify ADR-0017, ADR-0018, DEC-017..020, Vyper/PactFlow OpenSpec proposals, and ODD+D framing."""
     from nectr.devtools.decisions import DecisionStatus, check_all_governance, load_registry

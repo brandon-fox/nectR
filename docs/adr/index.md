@@ -24,6 +24,8 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0014` | [Adopt NATS Leaf Nodes JetStream and CQRS Graph Isolation](0014-adopt-nats-leaf-nodes-jetstream-and-cqrs-graph-isolation.md) | `accepted` |
 | `ADR-0015` | [Enforce Zero-PII FERPA GDPR and Title IV Campus Compliance](0015-enforce-zero-pii-ferpa-gdpr-and-title-iv-campus-compliance.md) | `accepted` |
 | `ADR-0016` | [Scope External Workflow Automation Off-Chain](0016-scope-external-workflow-automation-off-chain.md) | `accepted` |
+| `ADR-0017` | [Adopt Vyper and Zero-Gas py-evm Smart Contracts](0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md) | `accepted` |
+| `ADR-0018` | [Enforce Pact v4 and PactFlow Bi-Directional Contracts](0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md) | `accepted` |
 <!-- END AUTO-ADR-INDEX -->
 
 ## `adrlint` Workflow & Configuration
