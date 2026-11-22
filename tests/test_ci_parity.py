@@ -144,6 +144,9 @@ def _write_synthetic_workspace(root: Path, *, include_release: bool = True) -> N
                   - run: python -m behave
               pr-merge-safety:
                 steps:
+                  - uses: actions/checkout@v7
+                    with:
+                      ref: ${{ github.event.pull_request.head.sha }}
                   - uses: astral-sh/setup-uv@v10.4.0
                     with:
                       cache-suffix: merge-safety

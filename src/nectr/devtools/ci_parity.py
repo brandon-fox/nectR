@@ -254,7 +254,11 @@ _GATE_SPECS: tuple[_GateSpec, ...] = (
         stage_patterns=(
             (
                 ".github/workflows/license-and-security-scan.yml",
-                (r"nectr\.devtools\.pr_lifecycle\s+check-branch", r"uv\s+lock\s+--check"),
+                (
+                    r"nectr\.devtools\.pr_lifecycle\s+check-branch",
+                    r"uv\s+lock\s+--check",
+                    r"pull_request\.head\.sha",
+                ),
             ),
         ),
     ),
