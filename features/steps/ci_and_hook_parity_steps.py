@@ -158,7 +158,7 @@ def step_when_main_readiness_evaluated(context: Any) -> None:
 
 
 @then(
-    "validation fails on lingering @red scenarios and requires at least 80 percent XML-reported test coverage"
+    "validation fails on lingering @red scenarios and requires at least 90 percent XML-reported branch coverage"
 )
 def step_then_red_rejected_and_coverage_enforced(context: Any) -> None:
     assert len(context.red_hits) == 1, f"Expected 1 @red hit, got: {context.red_hits}"
@@ -168,8 +168,9 @@ def step_then_red_rejected_and_coverage_enforced(context: Any) -> None:
     assert "github.ref == 'refs/heads/main' || github.base_ref == 'main'" in context.ci_text
     assert "nectr.devtools.ci_parity" in context.ci_text
     assert "--forbid-red" in context.ci_text
+    assert "--cov-branch" in context.ci_text
     assert "--cov-report=xml:coverage.xml" in context.ci_text
-    assert "--cov-fail-under=80" in context.ci_text
+    assert "--cov-fail-under=90" in context.ci_text
 
 
 @given("the scheduled security scan, PR policy, and release workflow configurations")
