@@ -118,3 +118,38 @@ def test_readme_plain_language_status_independence_and_license() -> None:
     if license_path.exists():
         assert "## License" in readme or "[LICENSE](LICENSE)" in readme
         assert "MIT" in readme
+
+
+def test_openspec_archiving_and_deferrals() -> None:
+    """Verify merged changes are archived and out-of-scope proposals carry deferral notices."""
+    archive_dir = REPO_ROOT / "openspec" / "changes" / "archive"
+    for merged_change in (
+        "add-github-actions-and-schema-hooks",
+        "add-sqlmodel-persistence-and-api",
+        "adopt-ed25519-and-pymerkle",
+        "adopt-mesa-abm-and-hypothesis",
+        "automate-pr-lifecycle-and-merge-safety",
+        "enforce-spec-feature-links",
+        "harden-ci-action-runtimes-and-review",
+        "standardize-custom-skills",
+    ):
+        assert (archive_dir / merged_change).is_dir(), f"Expected {merged_change} in archive"
+
+    changes_dir = REPO_ROOT / "openspec" / "changes"
+    for deferred_change in (
+        "add-biomimetic-lifecycle-and-swarming-contracts",
+        "add-campus-compliance-lti-and-zk-identity",
+        "add-nats-jetstream-cross-hive-federation",
+        "add-pactflow-api-and-message-contracts",
+        "add-telemetry-dashboard-ui",
+        "adopt-vyper-and-zero-gas-pyevm",
+    ):
+        proposal_file = changes_dir / deferred_change / "proposal.md"
+        assert proposal_file.exists(), f"Expected {proposal_file} to exist"
+        proposal_text = proposal_file.read_text(encoding="utf-8")
+        assert "DEFERRED" in proposal_text
+
+    readme_text = (changes_dir / "README.md").read_text(encoding="utf-8")
+    assert "Active Changes" in readme_text
+    assert "Deferred Changes" in readme_text
+    assert "Archived Changes" in readme_text

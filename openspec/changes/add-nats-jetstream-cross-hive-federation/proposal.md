@@ -1,5 +1,7 @@
 # Proposal: Add NATS Leaf Node JetStream Cross-Hive Federation & Kurtosis Chaos Testbed (`add-nats-jetstream-cross-hive-federation`)
 
+> **DEFERRED:** This change proposal is out of scope for current work under the Plan to B+ and is deferred until after the v0.1.0 release.
+
 ## Why
 University campus networks routinely block inbound P2P ports behind strict asymmetric NATs/firewalls, and `py-libp2p` v0.8.0 dropped `asyncio` support in favor of `trio` (preventing direct in-process embedding inside `FastAPI`/`uvicorn` workers). As synthesized in `federated_PoUW-PoW_blockchain_infrastructure.md`, **NATS Server (`nats-server`) + `nats-py` (Apache-2.0, confirmed by the May 2025 CNCF/Synadia agreement)** solves both constraints:
 1. Each campus Hive opens strictly outbound TLS **NATS Leaf Node** connections on port `7422` to a DMZ relay hub without requiring inbound campus firewall holes.

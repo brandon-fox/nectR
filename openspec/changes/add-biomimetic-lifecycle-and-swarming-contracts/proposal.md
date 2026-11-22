@@ -1,5 +1,7 @@
 # Proposal: Expand 5 Deterministic Smart Contracts with Phase 2 Biomimetic Lifecycle & Swarming (`add-biomimetic-lifecycle-and-swarming-contracts`)
 
+> **DEFERRED:** This change proposal is out of scope for current work under the Plan to B+ and is deferred until after the v0.1.0 release.
+
 ## Why
 Following **Swarm Wave 2B-1 (`adopt-vyper-and-zero-gas-pyevm`, `ADR-0017`)** — which migrates baseline `D-01`–`D-06` state transitions (`uint256` `micro_nectr`, `0..10,000 bps` direct learner attestations, lazy demurrage `DEC-001`, Waggle `60%` co-pay `DEC-002`, `25-minute` minimum block `DEC-011`, and 3-door Senior sinks `DEC-004`) onto 5 `vyper` (`Apache-2.0`) `.vy` smart contracts running on zero-gas-price `eth-tester[py-evm]` + `web3.py` (`MIT`) — **Swarm Wave 2B-2 (`add-biomimetic-lifecycle-and-swarming-contracts`)** extends those `.vy` contracts to encode the full colony lifecycle established in `biomimetic_hive_economics.md`, `federated_barter_tokenomics.md`, and `student_tutoring_mechanism_design.md`:
 1. **Lazy Demurrage & Student Safety Cushion (`DEC-001`):** ~2%/month lazy decay on idle `LIQUID_NECTR` above a protected buffer during Weeks 1–13, paused during Finals (Weeks 14–15), routed 100% into the Comb.
