@@ -30,6 +30,7 @@ nav:
   - Home: index.md
   - Domain Glossary: glossary.md
   - Planning & Autonomous Ops:
+      - Product Vision: planning/vision.md
       - Roadmap & Milestones: planning/roadmap.md
       - Agent Orchestration Guide: planning/agent_orchestration.md
       - Fast Decision Log (DEC / EXP): planning/decision_log.md

@@ -226,7 +226,13 @@ def step_when_inspect_n8n_governance(context) -> None:
     registry = load_registry(root / "docs" / "planning" / "decisions.yaml")
     context.n8n_decisions = {entry.id: entry for entry in registry.decisions}
     context.n8n_experiments = {entry.id: entry for entry in registry.experiments}
-    context.n8n_roadmap = (root / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
+    roadmap_path = root / "docs" / "planning" / "roadmap.md"
+    vision_path = root / "docs" / "planning" / "vision.md"
+    context.n8n_roadmap = (
+        roadmap_path.read_text(encoding="utf-8")
+        + "\n"
+        + (vision_path.read_text(encoding="utf-8") if vision_path.exists() else "")
+    )
     context.n8n_adr_path = (
         root / "docs" / "adr" / "0016-scope-external-workflow-automation-off-chain.md"
     )

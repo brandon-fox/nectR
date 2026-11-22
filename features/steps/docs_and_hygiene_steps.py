@@ -286,3 +286,30 @@ def step_then_ai_research_and_metaphor_ok(context) -> None:
     assert "metaphor" in context.readme_text.lower()
     assert "metaphor" in context.biomimicry_text.lower()
     assert "| :--- | :---: | :--- |\n| :--- | :---: | :--- |" not in context.game_theory_text
+
+
+@when("the roadmap and vision validator inspects roadmap.md, vision.md, and mkdocs.yml")
+def step_when_inspect_roadmap_and_vision(context) -> None:
+    context.vision_path = context.repo_root / "docs" / "planning" / "vision.md"
+    context.roadmap_path = context.repo_root / "docs" / "planning" / "roadmap.md"
+    context.mkdocs_path = context.repo_root / "mkdocs.yml"
+    context.roadmap_text = (
+        context.roadmap_path.read_text(encoding="utf-8") if context.roadmap_path.exists() else ""
+    )
+    context.vision_text = (
+        context.vision_path.read_text(encoding="utf-8") if context.vision_path.exists() else ""
+    )
+
+
+@then("vision.md documents the three-horizon product vision and roadmap.md details the Plan to B+")
+def step_then_roadmap_and_vision_ok(context) -> None:
+    assert context.vision_path.exists(), "Expected docs/planning/vision.md to exist"
+    assert (
+        "Three-Horizon Product Vision" in context.vision_text
+        or "Three-Horizon" in context.vision_text
+    )
+    assert "Horizon 1" in context.vision_text and "Horizon 3" in context.vision_text
+    assert "Plan to B+" in context.roadmap_text
+    assert "Track CA" in context.roadmap_text or "Core Contracts" in context.roadmap_text
+    assert "Track CB" in context.roadmap_text or "Service Layer" in context.roadmap_text
+    assert "Track DC" in context.roadmap_text or "Documentation" in context.roadmap_text
