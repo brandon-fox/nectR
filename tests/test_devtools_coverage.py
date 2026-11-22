@@ -282,3 +282,27 @@ def test_pyproject_license_and_author_metadata() -> None:
         and author.get("email") == "32090240+brandon-fox@users.noreply.github.com"
         for author in authors
     )
+
+
+def test_pyproject_runtime_deps_trimmed() -> None:
+    import re
+
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    project = pyproject["project"]
+    runtime_names = {
+        re.split(r"[<>=!~;\[\s]", dep, maxsplit=1)[0].lower()
+        for dep in project.get("dependencies", [])
+    }
+    for dropped_or_moved in ("numpy", "rich", "httpx", "uvicorn"):
+        assert dropped_or_moved not in runtime_names
+
+    opt_deps = project["optional-dependencies"]
+    test_names = {
+        re.split(r"[<>=!~;\[\s]", dep, maxsplit=1)[0].lower() for dep in opt_deps.get("test", [])
+    }
+    api_names = {
+        re.split(r"[<>=!~;\[\s]", dep, maxsplit=1)[0].lower() for dep in opt_deps.get("api", [])
+    }
+    assert "httpx" in test_names
+    assert "uvicorn" in api_names
+    assert any("api" in item for item in opt_deps.get("dev", []))
