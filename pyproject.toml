@@ -72,6 +72,7 @@ nectr-decisions = "nectr.devtools.decisions:main"
 nectr-citations = "nectr.devtools.citations:main"
 nectr-docs = "nectr.devtools.docs_sync:main"
 nectr-ci-parity = "nectr.devtools.ci_parity:main"
+nectr-pr-lifecycle = "nectr.devtools.pr_lifecycle:main"
 
 [build-system]
 requires = ["hatchling"]

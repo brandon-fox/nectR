@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 from datetime import UTC, datetime, timedelta
@@ -12,9 +13,23 @@ from behave import given, then, when
 
 
 def _git(cwd: Path, *args: str) -> None:
+    clean_env = {
+        k: v
+        for k, v in os.environ.items()
+        if k
+        not in {
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_INDEX_FILE",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_COMMON_DIR",
+        }
+    }
     subprocess.run(
         ["git", *args],
         cwd=cwd,
+        env=clean_env,
         check=True,
         capture_output=True,
         text=True,
