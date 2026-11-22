@@ -205,3 +205,61 @@ def step_then_adrlint_ok(context) -> None:
     assert "proposed" in str(context.adrlint_strict_error).lower()
     assert context.adrlint_allow_ok is True
     assert context.adrlint_locked_count == 2
+
+
+@when(
+    "the n8n workflow governance and Milestone 3 roadmap checks inspect decisions and ADR records"
+)
+def step_when_inspect_n8n_governance(context) -> None:
+    from nectr.devtools.decisions import load_registry
+
+    root: Path = context.target_root
+    registry = load_registry(root / "docs" / "planning" / "decisions.yaml")
+    context.n8n_decisions = {entry.id: entry for entry in registry.decisions}
+    context.n8n_experiments = {entry.id: entry for entry in registry.experiments}
+    context.n8n_roadmap = (root / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
+    context.n8n_adr_path = (
+        root / "docs" / "adr" / "0016-scope-external-workflow-automation-off-chain.md"
+    )
+
+
+@then("DEC-009 clarifies CrewAI/n8n while remaining locked to Mesa ABM")
+def step_then_dec009_clarified(context) -> None:
+    dec009 = context.n8n_decisions["DEC-009"]
+    assert dec009.status == "locked"
+    assert "CrewAI/n8n" in dec009.title
+    assert "CrewAI/n8n" in dec009.decision
+    assert "Mesa ABM" in dec009.decision
+
+
+@then("DEC-016 and EXP-006 enforce an off-chain n8n boundary with permissive OSS roadmap options")
+def step_then_dec016_exp006_and_roadmap(context) -> None:
+    assert "DEC-016" in context.n8n_decisions
+    dec016 = context.n8n_decisions["DEC-016"]
+    assert dec016.status == "locked"
+    assert "n8n" in dec016.decision
+    assert "HiveServiceLayer" in dec016.decision
+    assert "EXP-006" in context.n8n_experiments
+    exp006 = context.n8n_experiments["EXP-006"]
+    assert exp006.status == "open-simulation"
+    assert "n8n" in exp006.hypothesis
+    roadmap_text: str = context.n8n_roadmap
+    assert "CrewAI/n8n" in roadmap_text
+    assert "Activepieces" in roadmap_text
+    assert "Kestra" in roadmap_text
+    assert "Prefect" in roadmap_text
+    assert "Temporal" in roadmap_text
+
+
+@then("an accepted locked MADR record documents the external workflow automation scope")
+def step_then_n8n_adr_locked(context) -> None:
+    from nectr.devtools.decisions import check_all_governance
+
+    adr_path: Path = context.n8n_adr_path
+    assert adr_path.exists(), f"Missing ADR file: {adr_path}"
+    adr_text = adr_path.read_text(encoding="utf-8")
+    assert "status: accepted" in adr_text
+    assert "n8n" in adr_text
+    summary = check_all_governance(context.target_root)
+    assert summary["adrlint_ok"] is True
+    assert summary["decision_log_in_sync"] is True

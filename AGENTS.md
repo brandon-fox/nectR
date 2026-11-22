@@ -26,10 +26,10 @@ You are operating inside the **nectR** monorepo (repository root).
 
 ## 3. Multi-Agent Concurrency & Git Isolation
 
-- **Ephemeral Worktree Isolation (`ADR-0016`):** Keep the primary checkout clean on `main`. Run concurrent tasks inside isolated Worktrunk worktrees (`.worktrees/<branch-slug>/` via `git-wt`) or agent harness shared-repo worktrees; `.config/wt.toml` provisions per-worktree `.venv` (`uv sync --frozen --extra dev`), enforces `[[pre-merge]]` gates, and lands via `git-wt merge main --no-squash` to preserve atomic SSH-signed commits.
+- **Ephemeral Worktree Isolation (`ADR-0017`):** Keep the primary checkout clean on `main`. Run concurrent tasks inside isolated Worktrunk worktrees (`.worktrees/<branch-slug>/` via `git-wt`) or agent harness shared-repo worktrees; `.config/wt.toml` provisions per-worktree `.venv` (`uv sync --frozen --extra dev`), enforces `[[pre-merge]]` gates, and lands via `git-wt merge main --no-squash` to preserve atomic SSH-signed commits.
 - **Atomic File Ownership:** When running as a specialized domain agent or subagent, only stage (`git add <explicit-file>`) the exact files within your domain scope. Never run `git add .` or `git commit -a`.
 - **Documentation Verification:** Whenever updating or moving files in `docs/` or `mkdocs.yml`, run `uv run mkdocs build --strict`.
-- **Testing & Mutation Verification (`ADR-0017`, `DEC-016`):** Keep `pythonpath = ["src"]` in `pyproject.toml` and verify contract invariants with `uv run pytest`. Never add inline mutation suppression pragmas in `src/` (`mutation_gate check-pragmas`), and pass changed-line mutation checks (`uv run python -m nectr.devtools.mutation_gate diff`) during `REFACTOR`, `[[pre-merge]]`, and `pre-push` (`>= 85%` Tier 1 `contracts/`/`chain/`, `>= 75%` Tier 2 `services/`/`devtools/`; upward-only baseline floors on `main`).
+- **Testing & Mutation Verification (`ADR-0018`, `DEC-017`):** Keep `pythonpath = ["src"]` in `pyproject.toml` and verify contract invariants with `uv run pytest`. Never add inline mutation suppression pragmas in `src/` (`mutation_gate check-pragmas`), and pass changed-line mutation checks (`uv run python -m nectr.devtools.mutation_gate diff`) during `REFACTOR`, `[[pre-merge]]`, and `pre-push` (`>= 85%` Tier 1 `contracts/`/`chain/`, `>= 75%` Tier 2 `services/`/`devtools/`; upward-only baseline floors on `main`).
 
 ## 4. Open-Source Security, OpenSpec, BDD, Strict TDD & DDD (No Exceptions)
 

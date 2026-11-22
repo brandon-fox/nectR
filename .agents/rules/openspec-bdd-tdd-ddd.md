@@ -24,7 +24,7 @@ All development in **nectR** MUST strictly follow this **Outside-In** pipeline b
 
 ## 3. Outside-In Behave BDD & Strict TDD Red-Green-Refactor Commit Protocol
 
-- **Worktree Isolation (`ADR-0016`):** Execute every change inside an isolated Worktrunk worktree (`.worktrees/<branch-slug>/` via `git-wt`) or harness shared-repo worktree with its own synced `.venv`, and merge via `git-wt merge main --no-squash`.
+- **Worktree Isolation (`ADR-0017`):** Execute every change inside an isolated Worktrunk worktree (`.worktrees/<branch-slug>/` via `git-wt`) or harness shared-repo worktree with its own synced `.venv`, and merge via `git-wt merge main --no-squash`.
 - **Single Source of Truth for User Stories:** Never hardcode user stories or Given/When/Then scenarios inside OpenSpec `spec.md` files. Instead, `spec.md` MUST state requirement intent/invariants and link directly to `features/<domain>.feature` and `features/steps/<domain>_steps.py`.
 
 Every behavior change MUST be executed and committed in three strict phases, enforced by `xfail_strict = true` in `pyproject.toml`, `.githooks/pre-commit`, `.githooks/commit-msg`, `.githooks/pre-push`, and `.config/wt.toml`:
@@ -44,7 +44,7 @@ Every behavior change MUST be executed and committed in three strict phases, enf
 
 3. **Phase 3 — REFACTOR (Keep 100% Green & Pass Mutation Gate):**
    - Refactor for clarity, modularity, and DDD purity while keeping `python -m pytest` and `python -m behave` 100% green.
-   - Run `uv run python -m nectr.devtools.mutation_gate diff` (`ADR-0017`, `DEC-016`) and verify changed lines meet tier targets (`>= 85%` Tier 1 `contracts/`/`chain/`, `>= 75%` Tier 2 `services/`/`devtools/`); ratchet `[tool.nectr.mutation.baseline]` upward (`floor(score) - 1`) when full-sweep scores improve.
+   - Run `uv run python -m nectr.devtools.mutation_gate diff` (`ADR-0018`, `DEC-017`) and verify changed lines meet tier targets (`>= 85%` Tier 1 `contracts/`/`chain/`, `>= 75%` Tier 2 `services/`/`devtools/`); ratchet `[tool.nectr.mutation.baseline]` upward (`floor(score) - 1`) when full-sweep scores improve.
    - Commit atomically: `refactor(<scope>): <clean up description>`.
 
 ## 4. Post-Action Verification (Mandatory)

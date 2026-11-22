@@ -14,8 +14,8 @@ Coordinate parallel domain agents while enforcing zero git cross-contamination.
 ## Steps
 
 1. **Clarify Design Parameters (If Ambiguous):** Run an interactive `/grill-me` session against `docs/planning/decision_log.md` and record finalized parameters.
-2. **Isolate Worktrees & Assign Strict File Ownership:** Consult [domain_agents_matrix.md](./references/domain_agents_matrix.md) and isolate each concurrent builder in its own Worktrunk worktree (`.worktrees/<branch-slug>/` via `git-wt`) or `workspace: "share"` harness worktree (`ADR-0016`) with per-worktree `uv sync --frozen --extra dev` and explicit owned paths.
-3. **Run Pre-Merge & Post-Stage Verification Gates:** Execute [verify_orchestration_gate.py](./scripts/verify_orchestration_gate.py) and `mutation_gate diff --base main` (`ADR-0017`, `DEC-016`), mirroring `.config/wt.toml` `[[pre-merge]]`, before landing via `git-wt merge main --no-squash`:
+2. **Isolate Worktrees & Assign Strict File Ownership:** Consult [domain_agents_matrix.md](./references/domain_agents_matrix.md) and isolate each concurrent builder in its own Worktrunk worktree (`.worktrees/<branch-slug>/` via `git-wt`) or `workspace: "share"` harness worktree (`ADR-0017`) with per-worktree `uv sync --frozen --extra dev` and explicit owned paths.
+3. **Run Pre-Merge & Post-Stage Verification Gates:** Execute [verify_orchestration_gate.py](./scripts/verify_orchestration_gate.py) and `mutation_gate diff --base main` (`ADR-0018`, `DEC-017`), mirroring `.config/wt.toml` `[[pre-merge]]`, before landing via `git-wt merge main --no-squash`:
 
    ```bash
    uv run python -m nectr.devtools.mutation_gate diff --base main

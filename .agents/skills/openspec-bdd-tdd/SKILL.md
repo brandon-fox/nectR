@@ -13,7 +13,7 @@ Follow this exact sequence for every feature, fix, or refactor.
 ## Steps
 
 1. **Worktree Isolation, Security Scan & OpenSpec Proposal:**
-   Isolate work in an ephemeral worktree (`.worktrees/<branch-slug>/` via `git-wt` or harness worktree, `ADR-0016`) with its own synced `.venv`, then create `openspec/changes/<change-id>/` following [openspec_tdd_checklist.md](./references/openspec_tdd_checklist.md). Specs (`spec.md`) MUST state requirement intent/invariants and link directly to `features/<domain>.feature` and `features/steps/<domain>_steps.py` (never hardcode user stories in `spec.md`).
+   Isolate work in an ephemeral worktree (`.worktrees/<branch-slug>/` via `git-wt` or harness worktree, `ADR-0017`) with its own synced `.venv`, then create `openspec/changes/<change-id>/` following [openspec_tdd_checklist.md](./references/openspec_tdd_checklist.md). Specs (`spec.md`) MUST state requirement intent/invariants and link directly to `features/<domain>.feature` and `features/steps/<domain>_steps.py` (never hardcode user stories in `spec.md`).
 2. **RED Phase (Tests First with Expected Failure):**
    Add outside-in Gherkin scenarios in `features/` (tag unimplemented scenarios `@red`) and unit tests in `tests/` marked `@pytest.mark.xfail(strict=True, reason="RED: ...")`. Run [run_bdd_tdd_gate.py](./scripts/run_bdd_tdd_gate.py):
 
@@ -31,7 +31,7 @@ Follow this exact sequence for every feature, fix, or refactor.
 
    Commit atomically: `feat(<scope>): implement <change-id>`.
 4. **REFACTOR Phase (Keep 100% Green & Pass Mutation Gate):**
-   Clean up while preserving DDD boundaries, re-run `--phase refactor`, verify changed lines pass `uv run python -m nectr.devtools.mutation_gate diff` (`>= 85%` Tier 1, `>= 75%` Tier 2; `ADR-0017`, `DEC-016`), and commit `refactor(<scope>): <summary>`.
+   Clean up while preserving DDD boundaries, re-run `--phase refactor`, verify changed lines pass `uv run python -m nectr.devtools.mutation_gate diff` (`>= 85%` Tier 1, `>= 75%` Tier 2; `ADR-0018`, `DEC-017`), and commit `refactor(<scope>): <summary>`.
 
 ## Validation
 

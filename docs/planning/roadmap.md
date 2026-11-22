@@ -69,9 +69,14 @@ flowchart LR
 ## Milestone 3: Behavioral Persona Swarm, 15-Week Semester ACE & Telemetry UI
 
 - [ ] **Wave 3A — Seeded Mesa ABM & Hypothesis State-Machine Fuzzing (`src/nectr/personas/`, `adopt-mesa-abm-and-hypothesis`):**
-  - Implement `HiveMesaModel` and `PersonaBeeAgent` for all 6 archetypes (`ADR-0010`, `DEC-009`), backed by `GraphTelemetryPort` (`networkx`, `NetworKit`, `rustworkx`) and `Hypothesis` `RuleBasedStateMachine` invariant fuzzing.
-- [ ] **Wave 3B — Experimental Matrix (`EXP-001`–`EXP-005`) & Adaptive ML/RL Track (`experiments/`):**
-  - Execute multi-semester Monte Carlo sweeps and contextual multi-armed bandit / RL stress tests across `EXP-001` (Queen Nepotism vs. Honest Praise), `EXP-002` (15-Week Finals Crunch & `60%` Waggle Co-Pay), `EXP-003` (Pairwise + `COCM` Dorm-Cluster Sybil Bound), `EXP-004` (Khoury Mortality Shock & Circuit Breaker), and `EXP-005` (NATS WAN Partition Recovery).
+  - Implement `HiveMesaModel` and `PersonaBeeAgent` for all 6 archetypes (`ADR-0010`, `DEC-009` over LLM/workflow frameworks CrewAI/n8n, formerly k8n), backed by `GraphTelemetryPort` (`networkx`, `NetworKit`, `rustworkx`) and `Hypothesis` `RuleBasedStateMachine` invariant fuzzing.
+- [ ] **Wave 3B — Experimental Matrix (`EXP-001`–`EXP-006`) & Adaptive ML/RL Track (`experiments/`):**
+  - Execute multi-semester Monte Carlo sweeps and contextual multi-armed bandit / RL stress tests across `EXP-001` (Queen Nepotism vs. Honest Praise), `EXP-002` (15-Week Finals Crunch & `60%` Waggle Co-Pay), `EXP-003` (Pairwise + `COCM` Dorm-Cluster Sybil Bound), `EXP-004` (Khoury Mortality Shock & Circuit Breaker), `EXP-005` (NATS WAN Partition Recovery), and `EXP-006` (Mesa Baseline vs. External `n8n`/Activepieces Trigger Arm).
+  - **Workflow Orchestration Options (`n8n` / `DEC-016` / [ADR-0016](../adr/0016-scope-external-workflow-automation-off-chain.md)):**
+    - *Option A (Locked Default — Pure Mesa ABM + ML/RL):* Deterministic seeded `mesa` Monte Carlo sweeps, `DataCollector` telemetry, and `hypothesis` invariant fuzzing (`DEC-009`).
+    - *Option B (Sidecar `n8n` Webhook Runner):* Self-hosted `n8n` triggers scheduled simulation sweeps, campus surge webhooks, and telemetry alerts via `HiveServiceLayer` APIs (kept outside `pyproject.toml` due to `n8n`'s Sustainable Use License).
+    - *Option C (Permissive-OSS Alternatives, `DEC-007`):* Evaluate `Activepieces` (`MIT`) for visual webhook flows, `Kestra` / `Prefect` (`Apache-2.0`) for reproducible batch experiment DAGs, and `Temporal` (`MIT`) for durable multi-semester orchestration.
+    - *Option D (Hybrid Benchmark Arm, `EXP-006`):* Compare seeded Mesa baselines against external `n8n`/Activepieces-triggered `Sybil_Roommate_Ring` and `Finals_Week_Panicker` runs using logged replayable payloads.
 - [ ] **Wave 3C — Read-Only Telemetry Dashboard & Apache-2.0 Perses Observability (`src/nectr/ui/`, `add-telemetry-dashboard-ui`):**
   - Build the read-only `Streamlit` + `NetworkX` Hive Explorer (`ADR-0011`), configure `Prometheus` OTLP + **Perses (`Apache-2.0`)** multi-Hive dashboards (`DEC-014`), and export immutable CSV/Parquet paper artifacts.
 

@@ -29,7 +29,7 @@ All code, specs, and tests MUST respect strict Bounded Context boundaries and Ub
 
 ## Mandatory Engineering Workflow (No Exceptions)
 
-Every feature, bugfix, or protocol change MUST follow this exact sequence inside an isolated worktree (`.worktrees/<branch-slug>/` via Worktrunk `git-wt` or harness shared worktree, `ADR-0016`):
+Every feature, bugfix, or protocol change MUST follow this exact sequence inside an isolated worktree (`.worktrees/<branch-slug>/` via Worktrunk `git-wt` or harness shared worktree, `ADR-0017`):
 
 1. **Security & Privacy Gate:** Verify no secrets, private references, or local hardcoded paths exist (`detect-secrets`, `.githooks/`), and ensure zero inline mutation suppression pragmas in `src/` (`mutation_gate check-pragmas`).
 2. **OpenSpec (`openspec/changes/<change-id>/`):** Author `proposal.md`, `design.md`, `tasks.md`, and `specs/<domain>/spec.md` delta before writing code. Specs MUST state `### Requirement:` intent and invariants and link directly to `features/<domain>.feature` and `features/steps/<domain>_steps.py` — **never** hardcode user stories or Given/When/Then scenarios inside `spec.md`.
@@ -37,5 +37,5 @@ Every feature, bugfix, or protocol change MUST follow this exact sequence inside
 4. **Strict TDD (Red-Green-Refactor):**
    - **RED:** Write a failing unit/invariant test in `tests/` first and observe it fail.
    - **GREEN:** Write the minimal domain code to make the test pass.
-   - **REFACTOR:** Clean up while keeping all `pytest` and `behave` tests green, and pass `uv run python -m nectr.devtools.mutation_gate diff` (`>= 85%` Tier 1 `contracts/`/`chain/`, `>= 75%` Tier 2 `services/`/`devtools/`, `ADR-0017`, `DEC-016`).
+   - **REFACTOR:** Clean up while keeping all `pytest` and `behave` tests green, and pass `uv run python -m nectr.devtools.mutation_gate diff` (`>= 85%` Tier 1 `contracts/`/`chain/`, `>= 75%` Tier 2 `services/`/`devtools/`, `ADR-0018`, `DEC-017`).
 5. **Pre-Commit, Pre-Merge & Pre-Push Verification:** `detect-secrets-hook`, `mutation_gate check-pragmas`, `cz check`, `python -m pytest`, `python -m behave`, `mutation_gate diff` (`.config/wt.toml` `[[pre-merge]]` + `.githooks/pre-push`), and `git-wt merge main --no-squash` must all pass, ratcheting `[tool.nectr.mutation.baseline]` upward as suites harden.
