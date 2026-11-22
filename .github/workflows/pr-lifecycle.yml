@@ -55,20 +55,16 @@ jobs:
       - name: Install base project for lifecycle CLI
         run: uv sync --frozen --no-default-groups
 
-      - name: Reconcile open pull requests (auto-merge, FIFO rebase, conflicts & stale)
+      - name: Reconcile open pull requests (auto-merge, FIFO rebase & conflicts)
         env:
           GH_TOKEN: ${{ secrets.PR_LIFECYCLE_TOKEN || github.token }}
           HAS_PAT_TOKEN: ${{ secrets.PR_LIFECYCLE_TOKEN != '' && 'true' || 'false' }}
-          EVENT_NAME: ${{ github.event_name }}
           DRY_RUN_FLAG: ${{ inputs.dry_run && 'true' || 'false' }}
           REPO_SLUG: ${{ github.repository }}
         run: |
           ARGS=(reconcile --repo "${REPO_SLUG}")
           if [ "${HAS_PAT_TOKEN}" = "true" ]; then
             ARGS+=(--has-pat)
-          fi
-          if [ "${EVENT_NAME}" = "schedule" ] || [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
-            ARGS+=(--check-stale)
           fi
           if [ "${DRY_RUN_FLAG}" = "true" ]; then
             ARGS+=(--dry-run)

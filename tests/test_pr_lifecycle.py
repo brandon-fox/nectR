@@ -470,3 +470,10 @@ def test_gh_cli_adapter_invokes_expected_subcommands(monkeypatch: pytest.MonkeyP
 
     comment_posts = [c for c in invocations if c[:3] == ("gh", "pr", "comment")]
     assert len(comment_posts) == 1
+
+
+def test_pr_lifecycle_workflow_does_not_pass_check_stale() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    wf_text = (repo_root / ".github" / "workflows" / "pr-lifecycle.yml").read_text(encoding="utf-8")
+    assert "--check-stale" not in wf_text
+    assert "nectr.devtools.pr_lifecycle" in wf_text
