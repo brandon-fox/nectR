@@ -35,3 +35,9 @@ Feature: Isolated Worktrees and Tiered Mutation Testing Gate
     Given changed files restricted to "src/nectr/personas/simulator.py" and "src/nectr/ui/app.py"
     When the mutation gate classifies target files across bounded-context tiers
     Then zero tiered targets are selected and the gate reports "no tiered source changes"
+
+  @red
+  Scenario: Worktrunk pre-merge hooks enforce pre-commit.ci parity and pre-commit excludes worktrees
+    Given the Worktrunk project configuration in ".config/wt.toml"
+    When I parse the Worktrunk lifecycle hooks and pre-commit exclusions
+    Then pre-merge hooks run "nectr.devtools.ci_parity check" and ".pre-commit-config.yaml" excludes ".worktrees" and ".poodle-temp"

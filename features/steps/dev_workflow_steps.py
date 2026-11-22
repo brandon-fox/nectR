@@ -267,3 +267,27 @@ def step_then_no_tiered_targets(context: Any) -> None:
     assert context.selected_targets == {}
     assert context.excluded_outcome.passed is True
     assert "no tiered source changes" in context.excluded_outcome.summary.lower()
+
+
+@when("I parse the Worktrunk lifecycle hooks and pre-commit exclusions")
+def step_when_parse_wt_and_precommit(context: Any) -> None:
+    import yaml
+
+    path: Path = context.wt_config_path
+    assert path.is_file(), f"Missing Worktrunk config: {path}"
+    context.wt_data = tomllib.loads(path.read_text(encoding="utf-8"))
+    context.precommit_data = yaml.safe_load(
+        (REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    )
+
+
+@then(
+    'pre-merge hooks run "nectr.devtools.ci_parity check" and ".pre-commit-config.yaml" excludes ".worktrees" and ".poodle-temp"'
+)
+def step_then_wt_ci_parity_and_exclude(context: Any) -> None:
+    pre_merge = context.wt_data.get("pre-merge", [])
+    joined = " ".join(str(v) for block in pre_merge for v in block.values())
+    assert "nectr.devtools.ci_parity check" in joined
+    exclude_pattern = str(context.precommit_data.get("exclude", ""))
+    assert ".worktrees" in exclude_pattern
+    assert ".poodle-temp" in exclude_pattern

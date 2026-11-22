@@ -5,6 +5,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from nectr.devtools.ci_parity import (
     check_no_red_scenarios,
     check_pipeline_parity,
@@ -381,3 +383,163 @@ def test_check_workflow_action_hygiene_flags_node20_and_deprecated_review(
     assert "duplicate setup-uv cache-suffix" in joined
     assert "lychee" in joined
     assert "NO_MKDOCS_2_WARNING" in joined
+
+
+def _write_valid_pre_commit_ci_yaml(root: Path) -> None:
+    (root / ".pre-commit-config.yaml").write_text(
+        textwrap.dedent(
+            """\
+            exclude: ^(\\.worktrees|\\.poodle-temp)/
+            ci:
+              autofix_prs: true
+              autofix_commit_msg: "style(pre-commit.ci): auto fixes from pre-commit hooks"
+              autoupdate_prs: true
+              autoupdate_branch: "chore/pre-commit-autoupdate"
+              autoupdate_commit_msg: "chore(deps): pre-commit.ci weekly hook autoupdate"
+              autoupdate_schedule: weekly
+              submodules: false
+              skip:
+                - adrlint-check
+                - mypy-strict-typecheck
+            repos:
+              - repo: https://github.com/pre-commit/pre-commit-hooks
+                rev: v6.0.0
+                hooks:
+                  - id: end-of-file-fixer
+                  - id: trailing-whitespace
+              - repo: https://github.com/Yelp/detect-secrets
+                rev: v1.5.0
+                hooks:
+                  - id: detect-secrets
+                    args: ["--baseline", ".secrets.baseline"]
+              - repo: https://github.com/python-jsonschema/check-jsonschema
+                rev: 0.39.0
+                hooks:
+                  - id: check-jsonschema
+              - repo: https://github.com/astral-sh/ruff-pre-commit
+                rev: v0.17.6
+                hooks:
+                  - id: ruff-check
+                  - id: ruff-format
+              - repo: local
+                hooks:
+                  - id: forbid-local-paths
+                    language: pygrep
+                    entry: '(Users|home)'
+                  - id: forbid-mutation-pragmas
+                    language: pygrep
+                    entry: 'nomut'
+                  - id: adrlint-check
+                    language: system
+                    entry: adrlint lint
+                  - id: mypy-strict-typecheck
+                    language: system
+                    entry: python -m mypy src
+            """
+        ),
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
+)
+def test_real_repo_pre_commit_ci_config_is_valid() -> None:
+    from nectr.devtools import ci_parity
+
+    repo_root = Path(__file__).resolve().parents[1]
+    assert ci_parity.check_pre_commit_ci_config(repo_root) == []
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
+)
+def test_check_pre_commit_ci_config_accepts_valid_split_config(tmp_path: Path) -> None:
+    from nectr.devtools import ci_parity
+
+    _write_valid_pre_commit_ci_yaml(tmp_path)
+    assert ci_parity.check_pre_commit_ci_config(tmp_path) == []
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
+)
+def test_check_pre_commit_ci_config_flags_missing_and_invalid_ci_fields(
+    tmp_path: Path,
+) -> None:
+    from nectr.devtools import ci_parity
+
+    missing_errors = ci_parity.check_pre_commit_ci_config(tmp_path)
+    assert len(missing_errors) == 1
+    assert "Missing .pre-commit-config.yaml" in missing_errors[0]
+
+    (tmp_path / ".pre-commit-config.yaml").write_text("- not-a-mapping\n", encoding="utf-8")
+    non_map_errors = ci_parity.check_pre_commit_ci_config(tmp_path)
+    assert len(non_map_errors) == 1
+    assert "YAML mapping" in non_map_errors[0]
+
+    (tmp_path / ".pre-commit-config.yaml").write_text(
+        textwrap.dedent(
+            """\
+            exclude: ^site/
+            ci:
+              autofix_prs: false
+              autofix_commit_msg: "[pre-commit.ci] auto fixes"
+              autoupdate_prs: false
+              autoupdate_branch: "pre-commit-ci-update-config"
+              autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+              autoupdate_schedule: daily
+              submodules: true
+              skip:
+                - ruff-check
+                - unknown-stale-hook
+            repos:
+              - repo: https://github.com/example/unapproved-gpl-hooks
+                rev: main
+                hooks:
+                  - id: bad-hook
+              - repo: https://github.com/astral-sh/ruff-pre-commit
+                rev: ""
+                hooks:
+                  - id: ruff-check
+              - repo: local
+                hooks:
+                  - id: unskipped-system-hook
+                    language: system
+                    entry: pytest
+            """
+        ),
+        encoding="utf-8",
+    )
+    errors = ci_parity.check_pre_commit_ci_config(tmp_path)
+    joined = "\n".join(errors)
+    assert ".worktrees" in joined
+    assert ".poodle-temp" in joined
+    assert "autofix_prs" in joined
+    assert "autoupdate_prs" in joined
+    assert "autofix_commit_msg" in joined
+    assert "autoupdate_commit_msg" in joined
+    assert "autoupdate_branch" in joined
+    assert "autoupdate_schedule" in joined
+    assert "submodules" in joined
+    assert "unapproved-gpl-hooks" in joined
+    assert "rev" in joined
+    assert "unskipped-system-hook" in joined
+    assert "ruff-check" in joined
+    assert "unknown-stale-hook" in joined
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
+)
+def test_cli_main_fails_when_pre_commit_ci_config_is_invalid(tmp_path: Path) -> None:
+    _write_synthetic_workspace(tmp_path, include_release=True)
+    cfg = tmp_path / ".pre-commit-config.yaml"
+    cfg.write_text(
+        cfg.read_text(encoding="utf-8") + "\nci:\n  autofix_prs: false\n", encoding="utf-8"
+    )
+    assert main(["check", "--root", str(tmp_path)]) == 1

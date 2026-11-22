@@ -11,8 +11,10 @@ All ephemeral CLI worktrees placed under `.worktrees/` SHALL be ignored by Git a
 - **Linked Scenario:** `Worktree directory is excluded from git, ruff, pytest, detect-secrets, and tree sync` in [dev_workflow.feature](../../../features/dev_workflow.feature#L6-L9)
 
 ### Requirement: Worktrunk Lifecycle Bootstrap and Pre-Merge Enforcement
-The committed Worktrunk project configuration (`.config/wt.toml`) SHALL use ordered `[[pre-start]]` hooks to install isolated per-worktree `uv` environments and verify commit readiness, and ordered `[[pre-merge]]` hooks to run the diff-scoped mutation gate and orchestration verification gate before landing changes on `main`.
-- **Linked Scenario:** `Worktrunk project config provisions isolated environments and enforces merge gates` in [dev_workflow.feature](../../../features/dev_workflow.feature#L11-L15)
+The committed Worktrunk project configuration (`.config/wt.toml`) SHALL use ordered `[[pre-start]]` hooks to install isolated per-worktree `uv` environments and verify commit readiness, and ordered `[[pre-merge]]` hooks to run the diff-scoped mutation gate, `nectr-ci-parity` (`pre-commit.ci` & workflow parity), and orchestration verification gate before landing changes on `main`, while `.pre-commit-config.yaml` SHALL exclude `.worktrees` and `.poodle-temp` from hook traversal.
+- **Linked Scenarios:**
+  - `Worktrunk project config provisions isolated environments and enforces merge gates` in [dev_workflow.feature](../../../features/dev_workflow.feature#L11-L15)
+  - `Worktrunk pre-merge hooks enforce pre-commit.ci parity and pre-commit excludes worktrees` in [dev_workflow.feature](../../../features/dev_workflow.feature#L39-L43)
 
 ### Requirement: Inline Mutation Suppression Pragma Ban
 Production source files under `src/` SHALL NOT contain inline mutation suppression pragmas, and violations SHALL be rejected during pre-commit checks with offending `path:line` locations reported.

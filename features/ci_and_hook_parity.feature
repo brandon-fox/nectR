@@ -27,3 +27,9 @@ Feature: End-to-End Hook, CI Pipeline, Scheduled Audit, and Release Parity
     Given all GitHub Actions workflow definitions under .github/workflows
     When the CI workflow runtime and action hygiene validator inspects all workflow files
     Then workflows require Node 24 action versions, isolated setup-uv cache suffixes, permissive SPDX allow-licenses with action license exclusions, clean lychee temp output, and quiet MkDocs logs
+
+  @red
+  Scenario: pre-commit.ci bot configuration enforces Conventional Commit autofixes, weekly autoupdates, and system-hook skips
+    Given the repository .pre-commit-config.yaml configuration
+    When the pre-commit.ci bot policy validator inspects cloud and local hook definitions
+    Then pre-commit.ci enables Conventional Commit autofixes and weekly chore autoupdates, pins permissive remote hook repos, and skips every local system hook

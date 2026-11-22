@@ -262,3 +262,34 @@ def step_when_workflow_hygiene_runs(context: Any) -> None:
 )
 def step_then_workflow_hygiene_verified(context: Any) -> None:
     assert context.hygiene_errors == [], f"Workflow hygiene errors: {context.hygiene_errors}"
+
+
+@given("the repository .pre-commit-config.yaml configuration")
+def step_given_pre_commit_config(context: Any) -> None:
+    cfg_path = REPO_ROOT / ".pre-commit-config.yaml"
+    assert cfg_path.is_file(), "Missing .pre-commit-config.yaml"
+    context.pre_commit_cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+
+
+@when("the pre-commit.ci bot policy validator inspects cloud and local hook definitions")
+def step_when_pre_commit_ci_validated(context: Any) -> None:
+    from nectr.devtools.ci_parity import check_pre_commit_ci_config
+
+    context.pre_commit_ci_errors = check_pre_commit_ci_config(REPO_ROOT)
+
+
+@then(
+    "pre-commit.ci enables Conventional Commit autofixes and weekly chore autoupdates, pins permissive remote hook repos, and skips every local system hook"
+)
+def step_then_pre_commit_ci_verified(context: Any) -> None:
+    assert context.pre_commit_ci_errors == [], (
+        f"pre-commit.ci config errors: {context.pre_commit_ci_errors}"
+    )
+    ci_cfg = context.pre_commit_cfg["ci"]
+    assert ci_cfg["autofix_prs"] is True
+    assert ci_cfg["autoupdate_prs"] is True
+    assert ci_cfg["autoupdate_schedule"] == "weekly"
+    assert str(ci_cfg["autoupdate_branch"]).startswith("chore/")
+    assert str(ci_cfg["autofix_commit_msg"]).startswith("style(")
+    assert str(ci_cfg["autoupdate_commit_msg"]).startswith("chore(")
+    assert ci_cfg["submodules"] is False

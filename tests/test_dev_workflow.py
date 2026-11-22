@@ -243,3 +243,23 @@ def test_hooks_and_ci_workflow_wired() -> None:
     assert workflow.is_file()
     assert ".poodle-temp/" in gitignore
     assert "mutation-report*.json" in gitignore
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: integrate-pre-commit-ci-bot not yet implemented",
+)
+def test_worktrunk_pre_merge_runs_ci_parity_and_precommit_excludes_worktrees() -> None:
+    import yaml
+
+    wt_data = tomllib.loads((REPO_ROOT / ".config" / "wt.toml").read_text(encoding="utf-8"))
+    pre_merge = wt_data.get("pre-merge", [])
+    pre_merge_cmds = " ".join(str(v) for step in pre_merge for v in step.values())
+    assert "nectr.devtools.ci_parity check" in pre_merge_cmds
+
+    precommit_data = yaml.safe_load(
+        (REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    )
+    exclude_raw = str(precommit_data.get("exclude", ""))
+    assert ".worktrees" in exclude_raw
+    assert ".poodle-temp" in exclude_raw
