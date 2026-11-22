@@ -20,6 +20,7 @@ if [ -n "$(git diff --cached --name-only --diff-filter=ACMR)" ]; then
     fi
 fi
 
+PYTHONPATH=src python -m nectr.devtools.mutation_gate check-pragmas
 adrlint --no-color lint
 adrlint --no-color format --check
 adrlint --no-color lock --check

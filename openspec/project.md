@@ -1,9 +1,11 @@
 # nectR — OpenSpec Project Context & Domain-Driven Design (DDD) Charter
 
 ## Purpose
+
 **nectR** is an open-source, research-driven monorepo for a private, closed-loop Proof-of-Useful-Work & Proof-of-Work (`PoUW-PoW`) blockchain and multi-agent behavioral economy modeled after honeybee (*Apis mellifera*) colony dynamics.
 
 ## Domain-Driven Design (DDD) Bounded Contexts
+
 All code, specs, and tests MUST respect strict Bounded Context boundaries and Ubiquitous Language (defined in [docs/glossary.md](../docs/glossary.md)):
 
 1. **Consensus & Ledger Context (`src/nectr/chain/`)**
@@ -26,12 +28,14 @@ All code, specs, and tests MUST respect strict Bounded Context boundaries and Ub
    - *Constraint:* Executes real signed transactions against the ledger and contracts to produce reproducible telemetry.
 
 ## Mandatory Engineering Workflow (No Exceptions)
-Every feature, bugfix, or protocol change MUST follow this exact sequence:
-1. **Security & Privacy Gate:** Verify no secrets, private references, or local hardcoded paths exist (`detect-secrets`, `.githooks/`).
+
+Every feature, bugfix, or protocol change MUST follow this exact sequence inside an isolated worktree (`.worktrees/<branch-slug>/` via Worktrunk `git-wt` or harness shared worktree, `ADR-0019`):
+
+1. **Security & Privacy Gate:** Verify no secrets, private references, or local hardcoded paths exist (`detect-secrets`, `.githooks/`), and ensure zero inline mutation suppression pragmas in `src/` (`mutation_gate check-pragmas`).
 2. **OpenSpec (`openspec/changes/<change-id>/`):** Author `proposal.md`, `design.md`, `tasks.md`, and `specs/<domain>/spec.md` delta before writing code. Specs MUST state `### Requirement:` intent and invariants and link directly to `features/<domain>.feature` and `features/steps/<domain>_steps.py` — **never** hardcode user stories or Given/When/Then scenarios inside `spec.md`.
 3. **BDD (`features/*.feature`):** Define all user stories and executable Gherkin acceptance scenarios in `features/` (with step definitions in `features/steps/`) as the single source of truth, and verify they fail (`behave`) before implementation.
 4. **Strict TDD (Red-Green-Refactor):**
    - **RED:** Write a failing unit/invariant test in `tests/` first and observe it fail.
    - **GREEN:** Write the minimal domain code to make the test pass.
-   - **REFACTOR:** Clean up while keeping all `pytest` and `behave` tests green.
-5. **Pre-Commit & Pre-Push Verification:** `detect-secrets-hook`, `cz check`, `python -m pytest`, and `python -m behave` must all pass.
+   - **REFACTOR:** Clean up while keeping all `pytest` and `behave` tests green, and pass `uv run python -m nectr.devtools.mutation_gate diff` (`>= 85%` Tier 1 `contracts/`/`chain/`, `>= 75%` Tier 2 `services/`/`devtools/`, `ADR-0020`, `DEC-021`).
+5. **Pre-Commit, Pre-Merge & Pre-Push Verification:** `detect-secrets-hook`, `mutation_gate check-pragmas`, `cz check`, `python -m pytest`, `python -m behave`, `mutation_gate diff` (`.config/wt.toml` `[[pre-merge]]` + `.githooks/pre-push`), and `git-wt merge main --no-squash` must all pass, ratcheting `[tool.nectr.mutation.baseline]` upward as suites harden.

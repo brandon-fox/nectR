@@ -21,3 +21,4 @@ fi
 mkdocs build --strict
 python -m pytest
 python -m behave
+PYTHONPATH=src python -m nectr.devtools.mutation_gate diff

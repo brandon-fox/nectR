@@ -55,6 +55,8 @@ nav:
           - "0016: Scope External Workflow Automation Off...": adr/0016-scope-external-workflow-automation-off-chain.md
           - "0017: Adopt Vyper and Zero-Gas py-evm Smart...": adr/0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md
           - "0018: Enforce Pact v4 and PactFlow Bi-Direct...": adr/0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md
+          - "0019: Isolate Concurrent Work in Ephemeral W...": adr/0019-isolate-concurrent-work-in-ephemeral-worktrunk-git-worktrees.md
+          - "0020: Enforce Incremental Mutation Testing w...": adr/0020-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md
   - 1. Theory & Academic Paper:
       - Whitepaper Draft: theory/whitepaper_outline.md
       - Biomimetic Hive Mechanics: theory/biomimicry_model.md
@@ -69,6 +71,7 @@ nav:
           - Non-Dilutive Funding & Campus Pilot Strategy: theory/research/nectR_funding_and_pilot_strategy.md
   - 2. Behavioral Experimentation:
       - Persona Swarm Specification: experiments/persona_swarm_spec.md
+      - Mutation Engine Spike: experiments/mutation_engine_spike.md
   - 3. Business & Campus Proposals:
       - Institutional Sponsorship Proposal: business/institutional_proposal.md
   - 4. System Design Portfolio:

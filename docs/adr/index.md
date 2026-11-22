@@ -26,6 +26,8 @@ Architectural decisions in **nectR** use MADR 4.0 YAML front matter validated, f
 | `ADR-0016` | [Scope External Workflow Automation Off-Chain](0016-scope-external-workflow-automation-off-chain.md) | `accepted` |
 | `ADR-0017` | [Adopt Vyper and Zero-Gas py-evm Smart Contracts](0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md) | `accepted` |
 | `ADR-0018` | [Enforce Pact v4 and PactFlow Bi-Directional Contracts](0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md) | `accepted` |
+| `ADR-0019` | [Isolate Concurrent Work in Ephemeral Worktrunk Git Worktrees](0019-isolate-concurrent-work-in-ephemeral-worktrunk-git-worktrees.md) | `accepted` |
+| `ADR-0020` | [Enforce Incremental Mutation Testing with Poodle Ratchet Floors](0020-enforce-incremental-mutation-testing-with-poodle-ratchet-floors.md) | `accepted` |
 <!-- END AUTO-ADR-INDEX -->
 
 ## `adrlint` Workflow & Configuration

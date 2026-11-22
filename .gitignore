@@ -9,6 +9,7 @@
 .venv/
 venv/
 ENV/
+.worktrees/
 
 # Distribution / packaging
 build/
@@ -24,6 +25,8 @@ site/
 .coverage
 coverage.xml
 htmlcov/
+.poodle-temp/
+mutation-report*.json
 
 # Generated audit reports
 licenses-report.md

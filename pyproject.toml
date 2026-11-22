@@ -33,6 +33,7 @@ test = [
     "pytest-cov>=5.0.0",
     "behave>=1.2.6",
     "hypothesis>=6.100.0",
+    "poodle>=1.4.0",
 ]
 lint = [
     "ruff>=0.4.8",
@@ -72,6 +73,7 @@ nectr-decisions = "nectr.devtools.decisions:main"
 nectr-citations = "nectr.devtools.citations:main"
 nectr-docs = "nectr.devtools.docs_sync:main"
 nectr-ci-parity = "nectr.devtools.ci_parity:main"
+nectr-mutation = "nectr.devtools.mutation_gate:main"
 nectr-pr-lifecycle = "nectr.devtools.pr_lifecycle:main"
 
 [build-system]
@@ -81,6 +83,7 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+norecursedirs = [".worktrees", ".git", ".venv", ".poodle-temp"]
 addopts = "-ra -q --strict-markers"
 xfail_strict = true
 asyncio_default_fixture_loop_scope = "function"
@@ -89,6 +92,7 @@ asyncio_default_fixture_loop_scope = "function"
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
+extend-exclude = [".worktrees", ".poodle-temp"]
 
 [tool.pymarkdown]
 extensions.front-matter.enabled = true
@@ -113,3 +117,33 @@ explicit_package_bases = true
 constraint-dependencies = [
     "setuptools>=78.1.1",
 ]
+
+[tool.poodle]
+source_folders = ["src"]
+skip_mutators = ["String"]
+min_timeout = 10
+timeout_multiplier = 5
+work_folder = ".poodle-temp"
+
+[tool.poodle.runner_opts]
+command_line = "pytest -x --assert=plain -o pythonpath=."
+
+[tool.poodle.reporter_opts]
+json_report_found = true
+
+[tool.nectr.mutation]
+engine = "poodle"
+per_mutant_timeout_seconds = 10
+excluded = ["src/nectr/personas", "src/nectr/ui", "experiments"]
+
+[tool.nectr.mutation.tiers]
+"src/nectr/contracts" = 85.0
+"src/nectr/chain" = 85.0
+"src/nectr/services" = 75.0
+"src/nectr/devtools" = 75.0
+
+[tool.nectr.mutation.baseline]
+"src/nectr/contracts" = 77.0
+"src/nectr/chain" = 85.0
+"src/nectr/services" = 41.0
+"src/nectr/devtools" = 60.0

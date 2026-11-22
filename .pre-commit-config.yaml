@@ -13,6 +13,14 @@ repos:
         language: pygrep
         stages: [pre-commit]
 
+      - id: forbid-mutation-pragmas
+        name: Forbid inline mutation suppression pragmas in src
+        entry: '#\s*(pragma:\s*no\s+mutate|nomut\b)'
+        language: pygrep
+        args: ["-i"]
+        files: ^src/
+        stages: [pre-commit]
+
       - id: commitizen
         name: commitizen (Conventional Commits check)
         entry: cz check --commit-msg-file
@@ -121,6 +129,13 @@ repos:
       - id: nectr-bdd-behave-push
         name: nectR Full Behave BDD Acceptance Suite (pre-push)
         entry: python -m behave
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: nectr-mutation-gate
+        name: nectR Tiered Diff-Scoped Mutation Gate (pre-push)
+        entry: python -m nectr.devtools.mutation_gate diff
         language: system
         pass_filenames: false
         stages: [pre-push]

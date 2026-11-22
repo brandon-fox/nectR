@@ -88,19 +88,10 @@ def step_when_verbosity_validator_runs(context) -> None:
 @given("a temporary copy of the fast decision registry and rendered decision log")
 def step_given_temp_registry_copy(context) -> None:
     tmp_dir = Path(tempfile.mkdtemp(prefix="nectr_dec_bdd_"))
-    (tmp_dir / "docs" / "planning").mkdir(parents=True, exist_ok=True)
-    shutil.copytree(REPO_ROOT / "docs" / "adr", tmp_dir / "docs" / "adr")
+    shutil.copytree(REPO_ROOT / "docs", tmp_dir / "docs")
     shutil.copytree(REPO_ROOT / "openspec", tmp_dir / "openspec")
     shutil.copy2(REPO_ROOT / ".adrlint.toml", tmp_dir / ".adrlint.toml")
     shutil.copy2(REPO_ROOT / "adrlint.lock", tmp_dir / "adrlint.lock")
-    shutil.copy2(
-        REPO_ROOT / "docs" / "planning" / "decisions.yaml",
-        tmp_dir / "docs" / "planning" / "decisions.yaml",
-    )
-    shutil.copy2(
-        REPO_ROOT / "docs" / "planning" / "decision_log.md",
-        tmp_dir / "docs" / "planning" / "decision_log.md",
-    )
     context.temp_dir = tmp_dir
     context.gov_error = None
 
