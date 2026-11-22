@@ -29,3 +29,11 @@ Feature: Dual-Track Decision Governance (adrlint MADR 4.0 and Fast Decision Regi
     Then DEC-009 clarifies CrewAI/n8n while remaining locked to Mesa ABM
     And DEC-016 and EXP-006 enforce an off-chain n8n boundary with permissive OSS roadmap options
     And an accepted locked MADR record documents the external workflow automation scope
+
+  @red
+  Scenario: Vyper py-evm chain contracts, PactFlow API contracts, micro_nectr math, and JASSS ODD+D framing are locked
+    Given the repository root decision governance workspace
+    When the Vyper py-evm, PactFlow, and JASSS ODD+D governance checks inspect ADRs, decisions, and OpenSpec proposals
+    Then ADR-0017 and ADR-0018 are accepted and locked for Vyper py-evm and PactFlow bi-directional contracts
+    And DEC-017 through DEC-020 lock micro_nectr integer math, direct bps learner attestations, layered secp256k1 signing, and JASSS ODD+D framing
+    And OpenSpec proposals exist for Vyper py-evm migration and PactFlow contract governance

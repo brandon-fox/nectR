@@ -256,3 +256,57 @@ def test_n8n_workflow_decisions_adr_and_roadmap_options() -> None:
     assert "CrewAI/n8n" in roadmap_text
     for option_tool in ("Activepieces", "Kestra", "Prefect", "Temporal", "EXP-006"):
         assert option_tool in roadmap_text
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: lock-vyper-pactflow-and-grill-me-decisions ADR-0017/0018 and DEC-017..020 pending",
+)
+def test_vyper_pyevm_pactflow_and_jasss_grill_me_decisions_locked() -> None:
+    """Verify ADR-0017, ADR-0018, DEC-017..020, Vyper/PactFlow OpenSpec proposals, and ODD+D framing."""
+    from nectr.devtools.decisions import DecisionStatus, check_all_governance, load_registry
+
+    summary = check_all_governance(REPO_ROOT)
+    assert summary["accepted_adr_count"] >= 18
+    assert summary["decision_count"] >= 20
+    assert summary["adrlint_ok"] is True
+    assert summary["decision_log_in_sync"] is True
+
+    adr0017 = REPO_ROOT / "docs" / "adr" / "0017-adopt-vyper-and-zero-gas-py-evm-smart-contracts.md"
+    adr0018 = (
+        REPO_ROOT / "docs" / "adr" / "0018-enforce-pact-v4-and-pactflow-bi-directional-contracts.md"
+    )
+    assert adr0017.exists()
+    assert adr0018.exists()
+    assert "vyper" in adr0017.read_text(encoding="utf-8").lower()
+    assert "py-evm" in adr0017.read_text(encoding="utf-8").lower()
+    assert "pact-python" in adr0018.read_text(encoding="utf-8").lower()
+    assert "pactflow" in adr0018.read_text(encoding="utf-8").lower()
+
+    registry = load_registry(REPO_ROOT / "docs" / "planning" / "decisions.yaml")
+    decisions = {d.id: d for d in registry.decisions}
+    for dec_id in ("DEC-017", "DEC-018", "DEC-019", "DEC-020"):
+        assert dec_id in decisions
+        assert decisions[dec_id].status == DecisionStatus.LOCKED
+    assert "micro_nectr" in decisions["DEC-017"].decision
+    assert "10,000 bps" in decisions["DEC-018"].decision
+    assert "secp256k1" in decisions["DEC-019"].decision
+    assert "JASSS" in decisions["DEC-020"].decision
+    assert "ODD+D" in decisions["DEC-020"].decision
+
+    assert (
+        REPO_ROOT / "openspec" / "changes" / "adopt-vyper-and-zero-gas-pyevm" / "proposal.md"
+    ).exists()
+    assert (
+        REPO_ROOT
+        / "openspec"
+        / "changes"
+        / "add-pactflow-api-and-message-contracts"
+        / "proposal.md"
+    ).exists()
+
+    whitepaper_outline = (REPO_ROOT / "docs" / "theory" / "whitepaper_outline.md").read_text(
+        encoding="utf-8"
+    )
+    assert "ODD+D" in whitepaper_outline
+    assert "JASSS" in whitepaper_outline
