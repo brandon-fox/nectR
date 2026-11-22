@@ -6,6 +6,8 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -231,3 +233,28 @@ def test_ai_generated_research_and_bee_metaphor_labeled() -> None:
         encoding="utf-8"
     )
     assert "| :--- | :---: | :--- |\n| :--- | :---: | :--- |" not in game_theory
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="RED: roadmap must be replaced with Plan to B+ and vision.md separated",
+)
+def test_roadmap_plan_to_b_plus_and_vision_document() -> None:
+    """Verify roadmap.md focuses on Plan to B+ and vision.md captures 3-horizon vision."""
+    vision_path = REPO_ROOT / "docs" / "planning" / "vision.md"
+    assert vision_path.exists(), "Expected docs/planning/vision.md to exist"
+    vision_text = vision_path.read_text(encoding="utf-8")
+    assert "Three-Horizon Product Vision" in vision_text or "Three-Horizon" in vision_text
+    assert "Horizon 1" in vision_text and "Horizon 3" in vision_text
+
+    roadmap_text = (REPO_ROOT / "docs" / "planning" / "roadmap.md").read_text(encoding="utf-8")
+    assert "Plan to B+" in roadmap_text
+    assert "Track CA" in roadmap_text or "Core Contracts" in roadmap_text
+    assert "Track CB" in roadmap_text or "Service Layer" in roadmap_text
+    assert "Track DC" in roadmap_text or "Documentation" in roadmap_text
+
+    from nectr.devtools.docs_sync import check_docs_sync
+
+    summary = check_docs_sync(REPO_ROOT)
+    assert "planning/vision.md" not in summary["orphan_pages"]
+    assert summary["orphan_pages"] == []
