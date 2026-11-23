@@ -15,14 +15,12 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.xfail(strict=True, reason="RED: TL5 nectr CLI not yet implemented")
 def test_pyproject_registers_nectr_script() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     scripts = pyproject["project"]["scripts"]
     assert scripts.get("nectr") == "nectr.cli:main"
 
 
-@pytest.mark.xfail(strict=True, reason="RED: TL5 nectr CLI not yet implemented")
 def test_cli_simulate_outputs_deterministic_json(capsys: pytest.CaptureFixture[str]) -> None:
     from nectr.cli import main
 
@@ -42,12 +40,12 @@ def test_cli_simulate_outputs_deterministic_json(capsys: pytest.CaptureFixture[s
     assert "hive_a_head_hash" in parsed["metadata"]
 
 
-@pytest.mark.xfail(strict=True, reason="RED: TL5 nectr CLI not yet implemented")
 def test_cli_serve_builds_app_and_calls_uvicorn(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from fastapi.testclient import TestClient
+
     from nectr.cli import build_serve_app, main
 
     db_url = f"sqlite:///{(tmp_path / 'cli_serve.db').as_posix()}"
@@ -103,7 +101,6 @@ def test_cli_serve_builds_app_and_calls_uvicorn(
     assert TestClient(recorded["app"]).get("/health").status_code == 200
 
 
-@pytest.mark.xfail(strict=True, reason="RED: TL5 nectr CLI not yet implemented")
 def test_cli_serve_missing_uvicorn_returns_nonzero(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
