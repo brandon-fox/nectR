@@ -330,3 +330,19 @@ def step_then_roadmap_accurately_details_plan_to_b_plus(context) -> None:
     assert ("numpy" in text.lower() or "runtime" in text.lower()) and "TL4" in text
     assert "**TL6:**" in text
     assert "**TL7:**" in text
+
+
+@when("the README quick start validator inspects README.md")
+def step_when_inspect_readme_quick_start(context) -> None:
+    context.readme_path = context.repo_root / "README.md"
+    context.readme_text = (
+        context.readme_path.read_text(encoding="utf-8") if context.readme_path.exists() else ""
+    )
+
+
+@then("README contains quick start instructions for nectr simulate and nectr serve")
+def step_then_readme_quick_start_commands(context) -> None:
+    text = context.readme_text
+    assert "nectr simulate" in text
+    assert "nectr serve" in text
+    assert "--extra api" in text or "nectr[api]" in text

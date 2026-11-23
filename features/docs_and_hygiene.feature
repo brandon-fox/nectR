@@ -57,3 +57,9 @@ Feature: Living Documentation, Domain Glossary, Persona Extras, and Repo Hygiene
     Given the repository documentation root
     When the roadmap and vision validator inspects roadmap.md, vision.md, and mkdocs.yml
     Then roadmap.md accurately details all Plan to B+ workstream deliverables and unmerged hold statuses
+
+  @red
+  Scenario: README documents Quick Start guide with nectr simulate and serve commands
+    Given the repository documentation root
+    When the README quick start validator inspects README.md
+    Then README contains quick start instructions for nectr simulate and nectr serve
