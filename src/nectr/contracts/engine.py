@@ -36,7 +36,14 @@ class SessionStatus(StrEnum):
     INTENT_ESCROWED = "INTENT_ESCROWED"
     SESSION_CO_SIGNED = "SESSION_CO_SIGNED"
     SETTLED = "SETTLED"
+    DISPUTED = "DISPUTED"
     DISPUTED_TO_QUEEN = "DISPUTED_TO_QUEEN"
+    CANCELLED = "CANCELLED"
+
+
+ESCROWED_SESSION_STATUSES: frozenset[SessionStatus] = frozenset(
+    {SessionStatus.INTENT_ESCROWED, SessionStatus.DISPUTED}
+)
 
 
 class ContractViolationError(ValueError):
@@ -266,6 +273,8 @@ class ServiceBarterSession:
     learner_attestation_score: float = 0.0
     tutor_comprehension_hash: str = ""
     effective_weight: float = 0.0
+    created_at_epoch: int = 0
+    expiry_epochs: int = 10
     _invalid_balances: dict[str, float] = field(
         default_factory=dict, init=False, repr=False, compare=False
     )
@@ -300,6 +309,8 @@ class ServiceBarterSession:
             "learner_attestation_score": float(self.learner_attestation_score),
             "tutor_comprehension_hash": self.tutor_comprehension_hash,
             "effective_weight": float(self.effective_weight),
+            "created_at_epoch": int(self.created_at_epoch),
+            "expiry_epochs": int(self.expiry_epochs),
         }
 
     @classmethod
@@ -313,6 +324,12 @@ class ServiceBarterSession:
             attestation_score = float(data["learner_attestation_score"])
             if not math.isfinite(attestation_score) or not (0.0 <= attestation_score <= 1.0):
                 raise ContractViolationError("Attestation score must be in [0.0, 1.0].")
+            raw_created = data.get("created_at_epoch", 0)
+            created_at_epoch = _require_non_negative_int(raw_created, "created_at_epoch")
+            raw_expiry = data.get("expiry_epochs", 10)
+            expiry_epochs = _require_non_negative_int(raw_expiry, "expiry_epochs")
+            if expiry_epochs <= 0:
+                raise ContractViolationError("expiry_epochs must be a positive integer.")
             return cls(
                 session_id=str(data["session_id"]),
                 hive_id=str(data["hive_id"]),
@@ -331,6 +348,8 @@ class ServiceBarterSession:
                 effective_weight=_require_finite_non_negative(
                     float(data["effective_weight"]), "effective_weight"
                 ),
+                created_at_epoch=created_at_epoch,
+                expiry_epochs=expiry_epochs,
             )
         except ContractViolationError:
             raise
@@ -508,12 +527,18 @@ class HiveContractEngine:
         amount: float,
         token_state: TokenState = TokenState.LIQUID_NECTR,
         reciprocal_subject_id: str | None = None,
+        created_at_epoch: int = 0,
+        expiry_epochs: int = 10,
     ) -> ServiceBarterSession:
         """Step 1: Lock funds (or 0-nectR mutual skill obligation) into directional service escrow."""
         if session_id in self.sessions:
             raise ContractViolationError(f"Session '{session_id}' already exists.")
         if not math.isfinite(duration_hours) or duration_hours <= 0:
             raise ContractViolationError("Session duration_hours must be positive and finite.")
+        _require_non_negative_int(created_at_epoch, "created_at_epoch")
+        _require_non_negative_int(expiry_epochs, "expiry_epochs")
+        if expiry_epochs <= 0:
+            raise ContractViolationError("expiry_epochs must be a positive integer.")
         if tutor_id == learner_id:
             raise ContractViolationError("Self-tutoring is prohibited.")
         tutor = self._get_account(tutor_id)
@@ -563,6 +588,8 @@ class HiveContractEngine:
             token_state=token_state,
             reciprocal_subject_id=reciprocal_subject_id,
             status=SessionStatus.INTENT_ESCROWED,
+            created_at_epoch=created_at_epoch,
+            expiry_epochs=expiry_epochs,
         )
         self.sessions[session_id] = session
         self.assert_supply_conservation()
@@ -643,6 +670,68 @@ class HiveContractEngine:
         self.settled_tx_log.append(tx_record)
         return tx_record
 
+    def dispute_session(self, session_id: str, caller_id: str) -> dict[str, Any]:
+        """Step 3a: Session participant opens a formal dispute before Queen arbitration."""
+        session = self._get_session(session_id)
+        self._get_account(caller_id)
+        if caller_id not in (session.learner_id, session.tutor_id):
+            raise ContractViolationError(
+                f"Only session participant '{session.learner_id}' or '{session.tutor_id}' can dispute session '{session_id}'."
+            )
+        if session.status != SessionStatus.INTENT_ESCROWED:
+            raise ContractViolationError(
+                f"Only INTENT_ESCROWED sessions can be disputed (got {session.status})."
+            )
+        session.status = SessionStatus.DISPUTED
+        self.assert_supply_conservation()
+        return {
+            "contract": "DirectionalServiceBarterContract",
+            "action": "DISPUTE_SESSION",
+            "session_id": session_id,
+            "caller_id": caller_id,
+            "status": session.status.value,
+        }
+
+    def cancel_expired_escrow(
+        self,
+        session_id: str,
+        learner_id: str,
+        current_epoch: int,
+    ) -> dict[str, Any]:
+        """Step 3c: Learner cancels an expired escrow and recovers 100% in original token state."""
+        session = self._get_session(session_id)
+        self._get_account(learner_id)
+        if session.learner_id != learner_id:
+            raise ContractViolationError(
+                f"Only learner '{session.learner_id}' can cancel expired escrow '{session_id}'."
+            )
+        if session.status != SessionStatus.INTENT_ESCROWED:
+            raise ContractViolationError(
+                f"Only INTENT_ESCROWED sessions can be cancelled (got {session.status})."
+            )
+        _require_non_negative_int(current_epoch, "current_epoch")
+        if current_epoch <= session.created_at_epoch + session.expiry_epochs:
+            raise ContractViolationError(
+                f"Session '{session_id}' has not yet expired at epoch {current_epoch}."
+            )
+
+        learner = self._get_account(session.learner_id)
+        if session.token_state == TokenState.RAW_POLLEN:
+            learner.raw_pollen_units += session.escrowed_units
+        else:
+            learner.liquid_nectr_units += session.escrowed_units
+
+        session.status = SessionStatus.CANCELLED
+        self.assert_supply_conservation()
+        return {
+            "contract": "DirectionalServiceBarterContract",
+            "action": "CANCEL_EXPIRED_ESCROW",
+            "session_id": session_id,
+            "learner_id": learner_id,
+            "refunded_amount": session.escrowed_amount,
+            "token_state": session.token_state.value,
+        }
+
     def resolve_disputed_session(
         self,
         queen_id: str,
@@ -653,12 +742,12 @@ class HiveContractEngine:
         """Step 3b: Queen arbitrates a dispute. Service fee is deducted and routed 100% to the Comb."""
         self._require_queen(queen_id)
         session = self._get_session(session_id)
-        if session.status != SessionStatus.INTENT_ESCROWED:
-            raise ContractViolationError("Only escrowed sessions can be arbitrated.")
+        if session.status != SessionStatus.DISPUTED:
+            raise ContractViolationError("Only disputed sessions can be arbitrated.")
         if not math.isfinite(tutor_share_ratio) or not (0.0 <= tutor_share_ratio <= 1.0):
             raise ContractViolationError("tutor_share_ratio must be between 0 and 1.")
-        if not math.isfinite(service_fee_rate) or not (0.0 <= service_fee_rate <= 1.0):
-            raise ContractViolationError("service_fee_rate must be between 0 and 1.")
+        if not math.isfinite(service_fee_rate) or not (0.0 <= service_fee_rate < 1.0):
+            raise ContractViolationError("service_fee_rate must be in [0, 1).")
 
         tutor = self._get_account(session.tutor_id)
         learner = self._get_account(session.learner_id)
@@ -779,7 +868,7 @@ class HiveContractEngine:
         total_escrow_units = sum(
             s.escrowed_units
             for s in self.sessions.values()
-            if s.status == SessionStatus.INTENT_ESCROWED
+            if s.status in ESCROWED_SESSION_STATUSES
         )
         accounted_units = (
             self.comb_reserve_units + total_pollen_units + total_liquid_units + total_escrow_units
@@ -947,7 +1036,7 @@ class HiveContractEngine:
         total_escrow_units = sum(
             s.escrowed_units
             for s in self.sessions.values()
-            if s.status == SessionStatus.INTENT_ESCROWED
+            if s.status in ESCROWED_SESSION_STATUSES
         )
         accounted_units = (
             self.comb_reserve_units + total_pollen_units + total_liquid_units + total_escrow_units

@@ -43,3 +43,14 @@ Feature: Core nectR Protocol Invariants
     Then the contract raises a violation matching "Guard Bee Rejection"
     When "pollinator_1" tutors 2 distinct peers in "HIVE_B" and bridges 10.0 LIQUID_NECTR from "HIVE_A" to "HIVE_B"
     Then "pollinator_1" has 10.0 LIQUID_NECTR in "HIVE_A" and 9.5 LIQUID_NECTR in "HIVE_B"
+
+  Scenario: Queen cannot arbitrate undisputed escrow or charge 100 percent fee
+    Given a Hive "HIVE_DISPUTE_GUARD" with seed comb 200.0, Queen "queen_1", Certified Worker "worker_1" for "PHYS-101", and Learner "learner_1" with 20.0 RAW_POLLEN
+    When "learner_1" escrows 20.0 RAW_POLLEN with "worker_1" for "PHYS-101" and "queen_1" attempts to resolve without a dispute at 1.0 fee rate
+    Then the contract raises a violation matching "Only disputed sessions can be arbitrated"
+
+  Scenario: Learner cancels expired escrow and recovers full original token state
+    Given a Hive "HIVE_EXPIRY" with seed comb 200.0, Queen "queen_1", Certified Worker "worker_1" for "PHYS-101", and Learner "learner_1" with 20.0 RAW_POLLEN
+    When "learner_1" escrows 15.0 RAW_POLLEN with "worker_1" for "PHYS-101" at epoch 0 with expiry 5 and cancels at epoch 6
+    Then "learner_1" has 20.0 RAW_POLLEN
+    And "learner_1" has 0.0 LIQUID_NECTR

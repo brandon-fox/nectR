@@ -119,6 +119,7 @@ def test_dispute_routes_fee_to_comb_and_conserves_supply() -> None:
         amount=20.0,
         token_state=TokenState.RAW_POLLEN,
     )
+    service.contracts.dispute_session("disputed_sess", caller_id="learner_1")
     res = service.contracts.resolve_disputed_session(
         queen_id="queen_1",
         session_id="disputed_sess",
