@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 import json
+import subprocess
 import sys
 import tomllib
 import types
@@ -128,3 +129,24 @@ def test_cli_serve_missing_uvicorn_returns_nonzero(
     assert rc == 1
     assert "uvicorn" in err.lower()
     assert "api" in err.lower()
+
+
+def test_cli_simulate_subprocess_smoke_byte_identical() -> None:
+    exe_name = "nectr.exe" if sys.platform == "win32" else "nectr"
+    nectr_exe = Path(sys.executable).parent / exe_name
+    assert nectr_exe.is_file(), f"Expected installed console script at {nectr_exe}"
+
+    run_1 = subprocess.run([str(nectr_exe), "simulate"], capture_output=True, check=True)
+    run_2 = subprocess.run([str(nectr_exe), "simulate"], capture_output=True, check=True)
+    run_mod = subprocess.run(
+        [sys.executable, "-m", "nectr.cli", "simulate"], capture_output=True, check=True
+    )
+
+    assert len(run_1.stdout) > 0
+    assert run_1.stdout == run_2.stdout
+    assert run_1.stdout == run_mod.stdout
+
+    payload = json.loads(run_1.stdout.decode("utf-8"))
+    assert payload["telemetry"]["hive_a_chain_valid"] is True
+    assert payload["telemetry"]["pollinator_accepted_in_hive_b"] is True
+    assert "hive_a_head_hash" in payload["metadata"]

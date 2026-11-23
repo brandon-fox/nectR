@@ -5,6 +5,7 @@ from __future__ import annotations
 import builtins
 import io
 import json
+import subprocess
 import sys
 import tempfile
 import types
@@ -145,3 +146,30 @@ def step_then_missing_uvicorn_hint(context: Any) -> None:
     assert context.exit_code == 1
     assert "api" in context.stderr.lower()
     assert "uvicorn" in context.stderr.lower()
+
+
+@given("the installed nectr console script")
+def step_given_installed_nectr_script(context: Any) -> None:
+    exe_name = "nectr.exe" if sys.platform == "win32" else "nectr"
+    nectr_exe = Path(sys.executable).parent / exe_name
+    assert nectr_exe.is_file(), f"Missing nectr console script at {nectr_exe}"
+    context.nectr_exe = nectr_exe
+
+
+@when('the user runs "nectr simulate" in two separate subprocesses')
+def step_when_run_simulate_subprocesses(context: Any) -> None:
+    context.sim_run_1 = subprocess.run(
+        [str(context.nectr_exe), "simulate"], capture_output=True, check=True
+    )
+    context.sim_run_2 = subprocess.run(
+        [str(context.nectr_exe), "simulate"], capture_output=True, check=True
+    )
+
+
+@then("both subprocess stdout byte streams are identical and parse as valid telemetry JSON")
+def step_then_subprocesses_byte_identical(context: Any) -> None:
+    assert len(context.sim_run_1.stdout) > 0
+    assert context.sim_run_1.stdout == context.sim_run_2.stdout
+    payload = json.loads(context.sim_run_1.stdout.decode("utf-8"))
+    assert payload["telemetry"]["hive_a_chain_valid"] is True
+    assert "hive_a_head_hash" in payload["metadata"]
