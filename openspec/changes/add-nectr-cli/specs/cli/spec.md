@@ -13,6 +13,7 @@
 The `nectr simulate` command SHALL execute `run_multi_hive_persona_simulation()`, exit with status `0`, and print deterministic, valid JSON containing `telemetry` and `metadata` fields that remain byte-identical across repeated invocations.
 
 - **Linked Scenario:** `nectr simulate prints deterministic multi-hive JSON telemetry` in [cli.feature](../../../../../features/cli.feature)
+- **Smoke Scenario:** `nectr simulate produces byte-identical output across separate CLI subprocess runs` in [cli.feature](../../../../../features/cli.feature)
 
 ### Requirement: ADDED — Hive API Server Command (`nectr serve`)
 The `nectr serve` command SHALL initialize or hydrate a `HiveServiceLayer` backed by `SQLModelHiveRepository`, build the FastAPI application via `create_app`, and serve it via `uvicorn.run` for the configured `--host`, `--port`, `--hive-id`, and `--database-url`.

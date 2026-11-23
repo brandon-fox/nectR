@@ -17,3 +17,8 @@ Feature: nectr Command-Line Interface (simulate and serve)
     Given the nectr CLI application without uvicorn installed
     When the user runs the CLI with arguments "serve"
     Then the CLI exits with status 1 and prints an install hint for the api extra
+
+  Scenario: nectr simulate produces byte-identical output across separate CLI subprocess runs
+    Given the installed nectr console script
+    When the user runs "nectr simulate" in two separate subprocesses
+    Then both subprocess stdout byte streams are identical and parse as valid telemetry JSON
