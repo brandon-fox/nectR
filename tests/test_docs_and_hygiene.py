@@ -6,8 +6,6 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -280,7 +278,6 @@ def test_roadmap_plan_to_b_plus_and_vision_document() -> None:
     assert summary["orphan_pages"] == []
 
 
-@pytest.mark.xfail(strict=True, reason="RED: DC8 quick start guide in README not yet implemented")
 def test_readme_quick_start_documents_nectr_cli() -> None:
     """Verify README.md documents Quick Start using nectr simulate and nectr serve."""
     readme_text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")

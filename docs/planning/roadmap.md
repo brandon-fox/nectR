@@ -41,8 +41,8 @@ The Plan to B+ organizes all current development into five coordinated, parallel
 - [x] **TL2:** Remove `--check-stale` step from `.github/workflows/pr-lifecycle.yml`.
 - [x] **TL3:** Set MIT license metadata and author in `pyproject.toml`.
 - [x] **TL4:** Trim runtime dependencies: drop `numpy` and `rich`, move `httpx` to test dependency and `uvicorn` to api extra in `pyproject.toml` and relock.
-- [ ] **TL5:** Local developer CLI (`nectr`) commands for node `simulate` and `serve`.
-- [ ] **TL6:** Smoke-test `nectr simulate` byte-identical run reproduction.
+- [x] **TL5:** Local developer CLI (`nectr`) commands for node `simulate` and `serve`.
+- [x] **TL6:** Smoke-test `nectr simulate` byte-identical run reproduction.
 - [ ] **TL7:** Spec link validation: update `spec_links` devtool to verify scenario names in Gherkin and remove `#L` line anchors.
 
 ### Track HY: Repository Hygiene, Licensing & Community Standards
@@ -62,7 +62,7 @@ The Plan to B+ organizes all current development into five coordinated, parallel
 - [x] **DC5:** Explicit labeling of unsourced figures and ROI metrics as planning assumptions; smoke-scenario retitling.
 - [x] **DC6:** AI-generated research notices on deep research reports and explicit framing of the honeybee design metaphor.
 - [x] **DC7:** Roadmap alignment with the Plan to B+ and extraction of multi-horizon vision into `vision.md`.
-- [ ] **DC8:** Quick Start guide in `README.md` following delivery of the `nectr` CLI (post-TL5).
+- [x] **DC8:** Quick Start guide in `README.md` following delivery of the `nectr` CLI (post-TL5).
 - [ ] **DC9:** Final v0.1.0 claim-to-code alignment, known limits documentation, and release polish.
 
 ---

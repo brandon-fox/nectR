@@ -54,10 +54,31 @@ Run `uv run nectr-docs tree` at any time to inspect the live directory tree dire
    ```
 
 2. **Install by Persona (`uv`):**
+
    - Core runtime only: `uv sync`
+   - Node API server: `uv sync --extra api` (or `pip install 'nectr[api]'`)
    - Full contributor stack (`test` + `lint` + `security` + `docs`): `uv sync --extra dev`
    - Targeted persona installs: `uv sync --extra test`, `uv sync --extra docs`, `uv sync --extra research`, `uv sync --extra lint`, `uv sync --extra security`
-3. **Verify Tests, Governance & Documentation:**
+
+3. **Run the nectR CLI (`simulate` & `serve`):**
+
+   - **Execute Deterministic Multi-Hive Simulation:**
+
+     ```powershell
+     uv run nectr simulate
+     ```
+
+     Runs the deterministic 6-persona economic simulation across hives and prints structured JSON telemetry covering velocity metrics, Gini coefficient, Knowledge Graph interaction edges, and Comb reserve balances.
+
+   - **Start the Local Hive FastAPI Node Server:**
+
+     ```powershell
+     uv run nectr serve
+     ```
+
+     Initializes and serves the `HiveServiceLayer` backed by SQLite on `http://127.0.0.1:8000` (configurable with `--host`, `--port`, `--hive-id`, `--database-url`, and `--difficulty`). Requires the `api` extra (`uv sync --extra api` or `pip install 'nectr[api]'`).
+
+4. **Verify Tests, Governance & Documentation:**
 
    ```powershell
    uv run pytest
@@ -70,8 +91,9 @@ Run `uv run nectr-docs tree` at any time to inspect the live directory tree dire
    uv run mkdocs build --strict
    ```
 
-4. **Optional: Shipped Repository Agent Skills (`.agents/skills/`):**
-   - The repository ships portable skills and rules under `.agents/skills/` and `.agents/rules/` (validated by `tests/test_skills_spec.py`) for AI coding assistants that support workspace skill loading, while every workflow remains 100% runnable via standard CLI commands above (`uv run adrlint`, `uv run nectr-decisions`, `uv run nectr-citations`, `uv run nectr-docs`, `uv run pytest`, `uv run behave`).
+5. **Optional: Shipped Repository Agent Skills (`.agents/skills/`):**
+
+   - The repository ships portable skills and rules under `.agents/skills/` and `.agents/rules/` (validated by `tests/test_skills_spec.py`) for AI coding assistants that support workspace skill loading, while every workflow remains 100% runnable via standard CLI commands above (`uv run nectr`, `uv run adrlint`, `uv run nectr-decisions`, `uv run nectr-citations`, `uv run nectr-docs`, `uv run pytest`, `uv run behave`).
 
 ---
 
