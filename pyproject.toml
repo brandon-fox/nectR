@@ -69,6 +69,7 @@ dev = [
 ]
 
 [project.scripts]
+nectr = "nectr.cli:main"
 nectr-decisions = "nectr.devtools.decisions:main"
 nectr-citations = "nectr.devtools.citations:main"
 nectr-docs = "nectr.devtools.docs_sync:main"
