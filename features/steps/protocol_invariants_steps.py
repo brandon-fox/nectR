@@ -210,6 +210,7 @@ def step_when_escrow_and_dispute(
         amount=amount,
         token_state=TokenState.RAW_POLLEN,
     )
+    context.engine.dispute_session(session_id="bdd_disputed_sess", caller_id=learner_id)
     context.engine.resolve_disputed_session(
         queen_id=queen_id,
         session_id="bdd_disputed_sess",
@@ -345,3 +346,68 @@ def step_then_bridged_balances(
     _ = hive_a, hive_b
     assert context.hive_a.accounts[pollinator_id].liquid_nectr_balance == expected_a
     assert context.hive_b.accounts[pollinator_id].liquid_nectr_balance == expected_b
+
+
+@when(
+    '"{learner_id}" escrows {amount:f} RAW_POLLEN with "{tutor_id}" for "{subject_id}" '
+    'and "{queen_id}" attempts to resolve without a dispute at {fee_rate:f} fee rate'
+)
+def step_when_queen_resolves_undisputed(
+    context,
+    learner_id: str,
+    amount: float,
+    tutor_id: str,
+    subject_id: str,
+    queen_id: str,
+    fee_rate: float,
+) -> None:
+    context.engine.create_service_barter_escrow(
+        session_id="bdd_undisputed_sess",
+        tutor_id=tutor_id,
+        learner_id=learner_id,
+        subject_id=subject_id,
+        duration_hours=1.0,
+        amount=amount,
+        token_state=TokenState.RAW_POLLEN,
+    )
+    try:
+        context.engine.resolve_disputed_session(
+            queen_id=queen_id,
+            session_id="bdd_undisputed_sess",
+            tutor_share_ratio=0.5,
+            service_fee_rate=fee_rate,
+        )
+    except ContractViolationError as exc:
+        context.last_error = exc
+
+
+@when(
+    '"{learner_id}" escrows {amount:f} RAW_POLLEN with "{tutor_id}" for "{subject_id}" '
+    "at epoch {created:d} with expiry {expiry:d} and cancels at epoch {now_epoch:d}"
+)
+def step_when_learner_cancels_expired_escrow(
+    context,
+    learner_id: str,
+    amount: float,
+    tutor_id: str,
+    subject_id: str,
+    created: int,
+    expiry: int,
+    now_epoch: int,
+) -> None:
+    context.engine.create_service_barter_escrow(
+        session_id="bdd_expired_sess",
+        tutor_id=tutor_id,
+        learner_id=learner_id,
+        subject_id=subject_id,
+        duration_hours=1.0,
+        amount=amount,
+        token_state=TokenState.RAW_POLLEN,
+        created_at_epoch=created,
+        expiry_epochs=expiry,
+    )
+    context.engine.cancel_expired_escrow(
+        session_id="bdd_expired_sess",
+        learner_id=learner_id,
+        current_epoch=now_epoch,
+    )

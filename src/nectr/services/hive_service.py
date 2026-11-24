@@ -24,6 +24,7 @@ from nectr.contracts.engine import (
     ContractViolationError,
     HiveContractEngine,
     ServiceBarterSession,
+    SessionStatus,
     TokenState,
 )
 from nectr.services.ports import (
@@ -513,6 +514,9 @@ class HiveServiceLayer:
         service_fee_rate = float(payload.get("service_fee_rate", 0.10))
 
         with self._atomic_mutation("resolve_disputed_session", tx_id=session_id):
+            sess = self.contracts.sessions.get(session_id)
+            if sess is not None and sess.status == SessionStatus.INTENT_ESCROWED:
+                self.contracts.dispute_session(session_id=session_id, caller_id=sess.learner_id)
             self.bee_nonces[queen_id] = nonce
             result = self.contracts.resolve_disputed_session(
                 queen_id=queen_id,

@@ -22,7 +22,9 @@
 ### Requirement: ADDED — Explicit Dispute State, Bounded Arbitration Fee, and Escrow Expiry Cancellation (D-03)
 A `QUEEN` SHALL only arbitrate sessions explicitly transitioned to a disputed state (`dispute_session`) and with `service_fee_rate < 1.0`. Once an `INTENT_ESCROWED` session passes its expiry epoch, the `learner_id` SHALL be able to cancel the escrow (`cancel_expired_escrow`) and recover 100% of `escrowed_amount` in the original `TokenState`.
 
-- **Linked Scenario:** `Queen dispute resolution routes 100% of fees to Comb and conserves supply` in [protocol_invariants.feature](../../../../../features/protocol_invariants.feature#L26-L31)
+- **Linked Scenarios:**
+  - `Queen cannot arbitrate undisputed escrow or charge 100 percent fee` in [protocol_invariants.feature](../../../../../features/protocol_invariants.feature)
+  - `Learner cancels expired escrow and recovers full original token state` in [protocol_invariants.feature](../../../../../features/protocol_invariants.feature)
 
 ### Requirement: MODIFIED — Guard Bee Foreign Registration & Accepted Status Isolation (D-04)
 Registering an external Bee in a target Hive without prior host-Hive tutoring SHALL NOT grant `Accepted Status` in the target Hive, regardless of whether `home_hive_id` is supplied; cross-hive bridging SHALL raise `ContractViolationError` matching `"Guard Bee Rejection"` until `accepted_status_peer_threshold` distinct host-Hive peers are tutored.

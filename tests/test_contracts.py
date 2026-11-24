@@ -242,7 +242,7 @@ def test_dispute_rejects_non_escrowed_session() -> None:
         token_state=TokenState.RAW_POLLEN,
     )
     engine.settle_co_signed_session("s_settled", 0.9, "hash_1")
-    with pytest.raises(ContractViolationError, match="Only escrowed sessions can be arbitrated."):
+    with pytest.raises(ContractViolationError, match="Only disputed sessions can be arbitrated."):
         engine.resolve_disputed_session("queen_1", "s_settled", tutor_share_ratio=0.5)
 
 
@@ -258,6 +258,7 @@ def test_dispute_rejects_invalid_tutor_share_ratio(bad_ratio: float) -> None:
         amount=5.0,
         token_state=TokenState.RAW_POLLEN,
     )
+    engine.dispute_session("s_bad_ratio", caller_id="learner_1")
     with pytest.raises(ContractViolationError, match="tutor_share_ratio must be between 0 and 1."):
         engine.resolve_disputed_session("queen_1", "s_bad_ratio", tutor_share_ratio=bad_ratio)
 
@@ -297,6 +298,7 @@ def test_dispute_liquid_nectr_refunds_learner_liquid_and_routes_fee_to_comb() ->
         token_state=TokenState.LIQUID_NECTR,
     )
     comb_before = engine.comb_reserve
+    engine.dispute_session("s_liq_dispute", caller_id="worker_1")
     res = engine.resolve_disputed_session(
         queen_id="queen_1",
         session_id="s_liq_dispute",
@@ -592,6 +594,7 @@ def test_contract_engine_snapshot_round_trip_and_isolation() -> None:
         amount=10.0,
         token_state=TokenState.RAW_POLLEN,
     )
+    engine.dispute_session("sess_dispute", caller_id="learner_1")
     engine.resolve_disputed_session("queen_1", "sess_dispute", tutor_share_ratio=0.5)
 
     snap = engine.to_snapshot()  # type: ignore[attr-defined]
@@ -698,7 +701,7 @@ def test_escrow_rejects_duplicate_session_id() -> None:
         )
 
 
-@pytest.mark.parametrize("bad_fee", [-0.1, 1.1, 2.0, float("nan"), float("inf")])
+@pytest.mark.parametrize("bad_fee", [-0.1, 1.0, 1.1, 2.0, float("nan"), float("inf")])
 def test_dispute_rejects_out_of_bounds_service_fee_rate(bad_fee: float) -> None:
     engine = _setup_basic_hive()
     engine.create_service_barter_escrow(
@@ -710,6 +713,7 @@ def test_dispute_rejects_out_of_bounds_service_fee_rate(bad_fee: float) -> None:
         amount=10.0,
         token_state=TokenState.RAW_POLLEN,
     )
+    engine.dispute_session("s_bad_fee", caller_id="learner_1")
     with pytest.raises(ContractViolationError, match="service_fee_rate"):
         engine.resolve_disputed_session(
             "queen_1", "s_bad_fee", tutor_share_ratio=0.5, service_fee_rate=bad_fee
@@ -902,6 +906,7 @@ def test_repeated_fractional_disputes_conserve_supply_with_exact_equality() -> N
             amount=0.1234567,
             token_state=TokenState.RAW_POLLEN,
         )
+        engine.dispute_session(sess_id, caller_id="learner_1")
         engine.resolve_disputed_session(
             queen_id="queen_1",
             session_id=sess_id,
@@ -942,6 +947,7 @@ def test_micro_unit_conservation_holds_exact_integer_equality_for_any_iteration_
             amount=0.1234567,
             token_state=TokenState.RAW_POLLEN,
         )
+        engine.dispute_session(sess_id, caller_id="learner_1")
         engine.resolve_disputed_session(
             queen_id="queen_1",
             session_id=sess_id,
@@ -1073,7 +1079,6 @@ def test_bridge_rejects_foreign_mover_registered_in_target_without_home_hive_id(
         hive_a.bridge_nectr_to_target_hive("mover", hive_b, 20.0)
 
 
-@pytest.mark.xfail(strict=True, reason="review finding 5a; fixed by CA3")
 def test_queen_cannot_resolve_undisputed_escrow_at_full_fee() -> None:
     engine = _setup_basic_hive()
     engine.create_service_barter_escrow(
@@ -1098,10 +1103,9 @@ def test_queen_cannot_resolve_undisputed_escrow_at_full_fee() -> None:
     assert engine.comb_reserve == comb_before
 
 
-@pytest.mark.xfail(strict=True, reason="review finding 5b; fixed by CA3")
 def test_learner_cancels_expired_escrow_and_recovers_original_token_state() -> None:
     engine = _setup_basic_hive()
-    engine.create_service_barter_escrow(  # type: ignore[call-arg]
+    engine.create_service_barter_escrow(
         session_id="s_expired",
         tutor_id="worker_1",
         learner_id="learner_1",
@@ -1114,7 +1118,7 @@ def test_learner_cancels_expired_escrow_and_recovers_original_token_state() -> N
     )
     assert engine.accounts["learner_1"].raw_pollen_balance == 35.0
 
-    engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+    engine.cancel_expired_escrow(
         session_id="s_expired",
         learner_id="learner_1",
         current_epoch=6,
@@ -1125,7 +1129,6 @@ def test_learner_cancels_expired_escrow_and_recovers_original_token_state() -> N
     engine.assert_supply_conservation()
 
 
-@pytest.mark.xfail(strict=True, reason="RED: CA3 dispute_session participant & fee cap guards")
 def test_dispute_session_requires_participant_and_rejects_full_fee_even_when_disputed() -> None:
     engine = _setup_basic_hive()
     engine.create_service_barter_escrow(
@@ -1138,10 +1141,10 @@ def test_dispute_session_requires_participant_and_rejects_full_fee_even_when_dis
         token_state=TokenState.RAW_POLLEN,
     )
     with pytest.raises(ContractViolationError):
-        engine.dispute_session(session_id="s_disp_guard", caller_id="queen_1")  # type: ignore[attr-defined]
+        engine.dispute_session(session_id="s_disp_guard", caller_id="queen_1")
 
-    engine.dispute_session(session_id="s_disp_guard", caller_id="learner_1")  # type: ignore[attr-defined]
-    assert engine.sessions["s_disp_guard"].status == SessionStatus.DISPUTED  # type: ignore[attr-defined]
+    engine.dispute_session(session_id="s_disp_guard", caller_id="learner_1")
+    assert engine.sessions["s_disp_guard"].status == SessionStatus.DISPUTED
     engine.assert_supply_conservation()
 
     with pytest.raises(ContractViolationError, match="service_fee_rate"):
@@ -1153,9 +1156,6 @@ def test_dispute_session_requires_participant_and_rejects_full_fee_even_when_dis
         )
 
 
-@pytest.mark.xfail(
-    strict=True, reason="RED: CA3 escrow expiry boundary, caller check & LIQUID_NECTR"
-)
 def test_cancel_expired_escrow_enforces_expiry_caller_and_liquid_refund() -> None:
     engine = _setup_basic_hive()
     # Give learner_1 20 LIQUID_NECTR
@@ -1168,7 +1168,7 @@ def test_cancel_expired_escrow_enforces_expiry_caller_and_liquid_refund() -> Non
     )
     engine.settle_co_signed_session("seed_l", 1.0, "hl")
 
-    engine.create_service_barter_escrow(  # type: ignore[call-arg]
+    engine.create_service_barter_escrow(
         session_id="s_liq_exp",
         tutor_id="worker_1",
         learner_id="learner_1",
@@ -1181,19 +1181,63 @@ def test_cancel_expired_escrow_enforces_expiry_caller_and_liquid_refund() -> Non
     )
     # Not expired yet at epoch 13 (10 + 3 == 13, not > 13)
     with pytest.raises(ContractViolationError, match="expired"):
-        engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+        engine.cancel_expired_escrow(
             session_id="s_liq_exp", learner_id="learner_1", current_epoch=13
         )
     # Non-learner cannot cancel even after expiry
     with pytest.raises(ContractViolationError, match="Only learner"):
-        engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+        engine.cancel_expired_escrow(
             session_id="s_liq_exp", learner_id="worker_1", current_epoch=14
         )
     # Learner cancels at epoch 14 -> full 12.0 LIQUID_NECTR returned
-    res = engine.cancel_expired_escrow(  # type: ignore[attr-defined]
+    res = engine.cancel_expired_escrow(
         session_id="s_liq_exp", learner_id="learner_1", current_epoch=14
     )
     assert res["refunded_amount"] == 12.0
     assert engine.accounts["learner_1"].liquid_nectr_balance == 20.0
-    assert engine.sessions["s_liq_exp"].status == SessionStatus.CANCELLED  # type: ignore[attr-defined]
+    assert engine.sessions["s_liq_exp"].status == SessionStatus.CANCELLED
     engine.assert_supply_conservation()
+
+
+def test_dispute_and_cancel_reject_non_escrowed_and_invalid_epoch_params() -> None:
+    engine = _setup_basic_hive()
+    with pytest.raises(ContractViolationError, match="expiry_epochs"):
+        engine.create_service_barter_escrow(
+            "bad_exp_zero",
+            "worker_1",
+            "learner_1",
+            "CS-101",
+            1.0,
+            5.0,
+            TokenState.RAW_POLLEN,
+            expiry_epochs=0,
+        )
+    with pytest.raises(ContractViolationError, match="created_at_epoch"):
+        engine.create_service_barter_escrow(
+            "bad_created",
+            "worker_1",
+            "learner_1",
+            "CS-101",
+            1.0,
+            5.0,
+            TokenState.RAW_POLLEN,
+            created_at_epoch=-1,
+        )
+
+    engine.create_service_barter_escrow(
+        "s_done", "worker_1", "learner_1", "CS-101", 1.0, 5.0, TokenState.RAW_POLLEN
+    )
+    engine.settle_co_signed_session("s_done", 1.0, "h_done")
+    with pytest.raises(
+        ContractViolationError, match="Only INTENT_ESCROWED sessions can be disputed"
+    ):
+        engine.dispute_session("s_done", caller_id="learner_1")
+    with pytest.raises(
+        ContractViolationError, match="Only INTENT_ESCROWED sessions can be cancelled"
+    ):
+        engine.cancel_expired_escrow("s_done", learner_id="learner_1", current_epoch=20)
+
+    bad_sess = engine.sessions["s_done"].to_dict()
+    bad_sess["expiry_epochs"] = 0
+    with pytest.raises(ContractViolationError, match="expiry_epochs"):
+        ServiceBarterSession.from_dict(bad_sess)

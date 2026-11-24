@@ -194,9 +194,10 @@ def test_contract_engine_adversarial_and_boundary_guards() -> None:
         engine.settle_co_signed_session("s_liq_dispute", 1.5, "bad_score")
 
     # Dispute rejections + LIQUID_NECTR refund path
-    with pytest.raises(ContractViolationError, match="Only escrowed sessions can be arbitrated"):
+    with pytest.raises(ContractViolationError, match="Only disputed sessions can be arbitrated"):
         engine.resolve_disputed_session("queen_1", "s_seed", 0.5)
 
+    engine.dispute_session("s_liq_dispute", caller_id="worker_1")
     with pytest.raises(ContractViolationError, match="tutor_share_ratio must be between 0 and 1"):
         engine.resolve_disputed_session("queen_1", "s_liq_dispute", -0.1)
 
@@ -414,6 +415,7 @@ class HiveEconomyStateMachine(RuleBasedStateMachine):
             token_state=TokenState.LIQUID_NECTR,
         )
         if disputed:
+            self.hive_a.contracts.dispute_session(sid, caller_id=learner)
             self.hive_a.contracts.resolve_disputed_session("queen_a", sid, round(share, 2))
         else:
             self.hive_a.contracts.settle_co_signed_session(sid, 0.9, f"hash_{sid}")
